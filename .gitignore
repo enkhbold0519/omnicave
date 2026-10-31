@@ -10,6 +10,7 @@
 *.lot
 *.bbl
 *.blg
+*.pdf
 
 # Local configuration and dependencies
 .env
