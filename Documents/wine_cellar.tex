@@ -63,7 +63,7 @@ Seoul, Republic of Korea\
 }
 
 \maketitle
-
+\raggedbottom
 \begin{abstract}
 The premium home appliance sector is increasingly prioritizing artificial intelligence (AI) and user experience (UX) over mere hardware specifications. In the context of luxury wine preservation, existing commercial cellars remain passive climate-control units, while third-party software solutions suffer from high interaction friction and a lack of physical-digital synchronization. To address these bottlenecks, this paper presents an AI-driven, transparent-display-integrated wine cellar management system designed for high-end collections. Our system introduces a robust Vision AI pipeline for automated label recognition and spatial mapping, effectively eliminating manual inventory tracking even for flexibly stacked bottles. Furthermore, we implement a privacy-preserving, on-device Multi-Agent Small Language Model (SLM) architecture. By leveraging a quantized 4-bit base model with dynamic Low-Rank Adaptation (LoRA) swapping on a low-power Neural Processing Unit (NPU), the system generates persona-driven expert dialogues, dynamic food pairings, and personalized daily briefings without violating the stringent thermal and memory constraints of the appliance. Ultimately, this architecture transforms the traditional wine cellar from a passive storage unit into an actively managed, hyper-personalized asset management ecosystem.
 \end{abstract}
@@ -72,27 +72,25 @@ The premium home appliance sector is increasingly prioritizing artificial intell
 Smart Home Appliance, Edge AI, Vision AI, Small Language Model (SLM), Low-Rank Adaptation (LoRA), Wine Management System, Human-Computer Interaction (HCI)
 \end{IEEEkeywords}
 
-% Keep the role table directly after the abstract instead of floating it.
-\par\medskip
-\begingroup
-\small
+\par\smallskip
+\noindent\begin{minipage}{\columnwidth}
+\centering
 \refstepcounter{table}\label{tab:role-assignments}
-\begin{center}
-Table \arabic{table}. Role Assignments\par\smallskip
-\renewcommand{\arraystretch}{1.6}
-\begin{tabularx}{\columnwidth}{|>{\raggedright\arraybackslash}p{0.27\columnwidth}|>{\raggedright\arraybackslash}p{0.18\columnwidth}|X|}
+{\footnotesize TABLE \Roman{table}. \textit{Role Assignments}\par}
+\smallskip
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.05}
+\begin{tabularx}{\columnwidth}{|>{\raggedright\arraybackslash}p{0.24\columnwidth}|>{\raggedright\arraybackslash}p{0.19\columnwidth}|X|}
 \hline
 \multicolumn{1}{|c|}{Roles} & \multicolumn{1}{c|}{Name} & \multicolumn{1}{c|}{Task description and etc.} \\
-\hline{User} & Chiang Jun Han & Describe typical user scenarios and workflows. Identify usability problems and practical needs. Try prototypes and provide feedback.\\[0.6em]
-\hline{Customer} & Naomi K. Fossaberg & Define the project's purpose and desired outcomes. Prioritize requirements and features. Evaluate whether the final solution meets the agreed requirements. \\[0.6em]
-\hline{Software developer} & Enkhbold Myagmarjav & Design and implement software components. Write and review code. Test functionality and fix bugs. \\[0.6em]
-\hline{Development manager} & Sungbin Bae & Plan tasks, milestones, and deadlines. Coordinate collaboration and monitor progress. Identify risks and help resolve blockers.\\[0.6em]
+\hline{User} & Chiang Jun Han & Describe typical user scenarios and workflows. Identify usability problems and practical needs. Try prototypes and provide feedback.\\
+\hline{Customer} & Naomi K. Fossaberg & Define the project's purpose and desired outcomes. Prioritize requirements and features. Evaluate whether the final solution meets the agreed requirements. \\
+\hline{Software developer} & Enkhbold Myagmarjav & Design and implement software components. Write and review code. Test functionality and fix bugs. \\
+\hline{Development manager} & Sungbin Bae & Plan tasks, milestones, and deadlines. Coordinate collaboration and monitor progress. Identify risks and help resolve blockers.\\
 \hline
 \end{tabularx}
-\end{center}
-\endgroup
-
-
+\end{minipage}\par\smallskip
 
 
 \section{INTRODUCTION}
