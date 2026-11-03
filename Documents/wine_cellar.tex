@@ -124,7 +124,7 @@ The key contributions of this work are summarized as follows:
     \item \textbf{Multi-Device Distributed Scalability:} Establishes a synchronized system architecture that seamlessly unifies multiple physical cellar units under a single user profile. Leveraging cloud centralization, it guarantees real-time synchronization between the mobile application and the appliance, eradicating tracking discrepancies.
 \end{itemize}
 
-\section{REQUIREMENTS SPECIFICATION}
+\section{REQUIREMENTS}
 
 \subsection{Functional Requirements}
 
@@ -431,5 +431,346 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
 
 
 \section{Specifications}
+
+\subsection{Functional Requirements}
+
+\subsubsection{User Management}
+\begin{itemize}
+    \item Sign-Up
+    \begin{itemize}
+        \item Email Input
+        \begin{itemize}
+            \item Description: Users enter their email with the proper format.
+            \item Input format: [useremail]@[somemailform].[com/kr/dk/other].
+            \item Validation: Check that the email input contains valid characters and verify that it follows a correct email format before allowing submission.
+        \end{itemize}
+        \item Password Input
+        \begin{itemize}
+            \item Description: Users set a password and re-enter it for confirmation.
+            \item Input format: Minimum 8 characters, requiring at least 1 lowercase letter, 1 uppercase letter, 1 number, and 1 special character.
+            \item Validation: Ensure that the password meets the minimum security requirements.
+            \item Validation: Confirm that both password inputs match.
+        \end{itemize}
+        \item Sign-Up Button
+        \begin{itemize}
+            \item Behaviour: Disabled until all inputs, including email and password, are valid.
+            \item Action: Completes registration when all inputs are valid and redirects the user to the Log-In screen.
+        \end{itemize}
+    \end{itemize}
+
+    \item Log-In
+    \begin{itemize}
+        \item Email Input
+        \begin{itemize}
+            \item Description: Prompts users to enter their email with the proper format.
+            \item Input format: Accepts only valid email formats: [useremail]@[somemailform].[com/kr/dk/other].
+            \item Validation: Check that the email input follows a valid email format and is registered before allowing submission.
+        \end{itemize}
+        \item Password Input
+        \begin{itemize}
+            \item Description: Prompts users to enter their password.
+            \item Input format: Password inputs are hidden and displayed as asterisks (*) to ensure privacy.
+            \item Validation: Ensure that the password input meets the minimum security requirements and matches the user's registered password.
+        \end{itemize}
+        \item Log-In Button
+        \begin{itemize}
+            \item Action: Authenticates users with the provided email and password.
+            \item On Success: Redirects users to the Main page.
+            \item On Failure: Displays the error message: “Invalid email or password”.
+        \end{itemize}
+    \end{itemize}
+
+    \item Logout
+    \begin{itemize}
+        \item Description: Allows authenticated users to securely end their current session.
+        \item Logout Button
+        \begin{itemize}
+            \item Action: Clicking the “Log Out” button terminates the user's session, removes the active authentication token, and redirects the user to the login screen.
+        \end{itemize}
+    \end{itemize}
+
+    \item Edit User Profile
+    \begin{itemize}
+        \item Description: Allows authenticated users to view and modify their personal account information.
+        \item Feature: A profile management page displays editable fields, such as email address and password, alongside a “Save Changes” button.
+        \item Action: After modifying their information, clicking “Save Changes” validates and updates the information in the database. A confirmation message is displayed when the changes are successful.
+    \end{itemize}
+\end{itemize}
+
+
+\subsubsection{Inventory Mapping}
+\begin{itemize}
+    \item Automatic Wine Bottle Detection
+    \begin{itemize}
+        \item Description: Automatically identifies wine bottles placed inside the wine cellar using computer vision.
+        \item Feature: A camera continuously or periodically captures images of the cellar. A computer vision model detects individual wine bottles and identifies their positions within the captured images.
+        \item Action: When a new bottle is detected, the system initiates the wine identification and registration process.
+    \end{itemize}
+
+    \item Wine Label Recognition
+    \begin{itemize}
+        \item Description: Extracts wine information from the labels of detected bottles using AI-based image recognition.
+        \item Feature: Analyses the detected bottle labels to extract information, including wine name, winery, region, vintage, and grape variety.
+        \item Action: After extracting the information, the system displays the recognised details for verification before registering the bottle.
+    \end{itemize}
+
+    \item Automatic Bottle Registration
+    \begin{itemize}
+        \item Description: Automatically adds newly detected wine bottles to the user's inventory after registration is confirmed.
+        \item Feature: A registration interface displays the detected wine information, bottle image, and assigned storage location.
+        \item Action: After the user confirms the extracted information, the system creates a new inventory record and updates the cellar inventory.
+    \end{itemize}
+
+    \item Physical Location Mapping
+    \begin{itemize}
+        \item Description: Automatically associates each detected wine bottle with its physical storage location inside the cellar.
+        \item Feature: Each bottle is assigned a storage coordinate based on its position within the cellar, such as shelf, row, and column.
+        \item Action: When a bottle is registered, the system saves its physical coordinates and displays its position on the visual cellar map.
+    \end{itemize}
+
+    \item Automatic Bottle Movement Detection
+    \begin{itemize}
+        \item Description: Detects when an existing wine bottle is moved to a different position within the cellar.
+        \item Feature: The computer vision system compares successive camera images to identify changes in bottle positions.
+        \item Action: When a previously registered bottle is detected in a new location, the system updates its corresponding storage coordinates in the inventory.
+    \end{itemize}
+
+    \item Unique Bottle Identification
+    \begin{itemize}
+        \item Description: Assigns a unique identifier to every physical wine bottle to prevent duplicate inventory records.
+        \item Feature: Each registered bottle receives a unique bottle ID that is linked to its wine information and physical storage location.
+        \item Action: When a bottle is detected again, the system checks existing inventory records to identify whether it has already been registered before creating another record.
+    \end{itemize}
+
+    \item Review and Correct Wine Information
+    \begin{itemize}
+        \item Description: Allows authenticated users to review and correct information extracted from wine labels before confirming registration.
+        \item Feature: A wine information confirmation interface displays the AI-extracted details in editable fields.
+        \item Action: Users can modify incorrect or incomplete information and select “Confirm” to save the corrected bottle information to the inventory.
+    \end{itemize}
+
+    \item Stacked Bottle Detection
+    \begin{itemize}
+        \item Description: Detects wine bottles that are stacked or partially obscured by other bottles inside the cellar.
+        \item Feature: The computer vision system analyses overlapping bottle shapes and visible label regions to identify individual bottles.
+        \item Action: When stacked bottles are detected, the system attempts to identify each bottle separately and requests manual verification when individual identification is uncertain.
+    \end{itemize}
+
+    \item Automatic Bottle Removal Detection
+    \begin{itemize}
+        \item Description: Detects when a registered wine bottle has been removed from the cellar.
+        \item Feature: The system compares newly captured images with previously recorded bottle positions to identify missing bottles.
+        \item Action: When a bottle is no longer detected, the system flags it as potentially removed and updates its inventory status after verification.
+    \end{itemize}
+
+    \item Manual Bottle Registration
+    \begin{itemize}
+        \item Description: Allows authenticated users to manually add wine bottles that cannot be automatically detected or recognised.
+        \item Feature: An “Add Bottle” button opens a form containing fields for wine name, winery, region, vintage, grape variety, and storage location.
+        \item Action: After entering the required information and clicking “Save”, the system generates a unique bottle ID and adds the bottle to the inventory.
+    \end{itemize}
+
+    \item Manual Bottle Modification
+    \begin{itemize}
+        \item Description: Allows authenticated users to modify the information associated with an existing wine bottle.
+        \item Feature: Selecting a bottle opens an editable information page containing its wine details and physical storage location.
+        \item Action: After modifying the information, clicking “Save Changes” updates the corresponding inventory record.
+    \end{itemize}
+
+    \item Manual Bottle Removal
+    \begin{itemize}
+        \item Description: Allows authenticated users to manually remove a wine bottle from their inventory.
+        \item Feature: Each bottle's information page contains a “Remove Bottle” option.
+        \item Action: Selecting “Remove Bottle” prompts the user for confirmation before removing the bottle from the active inventory.
+    \end{itemize}
+\end{itemize}
+
+
+\subsubsection{Inventory Search \& Visualisation}
+\begin{itemize}
+    \item Wine Inventory Search
+    \begin{itemize}
+        \item Description: Allows users to search for specific wine bottles stored in their cellar.
+        \item Feature: A search bar and filtering options allow users to search by wine name, winery, region, vintage, or grape variety.
+        \item Action: Entering a search term or selecting a filter displays all matching bottles from the inventory.
+    \end{itemize}
+
+    \item Bottle Location Display
+    \begin{itemize}
+        \item Description: Displays the exact physical storage location of a selected wine bottle.
+        \item Feature: Each bottle's information page displays its corresponding cellar location, including shelf, row, and column.
+        \item Action: Selecting a bottle from the inventory highlights its physical position within the cellar.
+    \end{itemize}
+
+    \item Visual Cellar Map
+    \begin{itemize}
+        \item Description: Provides a graphical representation of all wine bottles stored inside the wine cellar.
+        \item Feature: An interactive cellar map displays the storage arrangement using a visual grid. Each position represents a physical bottle location.
+        \item Action: Users can select individual bottles on the map to view their wine information and storage details.
+    \end{itemize}
+\end{itemize}
+
+
+\subsubsection{Environmental Monitoring}
+\begin{itemize}
+    \item Real-Time Environmental Data Collection
+    \begin{itemize}
+        \item Description: Continuously collects environmental measurements from sensors installed inside the wine cellar.
+        \item Feature: Temperature and humidity sensors transmit environmental measurements to the system through a connected microcontroller.
+        \item Action: Upon receiving sensor readings, the system processes and displays the latest temperature and humidity values on the dashboard.
+    \end{itemize}
+
+    \item Cellar Environment History
+    \begin{itemize}
+        \item Description: Stores historical environmental measurements to allow users to monitor changes in cellar conditions over time.
+        \item Feature: An environmental monitoring dashboard displays historical temperature and humidity measurements through graphical charts.
+        \item Action: Users can select a time period to view previous environmental readings and identify changes in storage conditions.
+    \end{itemize}
+
+    \item Bottle-Specific Environmental Conditions
+    \begin{itemize}
+        \item Description: Associates environmental measurements with the physical storage locations of individual wine bottles.
+        \item Feature: Each cellar location is linked to the relevant environmental sensor data or monitored storage zone.
+        \item Action: Selecting a bottle displays the environmental conditions recorded for its corresponding storage location.
+    \end{itemize}
+
+    \item Temperature and Humidity Alerts
+    \begin{itemize}
+        \item Description: Notifies users when cellar temperature or humidity exceeds their predefined limits for a specified duration.
+        \item Feature: Users can configure minimum and maximum temperature and humidity thresholds through the settings interface.
+        \item Action: When environmental measurements exceed the configured thresholds continuously for the specified duration, the system generates a notification to alert the user.
+    \end{itemize}
+
+    \item Sensor Disconnection Alerts
+    \begin{itemize}
+        \item Description: Notifies users when environmental sensors become disconnected or stop transmitting updated measurements.
+        \item Feature: The system monitors the latest communication timestamp from each connected sensor.
+        \item Action: When a sensor fails to transmit data within the configured timeout period, the system displays a sensor disconnection or outdated data notification.
+    \end{itemize}
+\end{itemize}
+
+
+\subsubsection{AI Recommendations}
+\begin{itemize}
+    \item Meal-Based Wine Recommendations
+    \begin{itemize}
+        \item Description: Suggests suitable wines from the user's existing inventory based on the meal they intend to consume.
+        \item Feature: A meal input field allows users to describe their meal, ingredients, or preferred cuisine. The AI recommendation interface displays suitable wine selections.
+        \item Action: After submitting the meal information, the system analyses the available inventory and generates wine pairing recommendations with explanations.
+    \end{itemize}
+
+    \item Wine-Based Food Pairing
+    \begin{itemize}
+        \item Description: Recommends complementary food options for a specific wine selected from the user's inventory.
+        \item Feature: Selecting a wine provides suggested food pairings, culinary recipes, and relevant food delivery menu categories.
+        \item Action: After selecting a wine, the system generates suitable food recommendations based on its characteristics, such as grape variety, flavour profile, and acidity.
+    \end{itemize}
+
+    \item Optimal Drinking Window Recommendations
+    \begin{itemize}
+        \item Description: Identifies bottles that have reached their recommended drinking window.
+        \item Feature: The wine information page displays the estimated drinking window and indicates whether a bottle is ready to drink.
+        \item Action: The system compares the current date with the available drinking-window information and recommends bottles that have reached their optimal drinking period.
+    \end{itemize}
+
+    \item Drinking Window Notifications
+    \begin{itemize}
+        \item Description: Notifies users when their stored wines are approaching their recommended drinking windows.
+        \item Feature: A notification section displays wines that are approaching their estimated optimal drinking periods.
+        \item Action: When a bottle reaches the configured notification period before its drinking window, the system generates an alert recommending that the user consider consuming it.
+    \end{itemize}
+
+    \item Personalised Wine Recommendations
+    \begin{itemize}
+        \item Description: Generates wine recommendations based on the user's historical consumption patterns and preferences.
+        \item Feature: The recommendation system considers previously consumed wines, saved preferences, and wine ratings or feedback.
+        \item Action: When a user requests recommendations, the system analyses their historical consumption data and suggests wines matching their preferences.
+    \end{itemize}
+
+    \item Customised Wine List Generation
+    \begin{itemize}
+        \item Description: Allows users to request a curated wine list based on specific requirements.
+        \item Feature: A wine list generator provides input fields for target budget, flavour profile, occasion, or event theme.
+        \item Action: After submitting the selected constraints, the system filters available wines and generates a customised wine list.
+    \end{itemize}
+
+    \item Inventory and External Wine Recommendations
+    \begin{itemize}
+        \item Description: Generates a wine list using both the user's existing inventory and external wine databases for potential purchases.
+        \item Feature: Recommendation results are divided into two categories: wines currently available in the cellar and suggested wines available for purchase.
+        \item Action: The system first identifies suitable wines from the existing inventory. When additional options are required, it retrieves matching wines from external databases and displays them alongside the existing inventory recommendations.
+    \end{itemize}
+
+    \item Recommended Storage Location
+    \begin{itemize}
+        \item Description: Suggests suitable physical storage locations for newly added wine bottles.
+        \item Feature: The system considers available cellar space, storage zones, and relevant wine storage requirements when recommending a location.
+        \item Action: After a new bottle is identified, the system suggests an available storage position for the user to confirm.
+    \end{itemize}
+
+    \item LLM-Based Wine Recommendations
+    \begin{itemize}
+        \item Description: Allows users to request wine recommendations through natural-language queries.
+        \item Feature: An AI chat interface allows users to ask questions about wine selections, characteristics, preferences, and recommendations.
+        \item Action: When a user submits a query, the LLM processes the request and retrieves relevant inventory or wine information to generate a contextual response.
+    \end{itemize}
+
+    \item Daily Wine News Briefing
+    \begin{itemize}
+        \item Description: Provides users with daily updates and news related to wine, wine storage, and wine preservation.
+        \item Feature: A daily briefing section displays selected wine-related news, articles, and short AI-generated summaries.
+        \item Action: The system retrieves relevant news from external sources, summarises the information, and presents the latest briefing on the front display.
+    \end{itemize}
+\end{itemize}
+
+
+\subsubsection{Real-Time Market Value Integration}
+\begin{itemize}
+    \item External Wine Market Price Retrieval
+    \begin{itemize}
+        \item Description: Retrieves market pricing information for the specific wines and vintages stored in the user's cellar.
+        \item Feature: The system connects to external wine market data providers, such as Wine-Searcher, to retrieve available pricing information.
+        \item Action: The system periodically requests pricing data using the wine name, producer, and vintage, then associates the returned market prices with the corresponding inventory records.
+    \end{itemize}
+
+    \item Aggregated Collection Market Value
+    \begin{itemize}
+        \item Description: Calculates and displays the estimated total market value of the user's entire wine collection.
+        \item Feature: A collection value dashboard displays the estimated monetary value of individual bottles and the aggregated collection.
+        \item Action: The system retrieves the latest available market prices, calculates the estimated value of each bottle, and combines the results to display the total collection value on the front display.
+    \end{itemize}
+
+    \item Historical Market Price Trends
+    \begin{itemize}
+        \item Description: Visualises historical market prices and value appreciation for individual wine bottles.
+        \item Feature: A graphical chart displays historical price movements for a selected wine over time.
+        \item Action: Selecting a bottle opens its market value history, allowing users to view historical prices and compare changes in estimated value.
+    \end{itemize}
+\end{itemize}
+
+
+\subsubsection{Multi-Cellar Management}
+\begin{itemize}
+    \item Multiple Cellar Registration and Management
+    \begin{itemize}
+        \item Description: Allows users to manage multiple wine cellar units under a single account.
+        \item Feature: A cellar management interface displays all registered cellar units, with options to add, rename, select, or manage individual cellars.
+        \item Action: Users can register additional cellar units and switch between them to view and manage their respective inventories.
+    \end{itemize}
+
+    \item Cross-Cellar Inventory Synchronisation
+    \begin{itemize}
+        \item Description: Synchronises inventory information across all wine cellars connected to the same user account.
+        \item Feature: Each cellar maintains its own inventory records while sharing the user's centralised database.
+        \item Action: When a bottle is added, removed, or moved in one cellar, the system updates the central inventory and makes the changes available to other connected devices.
+    \end{itemize}
+
+    \item Cross-Cellar Inventory Search
+    \begin{itemize}
+        \item Description: Allows users to search for wine bottles across all connected cellars simultaneously.
+        \item Feature: A search interface provides an option to search either an individual cellar or all registered cellars.
+        \item Action: When the user selects “All Cellars” and enters a search term, the system retrieves matching bottles from every connected cellar and displays their respective storage locations.
+    \end{itemize}
+\end{itemize}
 
 \end{document}
