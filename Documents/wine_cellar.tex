@@ -10,6 +10,7 @@
 \usepackage{xcolor}
 \usepackage{enumitem}
 \usepackage{tabularx}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \begin{document}
@@ -46,7 +47,7 @@ Seoul, Republic of Korea\\
 \textit{and Electronic Engineering}\\
 Nanyang Technological\\
 University\\
-Singapore\
+Singapore\\
 {\footnotesize jchiang009@e.ntu.edu.sg}
 \end{minipage}%
 \hfill
@@ -56,7 +57,7 @@ Singapore\
 \textit{Department of}\
 \textit{Mathematics}\\
 Hanyang University\\
-Seoul, Republic of Korea\
+Seoul, Republic of Korea\\
 {\footnotesize charliepro@hanyang.ac.kr}
 \end{minipage}%
 }
@@ -81,19 +82,18 @@ Smart Home Appliance, Cloud Computing, Vision AI, Large Language Model (LLM), Lo
 \footnotesize
 \setlength{\tabcolsep}{3pt}
 \renewcommand{\arraystretch}{1.05}
-\begin{tabularx}{\columnwidth}{|>{\raggedright\arraybackslash}p{0.24\columnwidth}|>{\raggedright\arraybackslash}p{0.19\columnwidth}|X|}
+\begin{tabularx}{\columnwidth}{|>{\raggedright\arraybackslash}p{0.24\columnwidth}|>{\raggedright\arraybackslash}p{0.19\columnwidth}|Y|}
 \hline
 \multicolumn{1}{|c|}{Roles} & \multicolumn{1}{c|}{Name} & \multicolumn{1}{c|}{Task description and etc.} \\
-\hline{User} & Chiang Jun Han & Describe typical user scenarios and workflows. Identify usability problems and practical needs. Try prototypes and provide feedback.\\
-\hline{Customer} & Naomi K. Fossaberg & Define the project's purpose and desired outcomes. Prioritize requirements and features. Evaluate whether the final solution meets the agreed requirements. \\
-\hline{Software developer} & Enkhbold Myagmarjav & Design and implement software components. Write and review code. Test functionality and fix bugs. \\
-\hline{Development manager} & Sungbin Bae & Plan tasks, milestones, and deadlines. Coordinate collaboration and monitor progress. Identify risks and help resolve blockers.\\
+\hline User & Chiang Jun Han & Describe typical user scenarios and workflows. Identify usability problems and practical needs. Try prototypes and provide feedback. \\
+\hline Customer & Naomi K. Fossaberg & Define the project's purpose and desired outcomes. Prioritize requirements and features. Evaluate whether the final solution meets the agreed requirements. \\
+\hline Software developer & Enkhbold Myagmarjav & Design and implement software components. Write and review code. Test functionality and fix bugs. \\
+\hline Development manager & Sungbin Bae & Plan tasks, milestones, and deadlines. Coordinate collaboration and monitor progress. Identify risks and help resolve blockers. \\
 \hline
 \end{tabularx}
 \end{minipage}\par\smallskip
 
-
-\section{INTRODUCTION}
+\section{Introduction}
 
 \subsection{Motivation}
 In recent years, the premium home appliance market has undergone a fundamental paradigm shift, transitioning from pure hardware performance competition toward elevating user experience (UX) through Cloud-based Artificial Intelligence (AI) and the seamless connectivity of the Internet of Things (IoT). High-end luxury product lines, such as LG SIGNATURE, incur substantial hardware manufacturing costs, thereby demanding sophisticated, cloud-backed software capabilities that deliver commensurate value to justify their premium positioning. Concurrently, the global expansion of the fine wine market has driven rapid demand for specialized home wine cellars driven by AI management. However, existing commercial wine cellars remain passive, isolated appliances limited to fundamental condition control (temperature, humidity regulation, anti-vibration, and so on), failing to leverage vast cloud computing resources to satisfy the sophisticated digital management needs of modern fine wine collectors.
@@ -109,7 +109,7 @@ The primary target demographic for luxury wine cellars consists of high-net-wort
 An analysis of existing wine management software (e.g., Vivino, CellarTracker) and proprietary cellar tracking apps reveals distinct functional limitations when applied to high-end collections:
 \begin{itemize}
     \item \textbf{Absence of Spatial Awareness:} Most commercial applications function merely as flat digital ledgers or list-based inventories. They lack a robust spatial mapping mechanism that correlates a specific bottle's data with its exact physical coordinates (e.g., specific racks and rows) within the cellar, inevitably forcing users to manually search through shelves.
-    \item \textbf{Static Data without Environmental Context:} Existing software operates completely independently of the cellar's internal hardware sensors. Consequently, they cannot factor real-time environmental data—such as multi-zone temperature differences—into their aging algorithms or serving readiness calculations.
+    \item \textbf{Static Data without Environmental Context:} Existing software operates completely independently of the cellar's internal hardware sensors. Consequently, they cannot factor real-time environmental data---such as multi-zone temperature differences---into their aging algorithms or serving readiness calculations.
     \item \textbf{Reactive and Monotone User Experience:} Current tools are inherently reactive, requiring users to explicitly query the database to check a wine's optimal drinking window or food pairing suitability. Furthermore, they rely on static text reviews, lacking the proactive intelligence and dynamic, expert-level engagement necessary to autonomously curate an immersive experience.
 \end{itemize}
 
@@ -120,11 +120,11 @@ The key contributions of this work are summarized as follows:
 \begin{itemize}
     \item \textbf{Vision AI and Automated Spatial Mapping:} Integrates a robust vision pipeline to extract label and vintage data. Upon insertion, an automated placement mechanism registers the bottle's location. This extends beyond rigid 2D grids, possessing the capability to accurately map bottles even when they are flexibly stacked on top of one another without discrete rack partitions.
     \item \textbf{Cloud-Backed Multi-Agent LLM Architecture:} Replaces resource-constrained edge computing with a high-performance cloud backend (LG Datacenter). This paradigm shift allows the system to deploy massive, state-of-the-art Large Language Models (LLMs) without imposing any thermal, processing, or memory constraints on the cellar appliance itself. The cloud architecture seamlessly orchestrates multi-agent dialogues among critic personas, ensuring hyper-personalized, expert-level interactive experiences.
-    \item \textbf{AI-Driven UX Enhancement:} Transcending basic touch interactions, the cloud-integrated AI engine drastically elevates the overall user experience. By analyzing multidimensional real-time data, the system proactively offers a broad spectrum of personalized management features—such as optimal drinking window alerts and dynamic food pairings—transforming passive wine storage into an actively managed ecosystem.
+    \item \textbf{AI-Driven UX Enhancement:} Transcending basic touch interactions, the cloud-integrated AI engine drastically elevates the overall user experience. By analyzing multidimensional real-time data, the system proactively offers a broad spectrum of personalized management features---such as optimal drinking window alerts and dynamic food pairings---transforming passive wine storage into an actively managed ecosystem.
     \item \textbf{Multi-Device Distributed Scalability:} Establishes a synchronized system architecture that seamlessly unifies multiple physical cellar units under a single user profile. Leveraging cloud centralization, it guarantees real-time synchronization between the mobile application and the appliance, eradicating tracking discrepancies.
 \end{itemize}
 
-\section{REQUIREMENTS}
+\section{Requirements}
 
 \subsection{Functional Requirements}
 
@@ -184,7 +184,7 @@ The key contributions of this work are summarized as follows:
 \begin{itemize}
     \item The system shall aggregate daily global wine news, vintage reports, and market trends from external web sources and APIs.
     \item The system shall personalize the aggregated news content by cross-referencing it with the user's specific cellar inventory, highlighting articles relevant to their owned regions, grapes, or producers.
-    \item The system shall automatically curate and display a "Daily Wine Briefing" on the cellar's front display, including inventory-specific insights (e.g., wines reaching their peak, humidity stability).
+    \item The system shall automatically curate and display a ``Daily Wine Briefing'' on the cellar's front display, including inventory-specific insights (e.g., wines reaching their peak, humidity stability).
     \item The system shall send a summarized version of the daily briefing as a push notification to the user's synchronized mobile application at a user-defined time.
 \end{itemize}
 
@@ -273,7 +273,7 @@ The key contributions of this work are summarized as follows:
 \subsubsection{Development Operating Systems}
 \begin{itemize}
     \item \textbf{Windows 11 with WSL2 (Ubuntu 22.04.5 LTS):} Windows 11 is selected as the primary development operating system for the backend and the integrated display because it runs all of the main project tools, including Visual Studio Code, Android Studio, Docker, and Git. Windows Subsystem for Linux 2 (WSL2) provides a full Ubuntu environment alongside Windows without a separate virtual machine, and is used for Python development, dependency management, and Docker-based workflows. Because the AWS EC2 server also runs Ubuntu, developing in WSL2 reduces differences between local and cloud environments.
-    \item \textbf{macOS Golden Gate (27.2):} macOS is selected for the native iOS application because Apple's development tools, including Xcode, the Swift compiler, SwiftUI, and the iOS Simulator, are only available on macOS. Building and testing an iOS application therefore requires at least one macOS machine within the team. Its Unix-based architecture also provides a terminal environment similar to Linux, allowing the same command-line tools and Git workflow used for the other components to be applied without modification.
+    \item \textbf{macOS Tahoe 26.6.1:} macOS is selected for the native iOS application because Apple's development tools, including Xcode, the Swift compiler, SwiftUI, and the iOS Simulator, are only available on macOS. Building and testing an iOS application therefore requires at least one macOS machine within the team. Its Unix-based architecture also provides a terminal environment similar to Linux, allowing the same command-line tools and Git workflow used for the other components to be applied without modification.
 \end{itemize}
 
 \subsubsection{Target Operating Systems}
@@ -296,8 +296,8 @@ The key contributions of this work are summarized as follows:
 \begin{itemize}
     \item \textbf{Amazon Web Services (AWS) -- Amazon EC2:} While the commercial deployment of the system is designed to leverage the enterprise-grade infrastructure of LG Datacenter for security and ecosystem integration, Amazon Web Services (AWS) EC2 is selected as the cloud hosting environment for the development and prototyping phase. EC2 provides configurable virtual machines that effectively simulate a corporate datacenter environment with full control over the operating system, networking, and deployed software. A single Linux t3.small instance runs the FastAPI backend and the PostgreSQL database in separate Docker containers coordinated by Docker Compose. Mirroring the target architecture---where heavy LLM inference is offloaded to dedicated GPU clusters within the LG Datacenter---the prototype delegates language model processing to external API services. Consequently, no GPU is required on this specific hosting instance, making the 2 vCPU and 2 GB RAM configuration highly efficient and sufficient for demonstrating the core backend logic. This architecture successfully provides one central backend that seamlessly synchronizes the integrated thin-client display and the companion mobile applications.
     \item \textbf{Vercel:} Vercel is selected to host the React-based integrated display because it specializes in deploying frontend web applications and supports Vite projects without additional configuration. Its GitHub integration automatically builds and deploys the application when changes are pushed, and creates preview deployments for branches so that interface changes can be reviewed before merging. The deployed display retrieves inventory, cellar status, environmental readings, and AI results from the FastAPI backend. Hosting the frontend separately allows it to be developed and deployed independently of the backend.
-    \item \textbf{Hugging Face Inference Providers (Testing Phase):} Hugging Face’s free inference tier is selected for initial development and testing because it provides API access to open-weight language models without cost or the need for a dedicated GPU server. The team utilizes an instruction-tuned open-weight model (e.g., Qwen2.5-7B-Instruct) to iteratively design and debug prompts, critic personas, and the multi-agent dialogue flow for wine recommendations and food pairings. Because the free tier includes only limited monthly usage credits and offers no guaranteed response times, it is strictly isolated to the development environment.
-    \item \textbf{OpenAI API (Prototype Deployment \& Cloud Simulation):} While the ultimate commercial system is intended to utilize proprietary, highly secure LLMs hosted within the LG Datacenter, the OpenAI API is selected for the deployed prototype to accurately simulate this enterprise-grade cloud environment. The OpenAI API offers the reliable, low-latency, and high-quality inference required to demonstrate the final user experience. The team utilizes a cost-efficient model suited for rapid reasoning, such as GPT-5 mini, to handle recommendation, food pairing, and critic dialogue tasks. For each request, the FastAPI backend retrieves relevant inventory data and user preferences from PostgreSQL, builds persona-specific prompts, and combines the critic responses into a stored conversation. Furthermore, token streaming is implemented to drastically shorten the perceived time until the first response appears on the thin-client display.     
+    \item \textbf{Hugging Face Inference Providers (Testing Phase):} Hugging Face's free inference tier is selected for initial development and testing because it provides API access to open-weight language models without cost or the need for a dedicated GPU server. The team utilizes an instruction-tuned open-weight model (e.g., Qwen2.5-7B-Instruct) to iteratively design and debug prompts, critic personas, and the multi-agent dialogue flow for wine recommendations and food pairings. Because the free tier includes only limited monthly usage credits and offers no guaranteed response times, it is strictly isolated to the development environment.
+    \item \textbf{OpenAI API (Prototype Deployment \& Cloud Simulation):} While the ultimate commercial system is intended to utilize proprietary, highly secure LLMs hosted within the LG Datacenter, the OpenAI API is selected for the deployed prototype to accurately simulate this enterprise-grade cloud environment. The OpenAI API offers the reliable, low-latency, and high-quality inference required to demonstrate the final user experience. The team utilizes a cost-efficient model suited for rapid reasoning, such as GPT-5 mini, to handle recommendation, food pairing, and critic dialogue tasks. For each request, the FastAPI backend retrieves relevant inventory data and user preferences from PostgreSQL, builds persona-specific prompts, and combines the critic responses into a stored conversation. Furthermore, token streaming is implemented to drastically shorten the perceived time until the first response appears on the thin-client display.
     \item \textbf{Architectural Decoupling:} Crucially, both LLM providers are accessed through a unified backend interface. This decoupled architecture ensures that transitioning from the local testing phase to the OpenAI prototype, and eventually to the commercial LG Datacenter LLM, requires only a simple configuration change without refactoring the core backend logic.
 \end{itemize}
 
@@ -308,6 +308,7 @@ The key contributions of this work are summarized as follows:
     \item \textbf{Android Studio Rabbit 2 (2026.2.2):} Android Studio is selected for the native Android application because it is Google's official IDE and provides integrated support for Kotlin, Jetpack Compose, Gradle, and the Android SDK. Compose previews allow screens to be inspected without launching the full application, and built-in profiling tools help identify performance issues. The Android Emulator is used to test the application across different device configurations and Android versions, while physical-device testing verifies behavior under practical network and hardware conditions.
     \item \textbf{Docker Engine (29.9.2) and Docker Compose (5.7.0):} Docker is selected to package the backend services and their dependencies into containers, ensuring that the same configuration runs on every developer's machine and on the AWS EC2 server. The FastAPI backend and PostgreSQL database run in separate containers, so each can be updated or restarted independently. Docker Compose defines both containers, their internal network, environment variables, and persistent storage volumes in a single file. Any team member can start the complete backend locally with one command, and the same configuration is used for deployment.
     \item \textbf{Git (2.34.1) and GitHub:} Git is selected as the version control system because several components are developed in parallel while sharing one source code history. Each feature is developed on a separate branch and integrated through merging, while the commit history allows previous versions to be restored when necessary. GitHub hosts the central repository and adds pull requests, code reviews, and issue tracking. The repository contains separate directories for the backend, integrated display, Android application, iOS application, and documentation, and its Vercel integration automatically deploys the integrated display.
+    \item \textbf{Jira:} Jira is selected for project planning and task tracking because it provides a shared workspace for organizing development activities. The team will use it to maintain the backlog, divide requirements into tasks, assign responsibilities, set priorities, and track bugs. Boards will show the progress of backend, integrated display, mobile application, and AI integration tasks. Each task will include a description, an assignee, and acceptance criteria, helping team members coordinate their work and identify unfinished dependencies.
     \item \textbf{Figma:} Figma is selected for interface design and prototyping because it is a browser-based tool that allows all team members to edit the same designs in real time. The project requires a consistent user experience across the integrated display and two native mobile applications, and Figma's shared components and styles allow common elements such as colors, typography, and wine information cards to be defined once and reused. Interactive prototypes allow navigation and user flows to be evaluated before implementation, reducing interface changes during development.
     \item \textbf{Draw.io (diagrams.net):} Draw.io is selected to create technical diagrams because it is free, runs in the browser, and stores diagrams in a format that can be tracked in the Git repository. It is used to represent the system's components, including the wine cellar controller, integrated display, FastAPI backend, PostgreSQL database, AI services, and mobile applications, along with the communication paths between them. It is also used to prepare data flow diagrams and process flowcharts for the specification and design documents.
     \item \textbf{LaTeX:} LaTeX is selected for the project documentation because it produces consistently formatted technical documents and handles tables, figures, equations, and references reliably. The team uses the IEEE conference template, as required for the course, to organize the introduction, requirements, development environment, specifications, and subsequent documentation. Because LaTeX documents are plain text, the source files are stored in the GitHub repository alongside the software, allowing documentation changes to be tracked and reviewed in the same way as source code.
@@ -331,13 +332,13 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
 \footnotesize
 \setlength{\tabcolsep}{3pt}
 \renewcommand{\arraystretch}{1.05}
-\begin{tabularx}{\columnwidth}{|>{\raggedright\arraybackslash}p{0.24\columnwidth}|X|>{\raggedright\arraybackslash}p{0.16\columnwidth}|>{\raggedright\arraybackslash}p{0.12\columnwidth}|}
+\begin{tabularx}{\columnwidth}{|>{\raggedright\arraybackslash}p{0.24\columnwidth}|Y|>{\raggedright\arraybackslash}p{0.16\columnwidth}|>{\raggedright\arraybackslash}p{0.12\columnwidth}|}
 \hline
 \multicolumn{1}{|c|}{Resource} & \multicolumn{1}{c|}{Device / OS} & \multicolumn{1}{c|}{CPU} & \multicolumn{1}{c|}{RAM} \\
-\hline Naomi K. Fossaberg & & & \\
+\hline Naomi K. Fossaberg & MacBook Air 13-inch (2024), macOS Tahoe 26.6.1 & Apple M3 & 16 GB \\
 \hline Enkhbold Myagmarjav & ASUS Zenbook 14 (UX3405MA), Windows 11 Home (Build 26300) & Intel Core Ultra 7 155H (16 cores, 22 threads) & 16 GB \\
-\hline Chiang Jun Han & & & \\
-\hline Sungbin Bae & & & \\
+\hline Chiang Jun Han & Windows 11 Home 25H2& Intel Core i9-13900H (2.60Ghz) & 32 GB \\
+\hline Sungbin Bae & Windows 11 & Intel Core i7-12700F (2.10Ghz) & 32 GB\\
 \hline AWS EC2 (t3.small) & Ubuntu 22.04 LTS, 20 GB gp3 storage, Seoul region & 2 vCPU & 2 GB \\
 \hline
 \end{tabularx}
@@ -353,7 +354,7 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
 \footnotesize
 \setlength{\tabcolsep}{3pt}
 \renewcommand{\arraystretch}{1.05}
-\begin{tabularx}{\columnwidth}{|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}p{0.24\columnwidth}|}
+\begin{tabularx}{\columnwidth}{|Y|>{\raggedright\arraybackslash}p{0.24\columnwidth}|}
 \hline
 \multicolumn{1}{|c|}{Item} & \multicolumn{1}{c|}{Cost (USD)} \\
 \hline Development laptops & \$3,500 \\
@@ -375,7 +376,8 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
     \item \textbf{Cloud Infrastructure:} An AWS EC2 t3.small instance in the Seoul region hosts the backend and database, including storage and a public IPv4 address. Vercel's free Hobby plan hosts the integrated display.
     \item \textbf{AI Services:} Hugging Face's free inference tier is used for testing, while the OpenAI API (GPT-5 mini) is billed by usage in deployment.
     \item \textbf{Development Tools:} Most tools used in the project, including VS Code, Xcode, Android Studio, Docker, Git, GitHub, Figma, Draw.io, and LaTeX, are free or open source.
-    \item \textbf{AI Coding Assistants:} ChatGPT Plus (Codex CLI) and Claude Pro (Claude Code) subscriptions are used throughout development.\end{itemize}
+    \item \textbf{AI Coding Assistants:} ChatGPT Plus (Codex CLI) and Claude Pro (Claude Code) subscriptions are used throughout development.
+\end{itemize}
 
 \subsection{Software in Use}
 
@@ -419,17 +421,16 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
 \footnotesize
 \setlength{\tabcolsep}{3pt}
 \renewcommand{\arraystretch}{1.05}
-\begin{tabularx}{\columnwidth}{|>{\raggedright\arraybackslash}p{0.24\columnwidth}|>{\raggedright\arraybackslash}p{0.19\columnwidth}|X|}
+\begin{tabularx}{\columnwidth}{|>{\raggedright\arraybackslash}p{0.24\columnwidth}|>{\raggedright\arraybackslash}p{0.19\columnwidth}|Y|}
 \hline
 \multicolumn{1}{|c|}{Role} & \multicolumn{1}{c|}{Name} & \multicolumn{1}{c|}{Task Description} \\
-\hline Backend \& Cloud Developer & & \\[1em]
-\hline Integrated Display Developer & & \\[1em]
-\hline Mobile Application Developer & & \\[1em]
-\hline AI Integration Developer & & \\[1em]
+\hline Backend \& Cloud Developer & Naomi K. Fossaberg & Develop the FastAPI backend, authentication, and PostgreSQL database. Implement inventory and environmental monitoring APIs, configure Docker and AWS deployment, and maintain API documentation. \\
+\hline Integrated Display Developer & Enkhbold Myagmarjav & Design and implement the React/TypeScript display interface, including the inventory dashboard, cellar map, bottle details, environmental monitoring, and AI dialogue screens. Integrate backend APIs and real-time updates. \\
+\hline Mobile Application Developer & Chiang Jun Han & Develop the Android and iOS companion applications using Kotlin/Jetpack Compose and Swift/SwiftUI. Implement authentication, inventory management, cellar monitoring, and notifications. Coordinate with the backend developer to maintain consistent functionality across devices. \\
+\hline AI Integration Developer & Sungbin Bae & Implement wine recognition and bottle-localization processing, integrate external language-model services, and coordinate critic-persona dialogues. Develop recommendation prompts, connect external wine-data services, and evaluate AI outputs and uncertain recognition results. \\
 \hline
 \end{tabularx}
 \end{minipage}\par\smallskip
-
 
 \section{Specifications}
 
@@ -477,7 +478,7 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
         \begin{itemize}
             \item Action: Authenticates users with the provided email and password.
             \item On Success: Redirects users to the Main page.
-            \item On Failure: Displays the error message: “Invalid email or password”.
+            \item On Failure: Displays the error message: ``Invalid email or password''.
         \end{itemize}
     \end{itemize}
 
@@ -486,18 +487,17 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
         \item Description: Allows authenticated users to securely end their current session.
         \item Logout Button
         \begin{itemize}
-            \item Action: Clicking the “Log Out” button terminates the user's session, removes the active authentication token, and redirects the user to the login screen.
+            \item Action: Clicking the ``Log Out'' button terminates the user's session, removes the active authentication token, and redirects the user to the login screen.
         \end{itemize}
     \end{itemize}
 
     \item Edit User Profile
     \begin{itemize}
         \item Description: Allows authenticated users to view and modify their personal account information.
-        \item Feature: A profile management page displays editable fields, such as email address and password, alongside a “Save Changes” button.
-        \item Action: After modifying their information, clicking “Save Changes” validates and updates the information in the database. A confirmation message is displayed when the changes are successful.
+        \item Feature: A profile management page displays editable fields, such as email address and password, alongside a ``Save Changes'' button.
+        \item Action: After modifying their information, clicking ``Save Changes'' validates and updates the information in the database. A confirmation message is displayed when the changes are successful.
     \end{itemize}
 \end{itemize}
-
 
 \subsubsection{Inventory Mapping}
 \begin{itemize}
@@ -547,7 +547,7 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
     \begin{itemize}
         \item Description: Allows authenticated users to review and correct information extracted from wine labels before confirming registration.
         \item Feature: A wine information confirmation interface displays the AI-extracted details in editable fields.
-        \item Action: Users can modify incorrect or incomplete information and select “Confirm” to save the corrected bottle information to the inventory.
+        \item Action: Users can modify incorrect or incomplete information and select ``Confirm'' to save the corrected bottle information to the inventory.
     \end{itemize}
 
     \item Stacked Bottle Detection
@@ -567,25 +567,24 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
     \item Manual Bottle Registration
     \begin{itemize}
         \item Description: Allows authenticated users to manually add wine bottles that cannot be automatically detected or recognised.
-        \item Feature: An “Add Bottle” button opens a form containing fields for wine name, winery, region, vintage, grape variety, and storage location.
-        \item Action: After entering the required information and clicking “Save”, the system generates a unique bottle ID and adds the bottle to the inventory.
+        \item Feature: An ``Add Bottle'' button opens a form containing fields for wine name, winery, region, vintage, grape variety, and storage location.
+        \item Action: After entering the required information and clicking ``Save'', the system generates a unique bottle ID and adds the bottle to the inventory.
     \end{itemize}
 
     \item Manual Bottle Modification
     \begin{itemize}
         \item Description: Allows authenticated users to modify the information associated with an existing wine bottle.
         \item Feature: Selecting a bottle opens an editable information page containing its wine details and physical storage location.
-        \item Action: After modifying the information, clicking “Save Changes” updates the corresponding inventory record.
+        \item Action: After modifying the information, clicking ``Save Changes'' updates the corresponding inventory record.
     \end{itemize}
 
     \item Manual Bottle Removal
     \begin{itemize}
         \item Description: Allows authenticated users to manually remove a wine bottle from their inventory.
-        \item Feature: Each bottle's information page contains a “Remove Bottle” option.
-        \item Action: Selecting “Remove Bottle” prompts the user for confirmation before removing the bottle from the active inventory.
+        \item Feature: Each bottle's information page contains a ``Remove Bottle'' option.
+        \item Action: Selecting ``Remove Bottle'' prompts the user for confirmation before removing the bottle from the active inventory.
     \end{itemize}
 \end{itemize}
-
 
 \subsubsection{Inventory Search \& Visualisation}
 \begin{itemize}
@@ -610,7 +609,6 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
         \item Action: Users can select individual bottles on the map to view their wine information and storage details.
     \end{itemize}
 \end{itemize}
-
 
 \subsubsection{Environmental Monitoring}
 \begin{itemize}
@@ -649,7 +647,6 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
         \item Action: When a sensor fails to transmit data within the configured timeout period, the system displays a sensor disconnection or outdated data notification.
     \end{itemize}
 \end{itemize}
-
 
 \subsubsection{AI Recommendations}
 \begin{itemize}
@@ -706,7 +703,7 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
     \begin{itemize}
         \item Description: Suggests suitable physical storage locations for newly added wine bottles.
         \item Feature: The system considers available cellar space, storage zones, and relevant wine storage requirements when recommending a location.
-        \item Action: After a new bottle is identified, the system suggests an available storage position for the user to confirm. In the event another unavailable spot that only requires a simple swap is more optimal the system will propose this location at the same time. 
+        \item Action: After a new bottle is identified, the system suggests an available storage position for the user to confirm. In the event another unavailable spot that only requires a simple swap is more optimal the system will propose this location at the same time.
     \end{itemize}
 
     \item LLM-Based Wine Recommendations
@@ -730,7 +727,6 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
         \item Action: The system retrieves relevant news from external sources, summarises the information, and presents the latest briefing on the front display.
     \end{itemize}
 \end{itemize}
-
 
 \subsubsection{Real-Time Market Value Integration}
 \begin{itemize}
@@ -756,7 +752,6 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
     \end{itemize}
 \end{itemize}
 
-
 \subsubsection{Multi-Cellar Management}
 \begin{itemize}
     \item Multiple Cellar Registration and Management
@@ -777,14 +772,12 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
     \begin{itemize}
         \item Description: Allows users to search for wine bottles across all connected cellars simultaneously.
         \item Feature: A search interface provides an option to search either an individual cellar or all registered cellars.
-        \item Action: When the user selects “All Cellars” and enters a search term, the system retrieves matching bottles from every connected cellar and displays their respective storage locations.
+        \item Action: When the user selects ``All Cellars'' and enters a search term, the system retrieves matching bottles from every connected cellar and displays their respective storage locations.
     \end{itemize}
 \end{itemize}
 
-
 \subsubsection{Multi-Agent SLM Dialog System}
 \begin{itemize}
-
     \item Multi SLM Critic Persona Integration
     \begin{itemize}
         \item Description: Configures multiple distinct SLM based critic personas within the local system to evaluate wines from contrasting analytical perspectives.
@@ -808,7 +801,7 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
 
     \item On-Device Continuous Preference Learning
     \begin{itemize}
-        \item Original Statement: "The system shall allow the on-device SLMs to continuously fine-tune their conversational outputs and recommendations by locally learning from the user's cellar database, including inventory history, consumption patterns, and individual preferences".
+        \item Original Statement: ``The system shall allow the on-device SLMs to continuously fine-tune their conversational outputs and recommendations by locally learning from the user's cellar database, including inventory history, consumption patterns, and individual preferences''.
         \item Description: Adaptively adjusts critic recommendations and discussion topics based on local cellar logs.
         \item Feature: A local preference engine that aggregates bottle addition logs, consumption frequency, and user wine ratings.
         \item Action: The preference engine periodically reads local database logs, extracts preference patterns (e.g. preferred grape varieties or vintage ranges), and updates prompt context vectors to personalize subsequent agent debate topics.
@@ -817,7 +810,7 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
     \item Base Model Initialization
     \begin{itemize}
         \item Description: Loads a compressed, low-memory 4-bit quantized Small Language Model into system RAM/VRAM during startup to serve as the shared foundation for all critic agents.
-        \item Feature: A startup memory manager optimized for 4-bit quantized model loading to maintain a low RAM footprint (<4 GB).
+        \item Feature: A startup memory manager optimized for 4-bit quantized model loading to maintain a low RAM footprint ($<$4 GB).
         \item Action: Upon system boot, the loader allocates target memory blocks, loads the single base 4-bit SLM weight matrix into RAM, and verifies that the model is ready for inference before launching the user interface.
     \end{itemize}
 
@@ -830,19 +823,16 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
 
     \item Modular Persona Over-The-Air (OTA) Update
     \begin{itemize}
-        \item Description: Enables downloading new or updated critic personas over the air as small (<50 MB) LoRA parameter files without updating the core system software or base model.
+        \item Description: Enables downloading new or updated critic personas over the air as small ($<$50 MB) LoRA parameter files without updating the core system software or base model.
         \item Feature: An OTA update module that validates and manages lightweight persona adapter files.
-        \item Action: Upon receiving an update notification, the OTA manager downloads the standalone LoRA file (<50 MB), verifies file integrity, saves it to local storage, and adds the new persona profile to the active persona registry.
+        \item Action: Upon receiving an update notification, the OTA manager downloads the standalone LoRA file ($<$50 MB), verifies file integrity, saves it to local storage, and adds the new persona profile to the active persona registry.
     \end{itemize}
-
 \end{itemize}
 
 \subsection{Non-Functional Requirements}
 
 \subsubsection{Performance}
-
 \begin{itemize}
-
     \item Inventory Search Latency
     \begin{itemize}
         \item Description: The system shall execute search queries across registered cellar inventory within a constrained response time.
@@ -863,25 +853,20 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
         \item Target Metric: Adapter swap and initial dialogue token generation completed within 1.5 seconds.
         \item Relates To: Multi-Agent SLM Dialog System
     \end{itemize}
-
 \end{itemize}
 
 \subsubsection{Resource}
-
 \begin{itemize}
-
     \item Volatile Memory Allocation
     \begin{itemize}
         \item Description: The system shall restrict active memory usage during Small Language Model (SLM) base execution and persona adapter swapping.
         \item Target Metric: Combined RAM/VRAM footprint of base SLM and active LoRA adapters strictly 4 GB.
         \item Relates To: Base Model Initialization \& Multi-Agent SLM Dialog System
     \end{itemize}
-
 \end{itemize}
+
 \subsubsection{Reliability}
-
 \begin{itemize}
-
     \item Data Persistence Across Restarts
     \begin{itemize}
         \item Description: The system shall preserve submitted cellar and user data so that state is retained following an application restart.
@@ -902,13 +887,10 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
         \item Target Metric: Scheduled backups executed automatically with 0\% unrecoverable data loss during restore tests.
         \item Relates To: Multi Cellar Management \& System Administration
     \end{itemize}
-
 \end{itemize}
 
 \subsubsection{Security}
-
 \begin{itemize}
-
     \item Inventory Function Authentication
     \begin{itemize}
         \item Description: The system shall enforce user authentication prior to granting access to inventory management features.
@@ -943,25 +925,20 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
         \item Target Metric: 0 telemetry or personal inventory logs transmitted off-device.
         \item Relates To: Multi-Agent SLM Dialog System \& On-Device Preference Learning
     \end{itemize}
-
 \end{itemize}
+
 \subsubsection{Privacy}
-
 \begin{itemize}
-
     \item Regulatory Data Protection Compliance
     \begin{itemize}
         \item Description: The system shall comply strictly with European General Data Protection Regulation (GDPR) standards.
         \item Target Metric: 100\% compliance with mandatory GDPR principles including data minimization and rights to erasure.
         \item Relates To: User Management \& System-Wide
     \end{itemize}
-
 \end{itemize}
 
 \subsubsection{Maintainability}
-
 \begin{itemize}
-
     \item AI Model Decoupling
     \begin{itemize}
         \item Description: The system architecture shall support replacing or upgrading AI models without requiring modifications to the front-end user interface.
@@ -975,17 +952,14 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
         \item Target Metric: New environmental sensor modules integrated with 0 modifications to existing inventory management code.
         \item Relates To: Sensor-Based Environmental Monitoring
     \end{itemize}
-
 \end{itemize}
 
 \subsubsection{Usability}
-
 \begin{itemize}
-
     \item Self-Explanatory User Interface
     \begin{itemize}
         \item Description: The system interface shall enable new users to operate core features without consulting external documentation.
-        \item Target Metric: >90\% task completion rate for first-time users during usability tests without external help.
+        \item Target Metric: $>$90\% task completion rate for first-time users during usability tests without external help.
         \item Relates To: Inventory Mapping \& UI Design
     \end{itemize}
 
@@ -1002,20 +976,16 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
         \item Target Metric: 100\% of uncommitted form field inputs restored upon application re-launch.
         \item Relates To: Inventory Mapping \& UI State Management
     \end{itemize}
-
 \end{itemize}
 
 \subsubsection{Energy Efficiency}
-
 \begin{itemize}
-
     \item NPU Acceleration \& Thermal Regulation
     \begin{itemize}
         \item Description: The SLM inference engine shall utilize the low-power Neural Processing Unit (NPU) to prevent excessive heat generation that could disrupt wine cellar internal temperature controls.
-        \item Target Metric: SLM inference offloaded to NPU maintaining host device heat output below a threshold that shifts internal wine cellar ambient temperature by > 0.1 degrees celcius.
+        \item Target Metric: SLM inference offloaded to NPU maintaining host device heat output below a threshold that shifts internal wine cellar ambient temperature by $>$ 0.1 degrees celcius.
         \item Relates To: Multi-Agent SLM Dialog System \& Environmental Monitoring
     \end{itemize}
-
 \end{itemize}
 
 \end{document}
