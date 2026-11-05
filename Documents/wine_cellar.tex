@@ -448,7 +448,7 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
         \begin{itemize}
             \item Description: Users set a password and re-enter it for confirmation.
             \item Input format: Minimum 8 characters, requiring at least 1 lowercase letter, 1 uppercase letter, 1 number, and 1 special character.
-            \item Validation: Ensure that the password meets the minimum security requirements.
+            \item Validation: Ensure that the password meets the minimum requirements for input format.
             \item Validation: Confirm that both password inputs match.
         \end{itemize}
         \item Sign-Up Button
@@ -503,7 +503,7 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
     \item Automatic Wine Bottle Detection
     \begin{itemize}
         \item Description: Automatically identifies wine bottles placed inside the wine cellar using computer vision.
-        \item Feature: A camera continuously or periodically captures images of the cellar. A computer vision model detects individual wine bottles and identifies their positions within the captured images.
+        \item Feature: A camera periodically captures images of the cellar. It is triggered by opening of cellar doors. A computer vision model detects individual wine bottles and identifies their positions within the captured images.
         \item Action: When a new bottle is detected, the system initiates the wine identification and registration process.
     \end{itemize}
 
@@ -705,7 +705,7 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
     \begin{itemize}
         \item Description: Suggests suitable physical storage locations for newly added wine bottles.
         \item Feature: The system considers available cellar space, storage zones, and relevant wine storage requirements when recommending a location.
-        \item Action: After a new bottle is identified, the system suggests an available storage position for the user to confirm.
+        \item Action: After a new bottle is identified, the system suggests an available storage position for the user to confirm. In the event another unavailable spot that only requires a simple swap is more optimal the system will propose this location at the same time. 
     \end{itemize}
 
     \item LLM-Based Wine Recommendations
