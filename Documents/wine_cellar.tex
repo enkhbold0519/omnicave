@@ -773,4 +773,241 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
     \end{itemize}
 \end{itemize}
 
+
+\subsubsection{Multi-Agent SLM Dialog System}
+\begin{itemize}
+
+    \item Multi SLM Critic Persona Integration
+    \begin{itemize}
+        \item Description: Configures multiple distinct SLM based critic personas within the local system to evaluate wines from contrasting analytical perspectives.
+        \item Feature: A persona mapping database that stores profiles (e.g. scoring scale, vocabulary, regional focus, and tasting bias) for each supported critic. The database will contain wine critic personas based on renowned wine critics such as Robert Parker and Luna Maroni.
+        \item Action: When the system initializes dialogue generation, the multi-agent engine retrieves the selected critic profiles from the registry and assigns them to active conversational agent threads.
+    \end{itemize}
+
+    \item Automated Multi-Agent Dialogue Triggering
+    \begin{itemize}
+        \item Description: Automatically initiates a multi-critic debate whenever a user adds a new bottle or selects an existing bottle on screen.
+        \item Feature: An event-driven dialogue dispatcher that monitors user screen inputs and inventory registration events.
+        \item Action: Upon detecting a bottle registration event or touch screen bottle selection, the dispatcher extracts the bottle ID and wine metadata, and sends an execution trigger to the multi-agent dialogue engine.
+    \end{itemize}
+
+    \item Interactive Multi-Agent Debate Visualisation
+    \begin{itemize}
+        \item Description: Formats and displays multi-critic discussions as an interactive chat stream on the physical cellar screen.
+        \item Feature: A front-display chat interface featuring critic avatars, streaming message bubbles, color-coded tasting note tags, and visual aging timeline predictions.
+        \item Action: As each critic agent generates responses, the system streams formatted text to the display UI, highlights key tasting descriptors, and renders an interactive timeline graph showing predicted drinkability windows.
+    \end{itemize}
+
+    \item On-Device Continuous Preference Learning
+    \begin{itemize}
+        \item Original Statement: "The system shall allow the on-device SLMs to continuously fine-tune their conversational outputs and recommendations by locally learning from the user's cellar database, including inventory history, consumption patterns, and individual preferences".
+        \item Description: Adaptively adjusts critic recommendations and discussion topics based on local cellar logs.
+        \item Feature: A local preference engine that aggregates bottle addition logs, consumption frequency, and user wine ratings.
+        \item Action: The preference engine periodically reads local database logs, extracts preference patterns (e.g. preferred grape varieties or vintage ranges), and updates prompt context vectors to personalize subsequent agent debate topics.
+    \end{itemize}
+
+    \item Base Model Initialization
+    \begin{itemize}
+        \item Description: Loads a compressed, low-memory 4-bit quantized Small Language Model into system RAM/VRAM during startup to serve as the shared foundation for all critic agents.
+        \item Feature: A startup memory manager optimized for 4-bit quantized model loading to maintain a low RAM footprint (<4 GB).
+        \item Action: Upon system boot, the loader allocates target memory blocks, loads the single base 4-bit SLM weight matrix into RAM, and verifies that the model is ready for inference before launching the user interface.
+    \end{itemize}
+
+    \item Dynamic LoRA Adapter Swapping
+    \begin{itemize}
+        \item Description: Dynamically switches critic personalities during active debates by swapping lightweight LoRA adapter weight matrices while keeping the heavy base model in memory.
+        \item Feature: A real-time LoRA adapter manager that dynamically maps and injects small weight adapters into the base model inference pipeline.
+        \item Action: When dialogue transition from Critic A to Critic B, the system unloads Critic A's LoRA matrix from memory, loads Critic B's LoRA matrix, and routes the next generation turn through the newly active adapter.
+    \end{itemize}
+
+    \item Modular Persona Over-The-Air (OTA) Update
+    \begin{itemize}
+        \item Description: Enables downloading new or updated critic personas over the air as small (<50 MB) LoRA parameter files without updating the core system software or base model.
+        \item Feature: An OTA update module that validates and manages lightweight persona adapter files.
+        \item Action: Upon receiving an update notification, the OTA manager downloads the standalone LoRA file (<50 MB), verifies file integrity, saves it to local storage, and adds the new persona profile to the active persona registry.
+    \end{itemize}
+
+\end{itemize}
+
+\subsection{Non-Functional Requirements}
+
+\subsubsection{Performance}
+
+\begin{itemize}
+
+    \item Inventory Search Latency
+    \begin{itemize}
+        \item Description: The system shall execute search queries across registered cellar inventory within a constrained response time.
+        \item Target Metric: Search results returned within 2 seconds for at least 95\% of user requests.
+        \item Relates To: Inventory Search \& Visualisation
+    \end{itemize}
+
+    \item Inventory Display Update Speed
+    \begin{itemize}
+        \item Description: The system shall refresh the displayed cellar inventory following physical bottle additions or removals.
+        \item Target Metric: UI inventory state updated in 10 seconds of a bottle change event.
+        \item Relates To: Inventory Mapping \& Registration
+    \end{itemize}
+
+    \item Multi-Agent Dialogue Response Latency
+    \begin{itemize}
+        \item Description: The system shall execute Low-Rank Adaptation (LoRA) adapter swapping and generate the initial dialogue response for real-time multi-agent discussions.
+        \item Target Metric: Adapter swap and initial dialogue token generation completed within 1.5 seconds.
+        \item Relates To: Multi-Agent SLM Dialog System
+    \end{itemize}
+
+\end{itemize}
+
+\subsubsection{Resource}
+
+\begin{itemize}
+
+    \item Volatile Memory Allocation
+    \begin{itemize}
+        \item Description: The system shall restrict active memory usage during Small Language Model (SLM) base execution and persona adapter swapping.
+        \item Target Metric: Combined RAM/VRAM footprint of base SLM and active LoRA adapters strictly 4 GB.
+        \item Relates To: Base Model Initialization \& Multi-Agent SLM Dialog System
+    \end{itemize}
+
+\end{itemize}
+\subsubsection{Reliability}
+
+\begin{itemize}
+
+    \item Data Persistence Across Restarts
+    \begin{itemize}
+        \item Description: The system shall preserve submitted cellar and user data so that state is retained following an application restart.
+        \item Target Metric: 100\% data retention rate after application restarts with 0\% state corruption.
+        \item Relates To: Inventory Mapping \& Multi Cellar Management
+    \end{itemize}
+
+    \item Unexpected Shutdown Recovery
+    \begin{itemize}
+        \item Description: The system shall automatically recover the latest successfully stored inventory state following an unexpected application crash or power loss.
+        \item Target Metric: Latest valid database state restored within 1 reboot cycle after an unexpected shutdown.
+        \item Relates To: Inventory Mapping \& System Administration
+    \end{itemize}
+
+    \item Automated Data Backups
+    \begin{itemize}
+        \item Description: The system shall perform automated background backups of inventory data and support data restoration.
+        \item Target Metric: Scheduled backups executed automatically with 0\% unrecoverable data loss during restore tests.
+        \item Relates To: Multi Cellar Management \& System Administration
+    \end{itemize}
+
+\end{itemize}
+
+\subsubsection{Security}
+
+\begin{itemize}
+
+    \item Inventory Function Authentication
+    \begin{itemize}
+        \item Description: The system shall enforce user authentication prior to granting access to inventory management features.
+        \item Target Metric: 0 unauthenticated access attempts permitted to restricted inventory functions.
+        \item Relates To: User Management \& Access Control
+    \end{itemize}
+
+    \item Encrypted Password Storage
+    \begin{itemize}
+        \item Description: The system shall store user account passwords exclusively in encrypted form.
+        \item Target Metric: 100\% of stored passwords encrypted using industry-standard salted hashing with zero plaintext exposures.
+        \item Relates To: User Management
+    \end{itemize}
+
+    \item Encrypted Data Transmission
+    \begin{itemize}
+        \item Description: The system shall encrypt personal user data during network transit.
+        \item Target Metric: 100\% of transmitted personal data payload protected via cryptographic protocols.
+        \item Relates To: User Management \& Network Layer
+    \end{itemize}
+
+    \item Cross-Account Data Isolation
+    \begin{itemize}
+        \item Description: The system shall prevent unauthorized users from viewing or modifying wine inventories belonging to other user accounts.
+        \item Target Metric: 100\% enforcement of access control rules blocking unauthorized cross-user read/write actions.
+        \item Relates To: Multi Cellar Management
+    \end{itemize}
+
+    \item On-Device Edge AI Isolation
+    \begin{itemize}
+        \item Description: The system shall execute all SLM computations and preference learning strictly on-device (Edge AI) without transmitting personal consumption data or inventory logs to external cloud servers.
+        \item Target Metric: 0 telemetry or personal inventory logs transmitted off-device.
+        \item Relates To: Multi-Agent SLM Dialog System \& On-Device Preference Learning
+    \end{itemize}
+
+\end{itemize}
+\subsubsection{Privacy}
+
+\begin{itemize}
+
+    \item Regulatory Data Protection Compliance
+    \begin{itemize}
+        \item Description: The system shall comply strictly with European General Data Protection Regulation (GDPR) standards.
+        \item Target Metric: 100\% compliance with mandatory GDPR principles including data minimization and rights to erasure.
+        \item Relates To: User Management \& System-Wide
+    \end{itemize}
+
+\end{itemize}
+
+\subsubsection{Maintainability}
+
+\begin{itemize}
+
+    \item AI Model Decoupling
+    \begin{itemize}
+        \item Description: The system architecture shall support replacing or upgrading AI models without requiring modifications to the front-end user interface.
+        \item Target Metric: Underlying base SLM or LoRA weights updated with 0 UI code changes required.
+        \item Relates To: Multi-Agent SLM Dialog System
+    \end{itemize}
+
+    \item Modular Sensor Integration
+    \begin{itemize}
+        \item Description: The system architecture shall support integrating additional hardware sensor types without modifying core inventory management logic.
+        \item Target Metric: New environmental sensor modules integrated with 0 modifications to existing inventory management code.
+        \item Relates To: Sensor-Based Environmental Monitoring
+    \end{itemize}
+
+\end{itemize}
+
+\subsubsection{Usability}
+
+\begin{itemize}
+
+    \item Self-Explanatory User Interface
+    \begin{itemize}
+        \item Description: The system interface shall enable new users to operate core features without consulting external documentation.
+        \item Target Metric: >90\% task completion rate for first-time users during usability tests without external help.
+        \item Relates To: Inventory Mapping \& UI Design
+    \end{itemize}
+
+    \item Active Authentication State Indication
+    \begin{itemize}
+        \item Description: The system shall visually indicate the active authentication status and current user identity on screen at all times.
+        \item Target Metric: User authentication status widget visible on 100\% of active main views.
+        \item Relates To: User Management \& UI Header
+    \end{itemize}
+
+    \item Unsaved Input State Preservation
+    \begin{itemize}
+        \item Description: The system shall preserve unsaved form inputs if an unexpected application restart occurs.
+        \item Target Metric: 100\% of uncommitted form field inputs restored upon application re-launch.
+        \item Relates To: Inventory Mapping \& UI State Management
+    \end{itemize}
+
+\end{itemize}
+
+\subsubsection{Energy Efficiency}
+
+\begin{itemize}
+
+    \item NPU Acceleration \& Thermal Regulation
+    \begin{itemize}
+        \item Description: The SLM inference engine shall utilize the low-power Neural Processing Unit (NPU) to prevent excessive heat generation that could disrupt wine cellar internal temperature controls.
+        \item Target Metric: SLM inference offloaded to NPU maintaining host device heat output below a threshold that shifts internal wine cellar ambient temperature by > 0.1 degrees celcius.
+        \item Relates To: Multi-Agent SLM Dialog System \& Environmental Monitoring
+    \end{itemize}
+
+\end{itemize}
+
 \end{document}
