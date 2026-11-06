@@ -1,11 +1,3 @@
-import { PlaceholderScreen } from '@/components/ui/PlaceholderScreen';
+import { ProfileScreen } from '@/components/profile/ProfileScreen';
 
-export default function ProfilePlaceholder() {
-  return (
-    <PlaceholderScreen
-      title="Profile"
-      icon="person-outline"
-      description="Account and preferences. Not implemented in Phase 1."
-    />
-  );
-}
+export default ProfileScreen;

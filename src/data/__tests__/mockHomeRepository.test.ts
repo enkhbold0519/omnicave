@@ -17,8 +17,8 @@ describe('mock home repository', () => {
     const a = await repo.getHomeSnapshot('cellar-signature', now);
     const b = await repo.getHomeSnapshot('cellar-reserve', now);
 
-    expect(a.bottleCount).toBe(10);
-    expect(b.bottleCount).toBe(6);
+    expect(a.bottleCount).toBe(48);
+    expect(b.bottleCount).toBe(21);
     expect(a.environment.sensor).toBe('ok');
     expect(b.environment.sensor).toBe('warning');
     expect(a.featuredWine?.wine.id).not.toBe(b.featuredWine?.wine.id);

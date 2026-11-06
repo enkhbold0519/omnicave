@@ -14,8 +14,10 @@ import {
 } from 'react-native';
 
 import { AppText } from '@/components/ui/AppText';
-import type { Briefing, FeaturedWine, WineStyle } from '@/data/types';
-import { colors, radii, spacing, touchTarget } from '@/theme/tokens';
+import { PressableScale } from '@/components/ui/PressableScale';
+import type { Briefing, FeaturedWine } from '@/data/types';
+import { makeStyles, useTheme } from '@/theme/ThemeContext';
+import { radii, spacing, touchTarget, wineStyleTints } from '@/theme/tokens';
 
 export const DEFAULT_ROTATION_MS = 8000;
 /** Grace period after a swipe/touch ends before auto-rotation resumes. */
@@ -35,14 +37,6 @@ interface FeaturedCarouselProps {
   intervalMs?: number;
 }
 
-const styleTint: Record<WineStyle, string> = {
-  Red: '#6E2433',
-  White: '#C9B26B',
-  Rosé: '#D08C83',
-  Sparkling: '#A8925A',
-  Dessert: '#B9822F',
-};
-
 export function FeaturedCarousel({
   featuredWine,
   briefing,
@@ -52,6 +46,8 @@ export function FeaturedCarousel({
   screenReader,
   intervalMs = DEFAULT_ROTATION_MS,
 }: FeaturedCarouselProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const slides: Slide[] = [];
   if (featuredWine) slides.push({ kind: 'wine', key: `wine-${featuredWine.wine.id}`, item: featuredWine });
   if (briefing) slides.push({ kind: 'briefing', key: `brief-${briefing.id}`, item: briefing });
@@ -121,8 +117,10 @@ export function FeaturedCarousel({
   if (slides.length === 0) {
     return (
       <View style={[styles.card, styles.emptyCard]} accessible accessibilityLabel="Nothing featured today">
-        <Ionicons name="sparkles-outline" size={20} color={colors.textMuted} />
-        <AppText variant="bodyStrong" color={colors.textSecondary}>
+        <AppText variant="overline" color={colors.textMuted}>
+          Featured
+        </AppText>
+        <AppText variant="heading" color={colors.textSecondary}>
           Nothing featured today
         </AppText>
         <AppText variant="caption" color={colors.textMuted}>
@@ -169,20 +167,18 @@ export function FeaturedCarousel({
 
       {slides.length > 1 && (
         <View style={styles.controls}>
-          <View style={styles.dots}>
-            {slides.map((s, i) => (
-              <Pressable
-                key={s.key}
-                onPress={() => goTo(i)}
-                accessibilityRole="button"
-                accessibilityLabel={`Show slide ${i + 1} of ${slides.length}`}
-                accessibilityState={{ selected: i === index }}
-                style={styles.dotHit}
-              >
-                <View style={[styles.dot, i === index && styles.dotActive]} />
-              </Pressable>
-            ))}
-          </View>
+          {slides.map((s, i) => (
+            <Pressable
+              key={s.key}
+              onPress={() => goTo(i)}
+              accessibilityRole="button"
+              accessibilityLabel={`Show slide ${i + 1} of ${slides.length}`}
+              accessibilityState={{ selected: i === index }}
+              style={styles.segmentHit}
+            >
+              <View style={[styles.segment, i === index && styles.segmentActive]} />
+            </Pressable>
+          ))}
           {autoAllowed && (
             <Pressable
               onPress={() => setUserPaused((p) => !p)}
@@ -190,7 +186,7 @@ export function FeaturedCarousel({
               accessibilityLabel={userPaused ? 'Resume featured rotation' : 'Pause featured rotation'}
               style={styles.pauseHit}
             >
-              <Ionicons name={userPaused ? 'play' : 'pause'} size={14} color={colors.textSecondary} />
+              <Ionicons name={userPaused ? 'play' : 'pause'} size={11} color={colors.textMuted} />
             </Pressable>
           )}
         </View>
@@ -199,99 +195,111 @@ export function FeaturedCarousel({
   );
 }
 
+function CardFooter({ meta, action }: { meta?: string; action: string }) {
+  const { colors } = useTheme();
+  const styles = useStyles();
+  return (
+    <View style={styles.footer}>
+      <AppText variant="caption" color={colors.textMuted} style={styles.flex}>
+        {meta ?? ''}
+      </AppText>
+      <AppText variant="bodyStrong" color={colors.accent}>
+        {action}
+      </AppText>
+      <Ionicons name="arrow-forward" size={14} color={colors.accent} />
+    </View>
+  );
+}
+
 function WineSlide({ featured, position, onPress }: { featured: FeaturedWine; position: string; onPress: () => void }) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const { wine, quantity } = featured;
   return (
-    <Pressable
+    <PressableScale
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`Featured wine, ${position}. ${wine.vintage} ${wine.name}, ${wine.producer}, ${wine.region}. ${quantity} in cellar.`}
       accessibilityHint="Opens wine details"
-      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+      scaleTo={0.985}
+      containerStyle={styles.flex}
+      style={styles.card}
+      pressedStyle={styles.pressed}
     >
-      <View style={styles.cardHeader}>
-        <AppText variant="overline" color={colors.accent} style={styles.flex}>
-          Featured wine
+      <View style={styles.label}>
+        <View style={[styles.swatch, { backgroundColor: wineStyleTints[wine.style] }]} />
+        <AppText variant="overline" color={colors.textMuted}>
+          Featured wine · {wine.vintage}
         </AppText>
-        <View style={[styles.swatch, { backgroundColor: styleTint[wine.style] }]} />
       </View>
-      <AppText variant="title" numberOfLines={2}>
+      <AppText variant="headline" numberOfLines={2}>
         {wine.name}
       </AppText>
       <AppText variant="caption" color={colors.textSecondary}>
-        {wine.vintage} · {wine.style} · {wine.region}
+        {wine.producer} · {wine.region}
       </AppText>
       <AppText color={colors.textSecondary} numberOfLines={3} style={styles.note}>
         {wine.note}
       </AppText>
-      <View style={styles.cardFooter}>
-        <AppText variant="caption" color={colors.textMuted} style={styles.flex}>
-          {quantity} in cellar
-        </AppText>
-        <AppText variant="bodyStrong" color={colors.accent}>
-          Details
-        </AppText>
-        <Ionicons name="chevron-forward" size={16} color={colors.accent} />
-      </View>
-    </Pressable>
+      <CardFooter meta={`${quantity} in cellar`} action="Details" />
+    </PressableScale>
   );
 }
 
 function BriefingSlide({ briefing, position, onPress }: { briefing: Briefing; position: string; onPress: () => void }) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   return (
-    <Pressable
+    <PressableScale
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`Daily briefing, ${position}. ${briefing.title}. ${briefing.summary}`}
       accessibilityHint="Opens the full briefing"
-      style={({ pressed }) => [styles.card, styles.briefingCard, pressed && styles.pressed]}
+      scaleTo={0.985}
+      containerStyle={styles.flex}
+      style={styles.card}
+      pressedStyle={styles.pressed}
     >
-      <View style={styles.cardHeader}>
-        <AppText variant="overline" color={colors.accent} style={styles.flex}>
+      <View style={styles.label}>
+        <View style={[styles.swatch, { backgroundColor: colors.accent }]} />
+        <AppText variant="overline" color={colors.textMuted}>
           Daily briefing
         </AppText>
-        <Ionicons name="newspaper-outline" size={16} color={colors.accent} />
       </View>
-      <AppText variant="title" numberOfLines={2}>
+      <AppText variant="headline" numberOfLines={2}>
         {briefing.title}
       </AppText>
       <AppText color={colors.textSecondary} numberOfLines={3} style={styles.note}>
         {briefing.summary}
       </AppText>
-      <View style={styles.cardFooter}>
-        <View style={styles.flex} />
-        <AppText variant="bodyStrong" color={colors.accent}>
-          Read briefing
-        </AppText>
-        <Ionicons name="chevron-forward" size={16} color={colors.accent} />
-      </View>
-    </Pressable>
+      <CardFooter action="Read" />
+    </PressableScale>
   );
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  card: {
-    flex: 1,
-    minHeight: 180,
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.xl,
-    gap: spacing.xs,
-  },
-  briefingCard: { backgroundColor: colors.accentSoft, borderColor: colors.accentSoft },
-  emptyCard: { flex: 0, minHeight: 0, alignItems: 'flex-start', gap: spacing.sm },
-  pressed: { opacity: 0.85 },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.xs },
-  swatch: { width: 12, height: 12, borderRadius: 6 },
-  note: { marginTop: spacing.xs },
-  cardFooter: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: 'auto', paddingTop: spacing.md },
-  controls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: spacing.xs },
-  dots: { flexDirection: 'row' },
-  dotHit: { width: 32, height: touchTarget, alignItems: 'center', justifyContent: 'center' },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.border },
-  dotActive: { width: 20, backgroundColor: colors.accent },
-  pauseHit: { width: touchTarget, height: touchTarget, alignItems: 'center', justifyContent: 'center' },
-});
+const useStyles = makeStyles((c) =>
+  StyleSheet.create({
+    flex: { flex: 1 },
+    card: {
+      flex: 1,
+      minHeight: 196,
+      backgroundColor: c.surface,
+      borderRadius: radii.lg,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: c.hairline,
+      padding: spacing.xl,
+      gap: spacing.xs,
+    },
+    emptyCard: { flex: 0, minHeight: 0, gap: spacing.sm },
+    pressed: { backgroundColor: c.surfaceMuted },
+    label: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm },
+    swatch: { width: 6, height: 6, borderRadius: 3 },
+    note: { marginTop: spacing.sm },
+    footer: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: 'auto', paddingTop: spacing.lg },
+    controls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: spacing.xs },
+    segmentHit: { width: 36, height: touchTarget - 8, alignItems: 'center', justifyContent: 'center' },
+    segment: { width: 18, height: 2, borderRadius: 1, backgroundColor: c.hairline },
+    segmentActive: { width: 28, backgroundColor: c.accent },
+    pauseHit: { width: touchTarget - 8, height: touchTarget - 8, alignItems: 'center', justifyContent: 'center' },
+  }),
+);

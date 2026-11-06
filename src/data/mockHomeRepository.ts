@@ -1,7 +1,9 @@
-import * as db from './mockDb';
+import { getBottles } from './cellarStore';
 import { countBottles, pickDaily, pickFeaturedWine } from './derive';
 import { getDevScenario, type DevScenario } from './devScenario';
-import type { Cellar, EnvironmentReading, HomeRepository, HomeSnapshot } from './types';
+import * as db from './mockDb';
+import { readEnvironment } from './mockEnvironment';
+import type { Cellar, HomeRepository, HomeSnapshot } from './types';
 
 interface MockOptions {
   /** Simulated network latency in ms. */
@@ -31,36 +33,18 @@ export function createMockHomeRepository({
       }
 
       const cellar = db.cellars.find((c) => c.id === cellarId);
-      const rawEnv = db.environments[cellarId];
-      if (!cellar || !rawEnv) {
+      const environment = readEnvironment(cellarId, active, now);
+      if (!cellar || !environment) {
         throw new Error(`Unknown cellar: ${cellarId}`);
       }
 
-      const records = active === 'emptyInventory' ? [] : db.inventory;
-
-      let environment: EnvironmentReading = {
-        temperatureC: rawEnv.temperatureC,
-        humidityPct: rawEnv.humidityPct,
-        connection: rawEnv.connection,
-        sensor: rawEnv.sensor,
-        sensorMessage: rawEnv.sensorMessage,
-        recordedAt: new Date(now.getTime() - rawEnv.minutesAgo * 60_000),
-      };
-      if (active === 'sensorDisconnected') {
-        environment = {
-          ...environment,
-          connection: 'offline',
-          sensor: 'unavailable',
-          sensorMessage: 'Sensor hub not responding',
-          recordedAt: new Date(now.getTime() - Math.max(rawEnv.minutesAgo, 95) * 60_000),
-        };
-      }
+      const bottles = active === 'emptyInventory' ? [] : getBottles();
 
       return {
         cellar: { ...cellar },
         environment,
-        bottleCount: countBottles(records, cellarId),
-        featuredWine: pickFeaturedWine(records, db.wines, cellarId, now),
+        bottleCount: countBottles(bottles, cellarId),
+        featuredWine: pickFeaturedWine(bottles, db.wines, cellarId, now),
         briefing: pickDaily(
           db.briefings.filter((b) => b.cellarId === cellarId),
           now,

@@ -1,10 +1,12 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { homeRepository } from '@/data/mockHomeRepository';
-import type { Cellar, HomeRepository } from '@/data/types';
+import { inventoryRepository } from '@/data/mockInventoryRepository';
+import type { Cellar, HomeRepository, InventoryRepository } from '@/data/types';
 
 interface ActiveCellarValue {
   repository: HomeRepository;
+  inventory: InventoryRepository;
   cellars: Cellar[];
   activeCellar: Cellar | null;
   setActiveCellarId: (id: string) => void;
@@ -15,9 +17,11 @@ const ActiveCellarContext = createContext<ActiveCellarValue | null>(null);
 export function ActiveCellarProvider({
   children,
   repository = homeRepository,
+  inventory = inventoryRepository,
 }: {
   children: ReactNode;
   repository?: HomeRepository;
+  inventory?: InventoryRepository;
 }) {
   const [cellars, setCellars] = useState<Cellar[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -37,11 +41,12 @@ export function ActiveCellarProvider({
   const value = useMemo<ActiveCellarValue>(
     () => ({
       repository,
+      inventory,
       cellars,
       activeCellar: cellars.find((c) => c.id === activeId) ?? null,
       setActiveCellarId: setActiveId,
     }),
-    [repository, cellars, activeId],
+    [repository, inventory, cellars, activeId],
   );
 
   return <ActiveCellarContext.Provider value={value}>{children}</ActiveCellarContext.Provider>;

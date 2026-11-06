@@ -1,15 +1,24 @@
 /** Pure helpers that derive Home data from raw records. Kept free of React for testing. */
 import { idealRanges, staleAfterMinutes } from '@/theme/tokens';
 
-import type { CellarCondition, EnvironmentReading, FeaturedWine, InventoryRecord, Wine } from './types';
+import type { Bottle, CellarCondition, EnvironmentReading, FeaturedWine, Wine } from './types';
 
 const MS_PER_MINUTE = 60_000;
 const MS_PER_DAY = 86_400_000;
 
-export function countBottles(records: InventoryRecord[], cellarId: string): number {
-  return records
-    .filter((r) => r.cellarId === cellarId && r.status === 'in_cellar')
-    .reduce((sum, r) => sum + r.quantity, 0);
+/** Bottles physically in a cellar; opened bottles don't count. */
+export function countBottles(bottles: Bottle[], cellarId: string): number {
+  return bottles.filter((b) => b.cellarId === cellarId && b.status === 'in_cellar').length;
+}
+
+export type DrinkingState = 'ready' | 'hold' | 'past';
+
+/** Where a wine sits in its drinking window this year. */
+export function drinkingState(wine: Wine, now: Date): DrinkingState {
+  const year = now.getFullYear();
+  if (year < wine.drinkFrom) return 'hold';
+  if (year > wine.drinkUntil) return 'past';
+  return 'ready';
 }
 
 export function minutesSince(date: Date, now: Date): number {
@@ -37,19 +46,16 @@ export function getCondition(env: EnvironmentReading, now: Date): CellarConditio
   return 'balanced';
 }
 
-export function describeCondition(condition: CellarCondition, env: EnvironmentReading, now: Date): string {
-  switch (condition) {
-    case 'balanced':
-      return 'Conditions are balanced. Your collection is resting well.';
-    case 'attention':
-      return env.sensorMessage
-        ? `${env.sensorMessage}. Worth a look today.`
-        : 'Conditions are outside the ideal range. Worth a look today.';
-    case 'disconnected':
-      return `The cellar sensor is offline. Showing readings from ${formatRelativeTime(env.recordedAt, now)}.`;
-    case 'stale':
-      return `Readings haven't refreshed since ${formatRelativeTime(env.recordedAt, now)}.`;
-  }
+/**
+ * One-line greeting summary. Connectivity and environment problems take precedence over an empty
+ * inventory, because they need action regardless of how many bottles are stored.
+ * Stale readings count as needing attention: the data can't be trusted as "resting well".
+ */
+export function homeSummary(condition: CellarCondition, bottleCount: number): string {
+  if (condition === 'disconnected') return 'Your cellar is currently offline.';
+  if (condition === 'attention' || condition === 'stale') return 'Your cellar needs attention.';
+  if (bottleCount === 0) return 'Your cellar is ready for its first bottle.';
+  return 'Your collection is resting well.';
 }
 
 export function formatRelativeTime(date: Date, now: Date): string {
@@ -69,17 +75,13 @@ export function pickDaily<T>(items: T[], now: Date): T | null {
   return items[day % items.length];
 }
 
-export function pickFeaturedWine(
-  records: InventoryRecord[],
-  wines: Wine[],
-  cellarId: string,
-  now: Date,
-): FeaturedWine | null {
-  const candidates = records.filter(
-    (r) => r.cellarId === cellarId && r.status === 'in_cellar' && r.quantity > 0 && r.readyToDrink,
-  );
-  const record = pickDaily(candidates, now);
-  if (!record) return null;
-  const wine = wines.find((w) => w.id === record.wineId);
-  return wine ? { wine, quantity: record.quantity } : null;
+/** One ready-to-drink wine from the cellar, rotating daily; quantity is how many of its bottles are there. */
+export function pickFeaturedWine(bottles: Bottle[], wines: Wine[], cellarId: string, now: Date): FeaturedWine | null {
+  const counts = new Map<string, number>();
+  for (const b of bottles) {
+    if (b.cellarId === cellarId && b.status === 'in_cellar') counts.set(b.wineId, (counts.get(b.wineId) ?? 0) + 1);
+  }
+  const ready = wines.filter((w) => counts.has(w.id) && drinkingState(w, now) === 'ready');
+  const wine = pickDaily(ready, now);
+  return wine ? { wine, quantity: counts.get(wine.id) ?? 0 } : null;
 }

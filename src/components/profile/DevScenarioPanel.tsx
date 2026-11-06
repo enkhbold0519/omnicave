@@ -2,17 +2,20 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/AppText';
 import { devScenarios, setDevScenario, useDevScenario } from '@/data/devScenario';
-import { colors, radii, spacing, touchTarget } from '@/theme/tokens';
+import { makeStyles, useTheme } from '@/theme/ThemeContext';
+import { radii, spacing, touchTarget } from '@/theme/tokens';
 
-/** Development-only controls for simulating failure states. Not rendered in production builds. */
+/** Development-only controls for simulating Home failure states. Not rendered in production builds. */
 export function DevScenarioPanel() {
   const scenario = useDevScenario();
+  const { colors } = useTheme();
+  const styles = useStyles();
   if (!__DEV__) return null;
 
   return (
     <View style={styles.root}>
-      <AppText variant="overline" color={colors.textMuted}>
-        Developer · simulate scenario
+      <AppText variant="caption" color={colors.textMuted}>
+        Simulates states on Home. Visible in development builds only.
       </AppText>
       <View style={styles.chips} accessibilityRole="radiogroup">
         {devScenarios.map((s) => {
@@ -26,7 +29,7 @@ export function DevScenarioPanel() {
               accessibilityLabel={`Simulate ${s.label}`}
               style={[styles.chip, selected && styles.chipSelected]}
             >
-              <AppText variant="caption" color={selected ? colors.textOnAccent : colors.textSecondary}>
+              <AppText variant="caption" color={selected ? colors.background : colors.textSecondary}>
                 {s.label}
               </AppText>
             </Pressable>
@@ -37,24 +40,18 @@ export function DevScenarioPanel() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: {
-    gap: spacing.sm,
-    padding: spacing.lg,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: colors.border,
-  },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  chip: {
-    minHeight: touchTarget,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.md,
-    borderRadius: radii.pill,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  chipSelected: { backgroundColor: colors.accent, borderColor: colors.accent },
-});
+const useStyles = makeStyles((c) =>
+  StyleSheet.create({
+    root: { gap: spacing.md },
+    chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+    chip: {
+      minHeight: touchTarget,
+      justifyContent: 'center',
+      paddingHorizontal: spacing.md,
+      borderRadius: radii.sm,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: c.hairline,
+    },
+    chipSelected: { backgroundColor: c.textSecondary, borderColor: c.textSecondary },
+  }),
+);

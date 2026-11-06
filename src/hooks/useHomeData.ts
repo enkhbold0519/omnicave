@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
+import { useDataVersion } from '@/data/cellarStore';
 import { useDevScenario } from '@/data/devScenario';
 import type { HomeRepository, HomeSnapshot } from '@/data/types';
 
@@ -13,11 +14,13 @@ type Settled = { key: string } & ({ status: 'error'; message: string } | { statu
 /**
  * Loads the Home snapshot for a cellar; refetches when the cellar, dev scenario or reload token changes.
  * Loading is derived: any result whose request key doesn't match the current one is treated as in flight.
+ * Bottle changes (data version) refetch quietly, keeping the current snapshot on screen.
  */
 export function useHomeData(repository: HomeRepository, cellarId: string | null) {
   const scenario = useDevScenario();
   const [reloadToken, setReloadToken] = useState(0);
   const [settled, setSettled] = useState<Settled | null>(null);
+  const version = useDataVersion();
   const key = `${cellarId}|${scenario}|${reloadToken}`;
 
   useEffect(() => {
@@ -36,7 +39,7 @@ export function useHomeData(repository: HomeRepository, cellarId: string | null)
     return () => {
       cancelled = true;
     };
-  }, [repository, cellarId, key]);
+  }, [repository, cellarId, key, version]);
 
   const reload = useCallback(() => setReloadToken((t) => t + 1), []);
 

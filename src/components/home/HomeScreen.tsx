@@ -3,17 +3,18 @@ import { useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { describeCondition, getCondition, isOutOfRange } from '@/data/derive';
+import { Section } from '@/components/ui/Section';
+import { getCondition, homeSummary, isOutOfRange } from '@/data/derive';
 import { profile } from '@/data/mockDb';
 import { useActiveCellar } from '@/hooks/ActiveCellarContext';
 import { useAccessibilityPrefs } from '@/hooks/useAccessibilityPrefs';
 import { useHomeData } from '@/hooks/useHomeData';
 import { useNow } from '@/hooks/useNow';
-import { colors, gutter, spacing } from '@/theme/tokens';
+import { makeStyles, useTheme } from '@/theme/ThemeContext';
+import { gutter, spacing } from '@/theme/tokens';
 
 import { CellarSelector } from './CellarSelector';
 import { CellarStatusCard } from './CellarStatusCard';
-import { DevScenarioPanel } from './DevScenarioPanel';
 import { FeaturedCarousel } from './FeaturedCarousel';
 import { HomeHeader } from './HomeHeader';
 import { HomeStateView } from './HomeStateView';
@@ -24,6 +25,8 @@ export function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const now = useNow();
+  const { colors } = useTheme();
+  const styles = useStyles();
   const { reduceMotion, screenReader } = useAccessibilityPrefs();
   const { repository, cellars, activeCellar, setActiveCellarId } = useActiveCellar();
   const { state, reload } = useHomeData(repository, activeCellar?.id ?? null);
@@ -31,35 +34,42 @@ export function HomeScreen() {
 
   const data = state.status === 'ready' ? state.data : null;
   const condition = data ? getCondition(data.environment, now) : null;
-  const summary = data && condition ? describeCondition(condition, data.environment, now) : undefined;
+  const summary = data && condition ? homeSummary(condition, data.bottleCount) : undefined;
 
   const openInventory = () => router.navigate('/inventory');
+  // A fresh value each time so Inventory focuses its search field even on repeat visits.
+  const findWine = () => router.navigate({ pathname: '/inventory', params: { focus: String(Date.now()) } });
   const openCellar = () => router.navigate('/cellar');
   const openAddBottle = () => router.push('/add-bottle');
 
   const onRefresh = () => {
     setRefreshing(true);
     reload();
-    // The skeleton state takes over immediately; the spinner only needs to acknowledge the gesture.
+    // The loading state takes over immediately; the spinner only needs to acknowledge the gesture.
     setTimeout(() => setRefreshing(false), 300);
   };
 
   return (
     <ScrollView
       style={styles.root}
-      contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.md }]}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} colors={[colors.accent]} />}
+      contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.sm }]}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textMuted} colors={[colors.accent]} />
+      }
     >
-      <HomeHeader unreadCount={data?.unreadNotifications ?? 0} onPressNotifications={() => router.push('/notifications')} />
-
-      <WelcomeSection name={profile.firstName} summary={summary} />
-
-      <CellarSelector
-        cellars={cellars}
-        activeCellar={activeCellar}
-        onSelect={setActiveCellarId}
-        reduceMotion={reduceMotion}
-      />
+      {/* Header and greeting sit close together so more of the cellar is visible without scrolling. */}
+      <View style={styles.top}>
+        <HomeHeader unreadCount={data?.unreadNotifications ?? 0} onPressNotifications={() => router.push('/notifications')} />
+        <View style={styles.intro}>
+          <WelcomeSection name={profile.firstName} now={now} summary={summary} />
+          <CellarSelector
+            cellars={cellars}
+            activeCellar={activeCellar}
+            onSelect={setActiveCellarId}
+            reduceMotion={reduceMotion}
+          />
+        </View>
+      </View>
 
       {state.status === 'loading' && <HomeStateView kind="loading" />}
 
@@ -69,62 +79,68 @@ export function HomeScreen() {
 
       {data && (
         <>
-          {condition === 'disconnected' && (
-            <HomeStateView
-              kind="disconnected"
-              message={`${data.environment.sensorMessage ?? 'The sensor hub is offline'}. Readings below may be out of date.`}
-              actionLabel="Retry connection"
-              onAction={reload}
+          <View style={styles.status}>
+            {condition === 'disconnected' && (
+              <HomeStateView
+                kind="disconnected"
+                message={`${data.environment.sensorMessage ?? 'The sensor hub is offline'}. Readings below may be out of date.`}
+                actionLabel="Retry connection"
+                onAction={reload}
+              />
+            )}
+            {condition !== 'disconnected' && (data.environment.sensor === 'warning' || isOutOfRange(data.environment)) && (
+              <HomeStateView
+                kind="sensorWarning"
+                message={data.environment.sensorMessage}
+                actionLabel="View cellar"
+                onAction={openCellar}
+              />
+            )}
+
+            <CellarStatusCard
+              environment={data.environment}
+              bottleCount={data.bottleCount}
+              now={now}
+              onPressStatus={openCellar}
+              onPressBottles={openInventory}
             />
-          )}
-          {condition !== 'disconnected' && (data.environment.sensor === 'warning' || isOutOfRange(data.environment)) && (
-            <HomeStateView
-              kind="sensorWarning"
-              message={data.environment.sensorMessage}
-              actionLabel="View cellar"
-              onAction={openCellar}
+
+            {data.bottleCount === 0 && (
+              <HomeStateView kind="empty" actionLabel="Add your first bottle" onAction={openAddBottle} />
+            )}
+          </View>
+
+          <Section title="Today">
+            <FeaturedCarousel
+              key={`${data.cellar.id}:${data.featuredWine?.wine.id ?? '-'}:${data.briefing?.id ?? '-'}`}
+              featuredWine={data.featuredWine}
+              briefing={data.briefing}
+              onPressWine={(id) => router.push({ pathname: '/wine/[id]', params: { id } })}
+              onPressBriefing={(id) => router.push({ pathname: '/briefing/[id]', params: { id } })}
+              reduceMotion={reduceMotion}
+              screenReader={screenReader}
             />
-          )}
+          </Section>
 
-          <CellarStatusCard
-            environment={data.environment}
-            bottleCount={data.bottleCount}
-            now={now}
-            onPressStatus={openCellar}
-            onPressBottles={openInventory}
-          />
-
-          {data.bottleCount === 0 && (
-            <HomeStateView kind="empty" actionLabel="Add your first bottle" onAction={openAddBottle} />
-          )}
-
-          <FeaturedCarousel
-            key={`${data.cellar.id}:${data.featuredWine?.wine.id ?? '-'}:${data.briefing?.id ?? '-'}`}
-            featuredWine={data.featuredWine}
-            briefing={data.briefing}
-            onPressWine={(id) => router.push({ pathname: '/wine/[id]', params: { id } })}
-            onPressBriefing={(id) => router.push({ pathname: '/briefing/[id]', params: { id } })}
-            reduceMotion={reduceMotion}
-            screenReader={screenReader}
-          />
-
-          <QuickActions
-            onFindWine={openInventory}
-            onAddBottle={openAddBottle}
-            onSommelier={() => router.navigate('/sommelier')}
-          />
+          <Section title="Shortcuts">
+            <QuickActions
+              onFindWine={findWine}
+              onAddBottle={openAddBottle}
+              onSommelier={() => router.navigate('/sommelier')}
+            />
+          </Section>
         </>
       )}
-
-      <View style={styles.devSpacer}>
-        <DevScenarioPanel />
-      </View>
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background },
-  content: { paddingHorizontal: gutter, paddingBottom: spacing.xxl, gap: spacing.xl },
-  devSpacer: { marginTop: spacing.lg },
-});
+const useStyles = makeStyles((c) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: c.background },
+    content: { paddingHorizontal: gutter, paddingBottom: spacing.xxxl, gap: spacing.xxxl },
+    top: { gap: spacing.sm },
+    intro: { gap: spacing.xl },
+    status: { gap: spacing.md },
+  }),
+);

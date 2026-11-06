@@ -1,48 +1,57 @@
-import { Pressable, StyleSheet } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { StyleSheet } from 'react-native';
 
-import { colors, radii, spacing, touchTarget } from '@/theme/tokens';
+import { makeStyles, useTheme } from '@/theme/ThemeContext';
+import { radii, spacing, touchTarget } from '@/theme/tokens';
 
 import { AppText } from './AppText';
+import { PressableScale } from './PressableScale';
 
 interface ButtonProps {
   label: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary';
+  /** primary: solid accent · secondary: hairline outline · link: text with arrow. */
+  variant?: 'primary' | 'secondary' | 'link';
   accessibilityHint?: string;
 }
 
 export function Button({ label, onPress, variant = 'primary', accessibilityHint }: ButtonProps) {
-  const primary = variant === 'primary';
+  const { colors } = useTheme();
+  const styles = useStyles();
+  const textColor = variant === 'primary' ? colors.textOnAccent : colors.accent;
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
+      accessibilityLabel={label}
       accessibilityHint={accessibilityHint}
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.base,
-        primary ? styles.primary : styles.secondary,
-        pressed && (primary ? styles.primaryPressed : styles.secondaryPressed),
-      ]}
+      containerStyle={styles.container}
+      style={[styles.base, styles[variant]]}
+      pressedStyle={variant === 'primary' ? styles.primaryPressed : styles.quietPressed}
     >
-      <AppText variant="bodyStrong" color={primary ? colors.textOnAccent : colors.accent}>
+      <AppText variant="bodyStrong" color={textColor}>
         {label}
       </AppText>
-    </Pressable>
+      {variant === 'link' && <Ionicons name="arrow-forward" size={14} color={colors.accent} />}
+    </PressableScale>
   );
 }
 
-const styles = StyleSheet.create({
-  base: {
-    minHeight: touchTarget,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.sm,
-    borderRadius: radii.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'flex-start',
-  },
-  primary: { backgroundColor: colors.accent },
-  primaryPressed: { backgroundColor: colors.accentPressed },
-  secondary: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
-  secondaryPressed: { backgroundColor: colors.surfaceMuted },
-});
+const useStyles = makeStyles((c) =>
+  StyleSheet.create({
+    container: { alignSelf: 'flex-start' },
+    base: {
+      minHeight: touchTarget,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.sm,
+      borderRadius: radii.sm,
+    },
+    primary: { backgroundColor: c.accent, paddingHorizontal: spacing.xl },
+    secondary: { borderWidth: StyleSheet.hairlineWidth, borderColor: c.textMuted, paddingHorizontal: spacing.xl },
+    link: { paddingHorizontal: 0 },
+    primaryPressed: { backgroundColor: c.accentPressed },
+    quietPressed: { opacity: 0.7 },
+  }),
+);

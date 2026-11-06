@@ -1,10 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/AppText';
+import { PressableScale } from '@/components/ui/PressableScale';
 import { formatRelativeTime, isOutOfRange, isStale } from '@/data/derive';
 import type { EnvironmentReading } from '@/data/types';
-import { colors, fonts, radii, spacing, touchTarget } from '@/theme/tokens';
+import { makeStyles, useTheme } from '@/theme/ThemeContext';
+import { radii, spacing, touchTarget, type Colors } from '@/theme/tokens';
 
 interface CellarStatusCardProps {
   environment: EnvironmentReading;
@@ -14,132 +16,136 @@ interface CellarStatusCardProps {
   onPressBottles: () => void;
 }
 
-type Freshness = { label: string; color: string; bg: string; icon: keyof typeof Ionicons.glyphMap };
+type Freshness = { label: 'Live' | 'Stale' | 'Offline'; color: string };
 
-function getFreshness(env: EnvironmentReading, now: Date): Freshness {
-  if (env.connection === 'offline') {
-    return { label: 'Offline', color: colors.danger, bg: colors.dangerSoft, icon: 'cloud-offline-outline' };
-  }
-  if (isStale(env, now)) {
-    return { label: 'Stale', color: colors.warning, bg: colors.warningSoft, icon: 'time-outline' };
-  }
-  return { label: 'Live', color: colors.success, bg: colors.accentSoft, icon: 'radio-button-on' };
+function getFreshness(env: EnvironmentReading, now: Date, c: Colors): Freshness {
+  if (env.connection === 'offline') return { label: 'Offline', color: c.danger };
+  if (isStale(env, now)) return { label: 'Stale', color: c.warning };
+  return { label: 'Live', color: c.success };
 }
 
-function sensorLine(env: EnvironmentReading): { text: string; color: string } {
-  if (env.sensor === 'unavailable') return { text: env.sensorMessage ?? 'Sensor unavailable', color: colors.danger };
-  if (env.sensor === 'warning') return { text: env.sensorMessage ?? 'Sensor warning', color: colors.warning };
-  if (isOutOfRange(env)) return { text: 'Outside ideal range', color: colors.warning };
-  return { text: 'Sensors normal', color: colors.success };
+function sensorLine(env: EnvironmentReading, c: Colors): { text: string; color: string } {
+  if (env.sensor === 'unavailable') return { text: env.sensorMessage ?? 'Sensor unavailable', color: c.danger };
+  if (env.sensor === 'warning') return { text: env.sensorMessage ?? 'Sensor warning', color: c.warning };
+  if (isOutOfRange(env)) return { text: 'Outside ideal range', color: c.warning };
+  return { text: 'Sensors normal', color: c.textMuted };
 }
 
 export function CellarStatusCard({ environment, bottleCount, now, onPressStatus, onPressBottles }: CellarStatusCardProps) {
-  const freshness = getFreshness(environment, now);
-  const sensor = sensorLine(environment);
+  const { colors } = useTheme();
+  const styles = useStyles();
+  const freshness = getFreshness(environment, now, colors);
+  const sensor = sensorLine(environment, colors);
   const updated = formatRelativeTime(environment.recordedAt, now);
-  const stale = freshness.label !== 'Live';
-  const bottlesLabel = `${bottleCount} ${bottleCount === 1 ? 'bottle' : 'bottles'}`;
-  const valueColor = stale ? colors.textSecondary : colors.textPrimary;
+  const live = freshness.label === 'Live';
+  const connected = environment.connection === 'online' ? 'Connected' : 'Disconnected';
+  const valueColor = live ? colors.textPrimary : colors.textMuted;
 
   return (
     <View style={styles.card}>
-      <Pressable
+      <PressableScale
         onPress={onPressBottles}
         accessibilityRole="button"
-        accessibilityLabel={`${bottlesLabel} in this cellar`}
+        accessibilityLabel={`${bottleCount} ${bottleCount === 1 ? 'bottle' : 'bottles'} in this cellar`}
         accessibilityHint="Opens your inventory"
-        style={({ pressed }) => [styles.row, styles.bottles, pressed && styles.pressed]}
+        scaleTo={0.985}
+        style={styles.bottles}
+        pressedStyle={styles.pressed}
       >
-        <AppText variant="title" style={styles.flex}>
-          {bottlesLabel}
+        <AppText variant="hero">{bottleCount}</AppText>
+        <AppText variant="overline" color={colors.textMuted} style={styles.flex}>
+          {bottleCount === 1 ? 'Bottle' : 'Bottles'}
         </AppText>
-        <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-      </Pressable>
+        <Ionicons name="arrow-forward" size={16} color={colors.textMuted} />
+      </PressableScale>
 
       <View style={styles.divider} />
 
-      <Pressable
+      <PressableScale
         onPress={onPressStatus}
         accessibilityRole="button"
         accessibilityLabel={
-          `Cellar status. ${freshness.label}. Temperature ${environment.temperatureC.toFixed(1)} degrees Celsius, ` +
-          `humidity ${environment.humidityPct} percent. ${sensor.text}. ` +
-          `${environment.connection === 'online' ? 'Connected' : 'Disconnected'}. Updated ${updated}.`
+          `Cellar status, ${freshness.label}. Temperature ${environment.temperatureC.toFixed(1)} degrees Celsius, ` +
+          `humidity ${environment.humidityPct} percent. ${sensor.text}. ${connected}. Updated ${updated}.`
         }
         accessibilityHint="Opens cellar details"
-        style={({ pressed }) => [styles.status, pressed && styles.pressed]}
+        scaleTo={0.985}
+        style={styles.status}
+        pressedStyle={styles.pressed}
       >
-        <View style={styles.metrics}>
-          <View style={styles.metric}>
-            <AppText variant="caption" color={colors.textMuted}>
-              Temperature
-            </AppText>
-            <AppText variant="title" color={valueColor}>
-              {environment.temperatureC.toFixed(1)}°C
-            </AppText>
+        <View style={styles.metricsRow}>
+          <View style={styles.metrics}>
+            <View style={styles.metric}>
+              <AppText variant="overline" color={colors.textMuted}>
+                Temperature
+              </AppText>
+              <AppText variant="headline" color={valueColor}>
+                {environment.temperatureC.toFixed(1)}°C
+              </AppText>
+            </View>
+            <View style={styles.metric}>
+              <AppText variant="overline" color={colors.textMuted}>
+                Humidity
+              </AppText>
+              <AppText variant="headline" color={valueColor}>
+                {environment.humidityPct}%
+              </AppText>
+            </View>
           </View>
-          <View style={styles.metric}>
-            <AppText variant="caption" color={colors.textMuted}>
-              Humidity
-            </AppText>
-            <AppText variant="title" color={valueColor}>
-              {environment.humidityPct}% RH
-            </AppText>
-          </View>
-          <View style={[styles.pill, { backgroundColor: freshness.bg }]}>
-            <Ionicons name={freshness.icon} size={12} color={freshness.color} />
-            <AppText variant="caption" color={freshness.color} style={styles.pillText}>
-              {freshness.label}
-            </AppText>
-          </View>
+          <Ionicons name="arrow-forward" size={16} color={colors.textMuted} />
         </View>
 
-        <View style={styles.row}>
-          <View style={[styles.dot, { backgroundColor: sensor.color }]} />
-          <AppText variant="caption" color={sensor.color} style={styles.flex}>
-            {sensor.text} · {environment.connection === 'online' ? 'Connected' : 'Disconnected'}
+        <View style={styles.meta}>
+          <View style={styles.row}>
+            <View style={[styles.dot, { backgroundColor: freshness.color }]} />
+            <AppText variant="caption" color={live ? colors.textSecondary : freshness.color} style={styles.flex}>
+              {freshness.label} · {live ? `updated ${updated}` : `last reading ${updated}`}
+            </AppText>
+          </View>
+          <AppText variant="caption" color={sensor.color}>
+            {sensor.text} · {connected}
           </AppText>
         </View>
-
-        <View style={styles.row}>
-          <AppText variant="caption" color={stale ? freshness.color : colors.textMuted} style={styles.flex}>
-            {stale ? `Last reading ${updated}` : `Updated ${updated}`}
-          </AppText>
-          <AppText variant="bodyStrong" color={colors.accent}>
-            View cellar
-          </AppText>
-          <Ionicons name="chevron-forward" size={16} color={colors.accent} />
-        </View>
-      </Pressable>
+      </PressableScale>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    overflow: 'hidden',
-  },
-  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  flex: { flex: 1 },
-  bottles: { minHeight: touchTarget + 8, paddingHorizontal: spacing.xl, paddingVertical: spacing.md },
-  divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginHorizontal: spacing.xl },
-  status: { paddingHorizontal: spacing.xl, paddingVertical: spacing.lg, gap: spacing.sm },
-  pressed: { backgroundColor: colors.surfaceMuted },
-  metrics: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', columnGap: spacing.xl, rowGap: spacing.sm },
-  metric: { gap: spacing.xxs },
-  pill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xxs,
-    borderRadius: radii.pill,
-    marginLeft: 'auto',
-  },
-  pillText: { fontFamily: fonts.semiBold },
-  dot: { width: 8, height: 8, borderRadius: 4 },
-});
+const useStyles = makeStyles((c) =>
+  StyleSheet.create({
+    card: {
+      backgroundColor: c.surface,
+      borderRadius: radii.lg,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: c.hairline,
+    },
+    flex: { flex: 1 },
+    row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+    bottles: {
+      minHeight: touchTarget + 16,
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      gap: spacing.md,
+      paddingHorizontal: spacing.xl,
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.md,
+      borderTopLeftRadius: radii.lg,
+      borderTopRightRadius: radii.lg,
+    },
+    divider: { height: StyleSheet.hairlineWidth, backgroundColor: c.hairline, marginHorizontal: spacing.xl },
+    status: {
+      paddingHorizontal: spacing.xl,
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.xl,
+      gap: spacing.lg,
+      borderBottomLeftRadius: radii.lg,
+      borderBottomRightRadius: radii.lg,
+    },
+    pressed: { backgroundColor: c.surfaceMuted },
+    metricsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+    metrics: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', columnGap: spacing.xxxl, rowGap: spacing.md },
+    metric: { gap: spacing.xs },
+    meta: { gap: spacing.xs },
+    dot: { width: 6, height: 6, borderRadius: 3 },
+  }),
+);

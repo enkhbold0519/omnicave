@@ -1,7 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { countBottles, formatRelativeTime, getCondition, isStale, pickDaily } from '../derive';
-import { inventory } from '../mockDb';
+import { countBottles, drinkingState, formatRelativeTime, getCondition, homeSummary, isStale, pickDaily, pickFeaturedWine } from '../derive';
+import { bottles, wines } from '../mockDb';
 import type { EnvironmentReading } from '../types';
 
 const now = new Date('2026-11-05T12:00:00Z');
@@ -17,9 +17,9 @@ const env = (overrides: Partial<EnvironmentReading> = {}): EnvironmentReading =>
 });
 
 describe('countBottles', () => {
-  it('sums quantities of in-cellar records only', () => {
-    expect(countBottles(inventory, 'cellar-signature')).toBe(10);
-    expect(countBottles(inventory, 'cellar-reserve')).toBe(6);
+  it('counts individual bottles still in the cellar; opened bottles are excluded', () => {
+    expect(countBottles(bottles, 'cellar-signature')).toBe(48);
+    expect(countBottles(bottles, 'cellar-reserve')).toBe(21);
   });
 
   it('returns 0 for no records', () => {
@@ -68,5 +68,38 @@ describe('pickDaily', () => {
     expect(pickDaily([], now)).toBeNull();
     const tomorrow = new Date(now.getTime() + 86_400_000);
     expect(pickDaily(['a', 'b'], now)).not.toBe(pickDaily(['a', 'b'], tomorrow));
+  });
+});
+
+describe('homeSummary', () => {
+  it('uses the approved message for each state', () => {
+    expect(homeSummary('balanced', 0)).toBe('Your cellar is ready for its first bottle.');
+    expect(homeSummary('balanced', 10)).toBe('Your collection is resting well.');
+    expect(homeSummary('attention', 10)).toBe('Your cellar needs attention.');
+    expect(homeSummary('stale', 10)).toBe('Your cellar needs attention.');
+    expect(homeSummary('disconnected', 10)).toBe('Your cellar is currently offline.');
+  });
+
+  it('puts connection and environment problems ahead of an empty inventory', () => {
+    expect(homeSummary('disconnected', 0)).toBe('Your cellar is currently offline.');
+    expect(homeSummary('attention', 0)).toBe('Your cellar needs attention.');
+  });
+});
+
+describe('drinking window', () => {
+  const wine = wines.find((w) => w.id === 'wine-leoville-2015')!;
+  it('is hold before the window, ready inside it, past after it', () => {
+    expect(drinkingState(wine, new Date(2026, 5, 1))).toBe('hold');
+    expect(drinkingState(wine, new Date(2030, 5, 1))).toBe('ready');
+    expect(drinkingState(wine, new Date(2046, 5, 1))).toBe('past');
+  });
+});
+
+describe('pickFeaturedWine', () => {
+  it('only features ready wines in that cellar, with their bottle count', () => {
+    const featured = pickFeaturedWine(bottles, wines, 'cellar-signature', now)!;
+    expect(drinkingState(featured.wine, now)).toBe('ready');
+    const inCellar = bottles.filter((b) => b.cellarId === 'cellar-signature' && b.status === 'in_cellar' && b.wineId === featured.wine.id);
+    expect(featured.quantity).toBe(inCellar.length);
   });
 });

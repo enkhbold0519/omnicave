@@ -3,7 +3,8 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
-import { colors, radii, spacing } from '@/theme/tokens';
+import { makeStyles, useTheme } from '@/theme/ThemeContext';
+import { radii, spacing, type Colors } from '@/theme/tokens';
 
 export type HomeStateKind = 'loading' | 'empty' | 'error' | 'disconnected' | 'sensorWarning';
 
@@ -46,50 +47,84 @@ const config: Record<
   },
 };
 
-const toneColors = {
-  neutral: { fg: colors.accent, bg: colors.surface, border: colors.border },
-  warning: { fg: colors.warning, bg: colors.warningSoft, border: colors.warningSoft },
-  danger: { fg: colors.danger, bg: colors.dangerSoft, border: colors.dangerSoft },
-};
+const toneColors = (c: Colors) => ({
+  neutral: { fg: c.accent, bg: c.surface },
+  warning: { fg: c.warning, bg: c.warningSoft },
+  danger: { fg: c.danger, bg: c.dangerSoft },
+});
 
 /** Loading, empty, error and connectivity states for the Home screen. */
 export function HomeStateView({ kind, message, actionLabel, onAction }: HomeStateViewProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const c = config[kind];
-  const tone = toneColors[c.tone];
-  const isBanner = kind === 'disconnected' || kind === 'sensorWarning';
+  const tone = toneColors(colors)[c.tone];
   const body = message ?? c.body;
 
   if (kind === 'loading') {
     return (
-      <View style={styles.block} accessibilityRole="progressbar" accessibilityLabel={c.title}>
-        <ActivityIndicator color={colors.accent} size="large" />
-        <AppText variant="bodyStrong">{c.title}</AppText>
-        <AppText variant="caption" color={colors.textSecondary}>
+      <View style={styles.loading} accessibilityRole="progressbar" accessibilityLabel={c.title}>
+        <ActivityIndicator color={colors.textMuted} />
+        <AppText variant="caption" color={colors.textMuted}>
           {body}
         </AppText>
       </View>
     );
   }
 
-  return (
-    <View
-      style={[isBanner ? styles.banner : styles.block, { backgroundColor: tone.bg, borderColor: tone.border }]}
-      accessibilityRole={kind === 'error' || isBanner ? 'alert' : undefined}
-      accessibilityLiveRegion={kind === 'error' || isBanner ? 'polite' : 'none'}
-    >
-      <View style={isBanner ? styles.bannerRow : styles.blockHeader}>
-        <Ionicons name={c.icon} size={isBanner ? 20 : 32} color={tone.fg} />
-        <View style={isBanner ? styles.bannerText : styles.blockText}>
-          <AppText variant="bodyStrong" color={isBanner ? tone.fg : colors.textPrimary} style={!isBanner && styles.center}>
+  // Connectivity issues are quiet banners above the content; empty/error replace it.
+  if (kind === 'disconnected' || kind === 'sensorWarning') {
+    return (
+      <View
+        style={[styles.banner, { backgroundColor: tone.bg }]}
+        accessibilityRole="alert"
+        accessibilityLiveRegion="polite"
+      >
+        <Ionicons name={c.icon} size={16} color={tone.fg} style={styles.bannerIcon} />
+        <View style={styles.bannerText}>
+          <AppText variant="bodyStrong" color={tone.fg}>
             {c.title}
           </AppText>
-          <AppText variant="caption" color={colors.textSecondary} style={!isBanner && styles.center}>
+          <AppText variant="caption" color={colors.textSecondary}>
             {body}
           </AppText>
+          {onAction && actionLabel ? <Button label={actionLabel} onPress={onAction} variant="link" /> : null}
         </View>
       </View>
+    );
+  }
+
+  // Empty inventory sits beside the status card, so it stays compact: one row, same message and action.
+  if (kind === 'empty') {
+    return (
+      <View style={styles.compact}>
+        <Ionicons name={c.icon} size={18} color={tone.fg} style={styles.bannerIcon} />
+        <View style={styles.compactText}>
+          <AppText variant="heading">{c.title}</AppText>
+          <AppText variant="caption" color={colors.textSecondary}>
+            {body}
+          </AppText>
+          {onAction && actionLabel ? (
+            <View style={styles.compactAction}>
+              <Button label={actionLabel} onPress={onAction} variant="primary" />
+            </View>
+          ) : null}
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View
+      style={styles.block}
+      accessibilityRole={kind === 'error' ? 'alert' : undefined}
+      accessibilityLiveRegion={kind === 'error' ? 'polite' : 'none'}
+    >
+      <Ionicons name={c.icon} size={22} color={tone.fg} />
+      <AppText variant="headline">{c.title}</AppText>
+      <AppText color={colors.textSecondary}>{body}</AppText>
       {onAction && actionLabel ? (
-        <View style={isBanner ? undefined : styles.action}>
+        <View style={styles.action}>
           <Button label={actionLabel} onPress={onAction} variant={kind === 'error' ? 'primary' : 'secondary'} />
         </View>
       ) : null}
@@ -97,22 +132,38 @@ export function HomeStateView({ kind, message, actionLabel, onAction }: HomeStat
   );
 }
 
-const styles = StyleSheet.create({
-  block: {
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.xxl,
-    paddingHorizontal: spacing.xl,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  blockHeader: { alignItems: 'center', gap: spacing.sm },
-  blockText: { alignItems: 'center', gap: spacing.xs },
-  center: { textAlign: 'center' },
-  action: { alignSelf: 'center', marginTop: spacing.sm },
-  banner: { borderRadius: radii.md, borderWidth: 1, padding: spacing.lg, gap: spacing.md },
-  bannerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
-  bannerText: { flex: 1, gap: spacing.xxs },
-});
+const useStyles = makeStyles((c) =>
+  StyleSheet.create({
+    loading: { alignItems: 'center', gap: spacing.md, paddingVertical: spacing.xxxl },
+    block: {
+      gap: spacing.sm,
+      padding: spacing.xl,
+      borderRadius: radii.lg,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: c.hairline,
+      backgroundColor: c.surface,
+    },
+    action: { marginTop: spacing.md },
+    compact: {
+      flexDirection: 'row',
+      gap: spacing.md,
+      padding: spacing.lg,
+      borderRadius: radii.lg,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: c.hairline,
+      backgroundColor: c.surface,
+    },
+    compactText: { flex: 1, gap: spacing.xxs },
+    compactAction: { marginTop: spacing.sm },
+    banner: {
+      flexDirection: 'row',
+      gap: spacing.md,
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.xs,
+      borderRadius: radii.md,
+    },
+    bannerIcon: { marginTop: 2 },
+    bannerText: { flex: 1, gap: spacing.xxs },
+  }),
+);

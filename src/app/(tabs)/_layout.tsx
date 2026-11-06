@@ -1,7 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs } from 'expo-router';
+import { StyleSheet } from 'react-native';
 
-import { colors, fonts } from '@/theme/tokens';
+import { useTheme } from '@/theme/ThemeContext';
+import { fonts } from '@/theme/tokens';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -14,14 +16,23 @@ const tabs: { name: string; title: string; icon: IconName; activeIcon: IconName 
 ];
 
 export default function TabLayout() {
+  const { colors } = useTheme();
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
-        tabBarLabelStyle: { fontFamily: fonts.medium, fontSize: 11 },
+        // Same background as the page with a hairline above: the bar recedes instead of forming a block.
+        tabBarStyle: {
+          backgroundColor: colors.background,
+          borderTopColor: colors.hairline,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          elevation: 0,
+        },
+        tabBarLabelStyle: { fontFamily: fonts.regular, fontSize: 10.5, letterSpacing: 0.2 },
+        // Tabs are peers: switching never animates (animate-expo).
+        animation: 'none',
         tabBarAllowFontScaling: true,
         sceneStyle: { backgroundColor: colors.background },
       }}
@@ -34,7 +45,7 @@ export default function TabLayout() {
             title: t.title,
             tabBarAccessibilityLabel: t.title,
             tabBarIcon: ({ focused, color, size }) => (
-              <Ionicons name={focused ? t.activeIcon : t.icon} size={size - 2} color={color as string} />
+              <Ionicons name={focused ? t.activeIcon : t.icon} size={size - 4} color={color as string} />
             ),
           }}
         />
