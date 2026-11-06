@@ -158,43 +158,6 @@ Users can remotely:
 
 ## 🏗️ System Architecture
 
-```text
-                         ┌─────────────────────┐
-                         │        User         │
-                         └──────────┬──────────┘
-                                    │
-             ┌──────────────────────┼──────────────────────┐
-             ▼                      ▼                      ▼
-    ┌────────────────┐    ┌────────────────┐    ┌────────────────┐
-    │ Transparent    │    │ Android / iOS  │    │ Wine Cellar    │
-    │ Display        │    │ Applications   │    │ Sensors        │
-    │ React + TS     │    │                │    │ + Cameras      │
-    └────────┬───────┘    └────────┬───────┘    └────────┬───────┘
-             │                     │                     │
-             └─────────────────────┼─────────────────────┘
-                                   ▼
-                        ┌──────────────────────┐
-                        │   FastAPI Backend    │
-                        │                      │
-                        │ • Authentication     │
-                        │ • Inventory          │
-                        │ • Cellar Management  │
-                        │ • Environmental Data │
-                        │ • AI Integration     │
-                        └──────────┬───────────┘
-                                   │
-                  ┌────────────────┼────────────────┐
-                  ▼                                 ▼
-       ┌─────────────────────┐          ┌─────────────────────┐
-       │     PostgreSQL      │          │ Cloud AI Services   │
-       │                     │          │                     │
-       │ • Users             │          │ • Vision AI        │
-       │ • Wine Inventory    │          │ • LLM              │
-       │ • Bottle Locations  │          │ • Multi-Agent AI   │
-       │ • Sensor Data       │          │ • Recommendations  │
-       └─────────────────────┘          └─────────────────────┘
-```
-
 ---
 
 ## 🛠️ Technology Stack
