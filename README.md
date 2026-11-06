@@ -2,7 +2,7 @@
 
 Expo SDK 58 · Expo Router · TypeScript. Home, Inventory, Wine Details, History, Cellar Map, Sommelier and Profile are
 built; Notifications, Add Bottle and Briefing are labeled placeholders.
-All data is mock and local — no network, auth, database or AI services.
+All data, including log-in, is mock and in memory (demo account: alex@cellaros.app / Cellar#2026) — no network, database or AI services.
 
 ## Run in Expo Go
 

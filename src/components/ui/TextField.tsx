@@ -1,4 +1,4 @@
-import { StyleSheet, TextInput, type KeyboardTypeOptions } from 'react-native';
+import { StyleSheet, TextInput, type KeyboardTypeOptions, type TextInputProps } from 'react-native';
 
 import { makeStyles, useTheme } from '@/theme/ThemeContext';
 import { fonts, radii, spacing, touchTarget, typography } from '@/theme/tokens';
@@ -10,10 +10,13 @@ interface TextFieldProps {
   label: string;
   maxLength?: number;
   keyboardType?: KeyboardTypeOptions;
+  /** Hidden input (passwords). */
+  secure?: boolean;
+  autoComplete?: TextInputProps['autoComplete'];
 }
 
 /** Single-line form input in the app's hairline style. */
-export function TextField({ value, onChange, placeholder, label, maxLength, keyboardType }: TextFieldProps) {
+export function TextField({ value, onChange, placeholder, label, maxLength, keyboardType, secure, autoComplete }: TextFieldProps) {
   const { colors } = useTheme();
   const styles = useStyles();
   return (
@@ -26,6 +29,10 @@ export function TextField({ value, onChange, placeholder, label, maxLength, keyb
       style={styles.field}
       maxLength={maxLength}
       keyboardType={keyboardType}
+      secureTextEntry={secure}
+      autoComplete={autoComplete}
+      autoCapitalize={secure || keyboardType === 'email-address' ? 'none' : undefined}
+      autoCorrect={secure || keyboardType === 'email-address' ? false : undefined}
       accessibilityLabel={label}
     />
   );

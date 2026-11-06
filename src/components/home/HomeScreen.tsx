@@ -5,9 +5,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Section } from '@/components/ui/Section';
 import { getCondition, homeSummary, isOutOfRange } from '@/data/derive';
-import { profile } from '@/data/mockDb';
 import type { HomeSnapshot } from '@/data/types';
 import { useActiveCellar } from '@/hooks/ActiveCellarContext';
+import { useAuth } from '@/hooks/AuthContext';
 import { useAccessibilityPrefs } from '@/hooks/useAccessibilityPrefs';
 import { useNow } from '@/hooks/useNow';
 import { useQuery } from '@/hooks/useQuery';
@@ -29,6 +29,7 @@ export function HomeScreen() {
   const { colors } = useTheme();
   const styles = useStyles();
   const { reduceMotion, screenReader } = useAccessibilityPrefs();
+  const { user } = useAuth();
   const { repository, cellars, activeCellar, setActiveCellarId } = useActiveCellar();
   const cellarId = activeCellar?.id ?? null;
   const { state, reload } = useQuery<HomeSnapshot | null>(`home|${cellarId}`, () =>
@@ -65,7 +66,7 @@ export function HomeScreen() {
       <View style={styles.top}>
         <HomeHeader unreadCount={data?.unreadNotifications ?? 0} onPressNotifications={() => router.push('/notifications')} />
         <View style={styles.intro}>
-          <WelcomeSection name={profile.firstName} now={now} summary={summary} />
+          <WelcomeSection name={user?.username ?? ''} now={now} summary={summary} />
           <CellarSelector
             cellars={cellars}
             activeCellar={activeCellar}

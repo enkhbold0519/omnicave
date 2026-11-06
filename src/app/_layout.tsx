@@ -11,15 +11,18 @@ import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ActiveCellarProvider } from '@/hooks/ActiveCellarContext';
+import { AuthProvider, useAuth } from '@/hooks/AuthContext';
 import { ThemeProvider, useTheme } from '@/theme/ThemeContext';
 
 export default function RootLayout() {
   return (
     <ThemeProvider>
       <SafeAreaProvider>
-        <ActiveCellarProvider>
-          <RootNavigator />
-        </ActiveCellarProvider>
+        <AuthProvider>
+          <ActiveCellarProvider>
+            <RootNavigator />
+          </ActiveCellarProvider>
+        </AuthProvider>
       </SafeAreaProvider>
     </ThemeProvider>
   );
@@ -27,6 +30,7 @@ export default function RootLayout() {
 
 function RootNavigator() {
   const { colors, scheme } = useTheme();
+  const { user } = useAuth();
   // Fonts ship inside the package, so this works offline.
   const [fontsLoaded, fontError] = useFonts({
     Montserrat_300Light,
@@ -47,18 +51,26 @@ function RootNavigator() {
     <>
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="notifications" />
-        <Stack.Screen name="add-bottle" />
-        <Stack.Screen name="edit-bottle" />
-        <Stack.Screen name="review-bottles" />
-        <Stack.Screen name="wine/[id]" />
-        <Stack.Screen name="briefing/[id]" />
-        <Stack.Screen name="history" />
-        <Stack.Screen name="tasting/new" />
-        <Stack.Screen name="tasting/[id]" />
-        <Stack.Screen name="sommeliers/index" />
-        <Stack.Screen name="sommeliers/edit" />
+        {/* Spec: inventory functions require authentication. */}
+        <Stack.Protected guard={!!user} redirectTo="/login">
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="notifications" />
+          <Stack.Screen name="add-bottle" />
+          <Stack.Screen name="edit-bottle" />
+          <Stack.Screen name="review-bottles" />
+          <Stack.Screen name="wine/[id]" />
+          <Stack.Screen name="briefing/[id]" />
+          <Stack.Screen name="history" />
+          <Stack.Screen name="tasting/new" />
+          <Stack.Screen name="tasting/[id]" />
+          <Stack.Screen name="sommeliers/index" />
+          <Stack.Screen name="sommeliers/edit" />
+          <Stack.Screen name="account" />
+        </Stack.Protected>
+        <Stack.Protected guard={!user}>
+          <Stack.Screen name="login" />
+          <Stack.Screen name="signup" />
+        </Stack.Protected>
       </Stack>
     </>
   );

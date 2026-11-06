@@ -1,10 +1,12 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 
 import { AppText } from '@/components/ui/AppText';
+import { Button } from '@/components/ui/Button';
 import { ChoiceRow } from '@/components/ui/ChoiceRow';
 import { Section } from '@/components/ui/Section';
-import { profile } from '@/data/mockDb';
+import { useAuth } from '@/hooks/AuthContext';
 import { makeStyles, useTheme, type ThemePreference } from '@/theme/ThemeContext';
 import { gutter, palettes, spacing, type Colors, type PaletteId } from '@/theme/tokens';
 
@@ -30,6 +32,8 @@ export function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { colors, scheme, preference, setPreference, palette, setPalette } = useTheme();
   const styles = useStyles();
+  const router = useRouter();
+  const { user, logOut } = useAuth();
 
   return (
     <ScrollView
@@ -41,12 +45,19 @@ export function ProfileScreen() {
           Profile
         </AppText>
         <AppText variant="display" accessibilityRole="header">
-          {profile.firstName}
+          {user?.username}
         </AppText>
         <AppText variant="caption" color={colors.textMuted}>
-          Demo account · sign-in arrives in a later phase
+          Logged in as {user?.email}
         </AppText>
       </View>
+
+      <Section title="Account">
+        <View style={styles.account}>
+          <Button label="Edit profile" variant="secondary" onPress={() => router.push('/account')} />
+          <Button label="Log Out" variant="link" onPress={() => void logOut()} />
+        </View>
+      </Section>
 
       <Section title="Appearance">
         <View accessibilityRole="radiogroup">
@@ -93,6 +104,7 @@ const useStyles = makeStyles((c) =>
     root: { flex: 1, backgroundColor: c.background },
     content: { paddingHorizontal: gutter, gap: spacing.xxxl },
     intro: { gap: spacing.sm },
+    account: { flexDirection: 'row', alignItems: 'center', gap: spacing.xl },
   }),
 );
 

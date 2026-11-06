@@ -225,4 +225,3 @@ export const notifications: AppNotification[] = [
   { id: 'note-3', title: 'Signature Cellar sensor reconnected', read: true },
 ];
 
-export const profile = { firstName: 'Alex' };
