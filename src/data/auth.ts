@@ -21,6 +21,8 @@ export interface AuthRepository {
   logOut(token: string): Promise<void>;
   /** `password` is optional: only sent when the user changes it. */
   updateProfile(token: string, input: { username: string; email: string; password?: string }): Promise<User>;
+  /** GDPR right to erasure: permanently delete the account after re-entering the password. */
+  deleteAccount(token: string, password: string): Promise<void>;
 }
 
 // ── Validation (spec: User Management) ───────────────────────────────────────────────────────────
@@ -95,6 +97,15 @@ export function createMockAuthRepository({ latencyMs = 400 } = {}): AuthReposito
       const updated = { ...user, username: username.trim(), email: email.trim(), password: password ?? user.password };
       users = users.map((u) => (u.id === user.id ? updated : u));
       return publicUser(updated);
+    },
+
+    async deleteAccount(token, password) {
+      if (latencyMs) await delay(latencyMs);
+      const user = users.find((u) => u.id === sessions.get(token));
+      if (!user) throw new Error('Your session has ended. Log in again.');
+      if (user.password !== password) throw new Error('That password is not correct.');
+      users = users.filter((u) => u.id !== user.id);
+      for (const [t, id] of sessions) if (id === user.id) sessions.delete(t);
     },
   };
 }

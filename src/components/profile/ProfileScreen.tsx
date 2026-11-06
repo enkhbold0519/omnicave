@@ -1,6 +1,5 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -9,6 +8,9 @@ import { Button } from '@/components/ui/Button';
 import { PickerSheet } from '@/components/ui/PickerSheet';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { Section } from '@/components/ui/Section';
+import { SettingRow } from '@/components/ui/SettingRow';
+import { alertsSummary, tasteSummary, useSettings } from '@/data/settings';
+import { useActiveCellar } from '@/hooks/ActiveCellarContext';
 import { useAuth } from '@/hooks/AuthContext';
 import { useAccessibilityPrefs } from '@/hooks/useAccessibilityPrefs';
 import { makeStyles, useTheme, type ThemePreference } from '@/theme/ThemeContext';
@@ -48,6 +50,8 @@ export function ProfileScreen() {
   const { reduceMotion } = useAccessibilityPrefs();
   const { user, logOut } = useAuth();
   const [picker, setPicker] = useState<'theme' | 'palette' | null>(null);
+  const settings = useSettings();
+  const { cellars } = useActiveCellar();
 
   const theme = appearanceOptions.find((o) => o.value === preference) ?? appearanceOptions[0];
 
@@ -69,11 +73,21 @@ export function ProfileScreen() {
           <Button label="Edit profile" variant="link" align="center" onPress={() => router.push('/account')} />
         </View>
 
+        <Section title="Settings">
+          <View style={styles.rows}>
+            <SettingRow label="My cellars" value={`${cellars.length} ${cellars.length === 1 ? 'cellar' : 'cellars'}`} onPress={() => router.push('/settings/cellars')} />
+            <SettingRow label="Notifications & alerts" value={alertsSummary(settings.alerts)} onPress={() => router.push('/settings/alerts')} />
+            <SettingRow label="Taste preferences" value={tasteSummary(settings.taste)} onPress={() => router.push('/settings/taste')} />
+            <SettingRow label="Privacy & data" onPress={() => router.push('/settings/privacy')} />
+          </View>
+        </Section>
+
         <Section title="Appearance">
           <View style={styles.rows}>
-            <SettingRow label="Theme" value={theme.title} onPress={() => setPicker('theme')} />
+            <SettingRow label="Theme" kind="pick" value={theme.title} onPress={() => setPicker('theme')} />
             <SettingRow
               label="Palette"
+              kind="pick"
               value={palettes[palette].name}
               leading={<Swatch colors={palettes[palette][scheme]} ring={colors.hairline} />}
               onPress={() => setPicker('palette')}
@@ -138,30 +152,6 @@ export function ProfileScreen() {
   );
 }
 
-/** A compact settings row: label on the left, current value and a chevron on the right; opens a picker. */
-function SettingRow({ label, value, leading, onPress }: { label: string; value: string; leading?: ReactNode; onPress: () => void }) {
-  const { colors } = useTheme();
-  const styles = useStyles();
-  return (
-    <PressableScale
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`${label}: ${value}`}
-      accessibilityHint="Opens a list to choose from"
-      scaleTo={0.985}
-      style={styles.row}
-      pressedStyle={styles.pressed}
-    >
-      <AppText variant="heading" style={styles.flex}>
-        {label}
-      </AppText>
-      {leading}
-      <AppText color={colors.textSecondary}>{value}</AppText>
-      <Ionicons name="chevron-down" size={14} color={colors.textMuted} />
-    </PressableScale>
-  );
-}
-
 const useStyles = makeStyles((c) =>
   StyleSheet.create({
     root: { flex: 1, backgroundColor: c.background },
@@ -178,17 +168,7 @@ const useStyles = makeStyles((c) =>
     },
     avatarText: { fontFamily: fonts.medium, fontSize: 26, lineHeight: 32 },
     center: { textAlign: 'center' },
-    flex: { flex: 1 },
     rows: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: c.hairline },
-    row: {
-      minHeight: touchTarget + 8,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-      paddingVertical: spacing.sm,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderColor: c.hairline,
-    },
     pressed: { opacity: 0.6 },
     logOut: { alignSelf: 'center' },
     logOutHit: { minHeight: touchTarget, justifyContent: 'center', paddingHorizontal: spacing.lg },

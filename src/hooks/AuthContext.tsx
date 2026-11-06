@@ -8,6 +8,7 @@ interface AuthValue {
   signUp: AuthRepository['signUp'];
   logOut: () => Promise<void>;
   updateProfile: (input: { username: string; email: string; password?: string }) => Promise<void>;
+  deleteAccount: (password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthValue | null>(null);
@@ -29,6 +30,11 @@ export function AuthProvider({ children, repository = authRepository }: { childr
         if (!session) throw new Error('Log in first.');
         const user = await repository.updateProfile(session.token, input);
         setSession({ ...session, user });
+      },
+      deleteAccount: async (password) => {
+        if (!session) throw new Error('Log in first.');
+        await repository.deleteAccount(session.token, password);
+        setSession(null);
       },
     }),
     [repository, session],

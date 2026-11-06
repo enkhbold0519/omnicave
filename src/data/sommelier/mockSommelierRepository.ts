@@ -1,7 +1,6 @@
 import { formatSlot } from '../cellarLayout';
-import { getBottles, getWines } from '../cellarStore';
+import { getBottles, getCellars, getSlots, getWines } from '../cellarStore';
 import { getDevScenario, type DevScenario } from '../devScenario';
-import * as db from '../mockDb';
 import {
   composeQuestionTurn,
   composeReply,
@@ -78,8 +77,8 @@ export function createMockSommelierRepository({
       const wine = getWines().find((w) => w.id === b.wineId);
       if (!wine) continue;
       seen.add(b.wineId);
-      const cellar = db.cellars.find((c) => c.id === b.cellarId)?.name ?? 'your cellar';
-      const slot = db.slots.find((s) => s.id === b.slotId);
+      const cellar = getCellars().find((c) => c.id === b.cellarId)?.name ?? 'your cellar';
+      const slot = getSlots().find((s) => s.id === b.slotId);
       result.push({ wine, location: slot ? `${cellar}, ${formatSlot(slot).toLowerCase().replace('zone ·', 'zone,')}` : `${cellar} (not yet placed)` });
     }
     return result;

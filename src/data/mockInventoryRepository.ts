@@ -1,7 +1,6 @@
 import { layoutById, zoneForStyle } from './cellarLayout';
-import { addWine, getBottles, getDetections, getWines, removeDetection, updateBottles, updateWine } from './cellarStore';
+import { addWine, getBottles, getCellars, getDetections, getSlots, getWines, removeDetection, updateBottles, updateWine } from './cellarStore';
 import { getDevScenario, type DevScenario } from './devScenario';
-import * as db from './mockDb';
 import { readEnvironment } from './mockEnvironment';
 import type { Bottle, CellarMapData, DetectedBottle, NewBottleInput, Wine, CellarScope, InventoryData, InventoryRepository, WineDetails } from './types';
 
@@ -47,7 +46,7 @@ export function createMockInventoryRepository({
 
   /** The slot must belong to the cellar and be free (ignoring `except`, the bottle being moved). */
   const assertFreeSlot = (cellarId: string, slotId: string, except?: string) => {
-    const slot = db.slots.find((s) => s.id === slotId);
+    const slot = getSlots().find((s) => s.id === slotId);
     if (!slot || slot.cellarId !== cellarId) throw new Error("That position isn't part of this cellar.");
     const taken = getBottles().some((b) => b.status === 'in_cellar' && b.slotId === slotId && b.id !== except);
     if (taken) throw new Error('That position is already taken.');
@@ -61,7 +60,7 @@ export function createMockInventoryRepository({
     if (!name || !producer || !input.region.trim() || !input.country.trim() || grapes.length === 0) throw new Error('Fill in every field.');
     const year = now().getFullYear();
     if (!Number.isInteger(input.vintage) || input.vintage < 1900 || input.vintage > year) throw new Error(`Vintage must be between 1900 and ${year}.`);
-    if (!db.cellars.some((c) => c.id === cellarId)) throw new Error('Unknown cellar.');
+    if (!getCellars().some((c) => c.id === cellarId)) throw new Error('Unknown cellar.');
     return { name, producer, grapes };
   };
 
@@ -108,7 +107,7 @@ async function createBottle({ cellarId, slotId, wine: input }: NewBottleInput): 
   /** Mock "where the camera saw it": the first free position in the zone for the wine's style. */
   const detectedSlot = (d: DetectedBottle, claimed: Set<string>) => {
     const used = new Set(getBottles().filter((b) => b.status === 'in_cellar').flatMap((b) => (b.slotId ? [b.slotId] : [])));
-    return db.slots.find((x) => x.cellarId === d.cellarId && x.zoneId === zoneForStyle(d.wine.style) && !used.has(x.id) && !claimed.has(x.id))?.id ?? null;
+    return getSlots().find((x) => x.cellarId === d.cellarId && x.zoneId === zoneForStyle(d.wine.style) && !used.has(x.id) && !claimed.has(x.id))?.id ?? null;
   };
 
   return {
@@ -117,7 +116,7 @@ async function createBottle({ cellarId, slotId, wine: input }: NewBottleInput): 
       return {
         bottles: bottles.filter((b) => b.status === 'in_cellar' && inScope(scope)(b.cellarId)),
         wines: getWines(),
-        cellars: db.cellars,
+        cellars: getCellars(),
       };
     },
 
@@ -126,7 +125,7 @@ async function createBottle({ cellarId, slotId, wine: input }: NewBottleInput): 
       return {
         bottles: bottles.filter((b) => b.status === 'opened' && inScope(scope)(b.cellarId)),
         wines: getWines(),
-        cellars: db.cellars,
+        cellars: getCellars(),
       };
     },
 
@@ -138,8 +137,8 @@ async function createBottle({ cellarId, slotId, wine: input }: NewBottleInput): 
         bottles
           .filter((b) => b.wineId === wineId && b.status === status)
           .flatMap((bottle) => {
-            const cellar = db.cellars.find((c) => c.id === bottle.cellarId);
-            const slot = db.slots.find((s) => s.id === bottle.slotId) ?? null;
+            const cellar = getCellars().find((c) => c.id === bottle.cellarId);
+            const slot = getSlots().find((s) => s.id === bottle.slotId) ?? null;
             return cellar ? [{ bottle, cellar, slot }] : [];
           });
       return {
@@ -153,12 +152,12 @@ async function createBottle({ cellarId, slotId, wine: input }: NewBottleInput): 
 
     async getCellarMap(cellarId): Promise<CellarMapData | null> {
       const bottles = await prepare();
-      const cellar = db.cellars.find((c) => c.id === cellarId);
+      const cellar = getCellars().find((c) => c.id === cellarId);
       if (!cellar) return null;
       return {
         cellar,
         layout: layoutById(cellar.layoutId),
-        slots: db.slots.filter((s) => s.cellarId === cellarId),
+        slots: getSlots().filter((s) => s.cellarId === cellarId),
         bottles: bottles.filter((b) => b.status === 'in_cellar' && b.cellarId === cellarId),
         wines: getWines(),
         environment: readEnvironment(cellarId, scenario(), now()),

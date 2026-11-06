@@ -1,11 +1,22 @@
 import type { DevScenario } from './devScenario';
+import { getCellars } from './cellarStore';
 import * as db from './mockDb';
 import type { EnvironmentReading } from './types';
 
 /** The latest mock sensor reading for a cellar, shared by Home and the Cellar Map. Null for an unknown cellar. */
 export function readEnvironment(cellarId: string, scenario: DevScenario, now: Date): EnvironmentReading | null {
   const raw = db.environments[cellarId];
-  if (!raw) return null;
+  if (!raw) {
+    if (!getCellars().some((c) => c.id === cellarId)) return null;
+    return {
+      temperatureC: 0,
+      humidityPct: 0,
+      connection: 'offline',
+      sensor: 'unavailable',
+      sensorMessage: 'Not connected to a cellar unit yet',
+      recordedAt: now,
+    };
+  }
   const reading: EnvironmentReading = {
     temperatureC: raw.temperatureC,
     humidityPct: raw.humidityPct,

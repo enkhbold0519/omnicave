@@ -134,6 +134,9 @@ export interface HomeSnapshot {
 
 export interface HomeRepository {
   listCellars(): Promise<Cellar[]>;
+  /** Register another cellar unit (an LG SIGNATURE layout for now). */
+  addCellar(input: { name: string; location: string }): Promise<Cellar>;
+  renameCellar(id: string, input: { name: string; location: string }): Promise<void>;
   getHomeSnapshot(cellarId: string, now?: Date): Promise<HomeSnapshot>;
 }
 

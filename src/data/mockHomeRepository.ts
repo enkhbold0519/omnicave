@@ -1,4 +1,5 @@
-import { getBottles, getWines } from './cellarStore';
+import { buildSlots, LG_SIGNATURE_65 } from './cellarLayout';
+import { addCellar, getBottles, getCellars, getWines, updateCellar } from './cellarStore';
 import { countBottles, pickDaily, pickFeaturedWine } from './derive';
 import { getDevScenario, type DevScenario } from './devScenario';
 import * as db from './mockDb';
@@ -14,6 +15,16 @@ interface MockOptions {
 
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
+/** Name required (≤ 40 chars); location optional (≤ 60). */
+function checkCellar(name: string, location: string) {
+  const n = name.trim();
+  const l = location.trim();
+  if (!n) throw new Error('Give the cellar a name.');
+  if (n.length > 40) throw new Error('Keep the name under 40 characters.');
+  if (l.length > 60) throw new Error('Keep the location under 60 characters.');
+  return { name: n, location: l };
+}
+
 export function createMockHomeRepository({
   latencyMs = 600,
   scenario = getDevScenario,
@@ -21,7 +32,22 @@ export function createMockHomeRepository({
   return {
     async listCellars(): Promise<Cellar[]> {
       if (latencyMs) await delay(latencyMs / 3);
-      return db.cellars.map((c) => ({ ...c }));
+      return getCellars().map((c) => ({ ...c }));
+    },
+
+    async addCellar({ name, location }) {
+      if (latencyMs) await delay(latencyMs / 3);
+      const clean = checkCellar(name, location);
+      const id = `cellar-${Date.now().toString(36)}`;
+      const cellar: Cellar = { id, ...clean, layoutId: LG_SIGNATURE_65.id };
+      addCellar(cellar, buildSlots(id, LG_SIGNATURE_65));
+      return { ...cellar };
+    },
+
+    async renameCellar(id, { name, location }) {
+      if (latencyMs) await delay(latencyMs / 3);
+      if (!getCellars().some((c) => c.id === id)) throw new Error('That cellar no longer exists.');
+      updateCellar(id, checkCellar(name, location));
     },
 
     async getHomeSnapshot(cellarId: string, now: Date = new Date()): Promise<HomeSnapshot> {
@@ -32,7 +58,7 @@ export function createMockHomeRepository({
         throw new Error('Could not reach your cellar. Check your connection and try again.');
       }
 
-      const cellar = db.cellars.find((c) => c.id === cellarId);
+      const cellar = getCellars().find((c) => c.id === cellarId);
       const environment = readEnvironment(cellarId, active, now);
       if (!cellar || !environment) {
         throw new Error(`Unknown cellar: ${cellarId}`);

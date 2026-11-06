@@ -66,6 +66,11 @@ function RootNavigator() {
           <Stack.Screen name="sommeliers/index" />
           <Stack.Screen name="sommeliers/edit" />
           <Stack.Screen name="account" />
+          <Stack.Screen name="settings/cellars" />
+          <Stack.Screen name="settings/cellar" />
+          <Stack.Screen name="settings/alerts" />
+          <Stack.Screen name="settings/taste" />
+          <Stack.Screen name="settings/privacy" />
         </Stack.Protected>
         <Stack.Protected guard={!user}>
           <Stack.Screen name="login" />

@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
+import { useDataVersion } from '@/data/cellarStore';
 import { homeRepository } from '@/data/mockHomeRepository';
 import { inventoryRepository } from '@/data/mockInventoryRepository';
 import type { Cellar, HomeRepository, InventoryRepository } from '@/data/types';
@@ -25,6 +26,7 @@ export function ActiveCellarProvider({
 }) {
   const [cellars, setCellars] = useState<Cellar[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const version = useDataVersion();
 
   useEffect(() => {
     let cancelled = false;
@@ -36,7 +38,7 @@ export function ActiveCellarProvider({
     return () => {
       cancelled = true;
     };
-  }, [repository]);
+  }, [repository, version]);
 
   const value = useMemo<ActiveCellarValue>(
     () => ({
