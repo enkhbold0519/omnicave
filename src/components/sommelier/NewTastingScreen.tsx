@@ -97,7 +97,6 @@ export function NewTastingScreen({ topic, initialWineId }: { topic: StartTopic; 
           <AppText variant="display" accessibilityRole="header">
             {headings[topic].title}
           </AppText>
-          <AppText color={colors.textSecondary}>{headings[topic].body}</AppText>
         </View>
 
         {topic === 'wine' && (
@@ -138,9 +137,6 @@ export function NewTastingScreen({ topic, initialWineId }: { topic: StartTopic; 
         )}
 
         <Section title={`At the table · ${seats.length} of ${TABLE_MAX}`}>
-          <AppText variant="caption" color={colors.textSecondary}>
-            Seat {TABLE_MIN} to {TABLE_MAX} sommeliers.
-          </AppText>
           <View style={styles.rows}>
             {personas.map((p) => {
               const on = seats.includes(p.id);

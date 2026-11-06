@@ -22,8 +22,7 @@ import {
   type MapCell,
 } from '@/data/cellarMap';
 import { getDataVersion } from '@/data/cellarStore';
-import { formatRelativeTime, isStale } from '@/data/derive';
-import type { CellarMapData, EnvironmentReading, WineStyle } from '@/data/types';
+import type { CellarMapData, WineStyle } from '@/data/types';
 import { useActiveCellar } from '@/hooks/ActiveCellarContext';
 import { useAccessibilityPrefs } from '@/hooks/useAccessibilityPrefs';
 import { useNow } from '@/hooks/useNow';
@@ -321,9 +320,8 @@ export function CellarMapScreen() {
           <>
             <View style={styles.summary}>
               <AppText color={colors.textSecondary}>
-                {map.layout.model} · {map.occupied} of {map.capacity} filled
+                {map.occupied} of {map.capacity} filled
               </AppText>
-              <SensorLine environment={data.environment} now={now} />
               <Legend counts={styleCounts} uncertain={map.uncertainCount > 0} />
             </View>
 
@@ -340,15 +338,6 @@ export function CellarMapScreen() {
             />
 
             {found && <FindResult location={found} cellarName={data.cellar.name} onClear={clearFind} />}
-
-            {map.uncertainCount > 0 && !searching && !found && (
-              <Notice
-                icon="help-circle-outline"
-                tone="warning"
-                title={`${map.uncertainCount} ${map.uncertainCount === 1 ? 'position' : 'positions'} to check`}
-                body="Dashed rings mark bottles the cellar's sensors placed with low confidence. Tap one to confirm or move it."
-              />
-            )}
 
             {map.occupied === 0 && map.unplaced.length === 0 && (
               <HomeStateView kind="empty" message="Tap any position below to add a bottle there." />
@@ -388,9 +377,6 @@ export function CellarMapScreen() {
                       >
                         <AppText variant="bodyStrong" numberOfLines={1}>
                           {wine ? `${wine.name} ${wine.vintage}` : 'Unknown wine'}
-                        </AppText>
-                        <AppText variant="caption" color={colors.textMuted}>
-                          In the cellar, no position recorded
                         </AppText>
                       </PressableScale>
                       <Button
@@ -482,32 +468,6 @@ export function CellarMapScreen() {
         onClose={() => setPicker(null)}
       />
     </View>
-  );
-}
-
-/** The cabinet-wide sensor reading, labelled as a reading so it's never mistaken for a target. */
-function SensorLine({ environment, now }: { environment: EnvironmentReading | null; now: Date }) {
-  const { colors } = useTheme();
-  if (!environment) {
-    return (
-      <AppText variant="caption" color={colors.textMuted}>
-        Sensors: no reading yet
-      </AppText>
-    );
-  }
-  const values = `${environment.temperatureC.toFixed(1)} °C · ${environment.humidityPct} % humidity`;
-  const age = formatRelativeTime(environment.recordedAt, now);
-  if (environment.connection === 'offline') {
-    return (
-      <AppText variant="caption" color={colors.danger}>
-        Sensors offline · last {values}, {age}
-      </AppText>
-    );
-  }
-  return (
-    <AppText variant="caption" color={isStale(environment, now) ? colors.warning : colors.textMuted}>
-      Sensors: {values} · {age}
-    </AppText>
   );
 }
 

@@ -177,7 +177,7 @@ export function PersonaEditorScreen({ personaId }: { personaId?: string }) {
           accessibilityLabel="Personality description"
         />
         <AppText variant="caption" color={colors.textMuted}>
-          {form.traits.description.length}/{MAX_DESCRIPTION} · With the live AI, this becomes part of how they think and speak.
+          {form.traits.description.length}/{MAX_DESCRIPTION}
         </AppText>
       </Section>
 

@@ -158,10 +158,7 @@ export function AccountScreen() {
       <View style={{ gap: spacing.md }}>
         <TextField label="Username" placeholder="Username" value={username} onChange={setUsername} autoComplete="username" maxLength={40} />
         <TextField label="Email" placeholder="Email" value={email} onChange={setEmail} keyboardType="email-address" autoComplete="email" />
-        <AppText variant="caption" color={colors.textMuted}>
-          New password (leave empty to keep the current one)
-        </AppText>
-        <TextField label="New password" placeholder="New password" value={password} onChange={setPassword} secure autoComplete="new-password" />
+        <TextField label="New password, optional" placeholder="New password (optional)" value={password} onChange={setPassword} secure autoComplete="new-password" />
         {changingPassword ? (
           <>
             <PasswordChecklist password={password} />

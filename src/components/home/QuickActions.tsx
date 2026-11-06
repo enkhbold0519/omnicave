@@ -38,9 +38,6 @@ export function QuickActions({ onFindWine, onAddBottle, onSommelier }: QuickActi
           <Ionicons name={a.icon} size={18} color={colors.accent} />
           <View style={styles.text}>
             <AppText variant="heading">{a.label}</AppText>
-            <AppText variant="caption" color={colors.textMuted}>
-              {a.detail}
-            </AppText>
           </View>
           <Ionicons name="arrow-forward" size={14} color={colors.textMuted} />
         </PressableScale>

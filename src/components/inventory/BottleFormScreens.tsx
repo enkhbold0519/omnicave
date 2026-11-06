@@ -125,12 +125,12 @@ function BottleForm({ title, submitLabel, initial, ownBottleId, note, onSubmit, 
         </AppText>
 
         <Section title="Wine">
-          <TextField label="Wine name" placeholder="Wine name, e.g. Barolo Albe" value={name} onChange={setName} maxLength={80} />
-          <TextField label="Winery" placeholder="Winery, e.g. G.D. Vajra" value={producer} onChange={setProducer} maxLength={80} />
-          <TextField label="Vintage" placeholder={`Vintage, e.g. ${year - 5}`} value={vintage} onChange={(v) => setVintage(v.replace(/\D/g, ''))} maxLength={4} keyboardType="number-pad" />
-          <TextField label="Grape variety" placeholder="Grapes, e.g. Nebbiolo, Barbera" value={grapes} onChange={setGrapes} maxLength={80} />
-          <TextField label="Region" placeholder="Region, e.g. Piedmont" value={region} onChange={setRegion} maxLength={60} />
-          <TextField label="Country" placeholder="Country, e.g. Italy" value={country} onChange={setCountry} maxLength={40} />
+          <TextField label="Wine name" placeholder="Wine name" value={name} onChange={setName} maxLength={80} />
+          <TextField label="Winery" placeholder="Winery" value={producer} onChange={setProducer} maxLength={80} />
+          <TextField label="Vintage" placeholder="Vintage" value={vintage} onChange={(v) => setVintage(v.replace(/\D/g, ''))} maxLength={4} keyboardType="number-pad" />
+          <TextField label="Grape variety" placeholder="Grapes" value={grapes} onChange={setGrapes} maxLength={80} />
+          <TextField label="Region" placeholder="Region" value={region} onChange={setRegion} maxLength={60} />
+          <TextField label="Country" placeholder="Country" value={country} onChange={setCountry} maxLength={40} />
           {note ? (
             <AppText variant="caption" color={colors.textMuted}>
               {note}
@@ -255,7 +255,7 @@ export function EditBottleScreen({ bottleId, wineId }: { bottleId: string; wineI
       title="Edit bottle"
       submitLabel="Save Changes"
       ownBottleId={bottleId}
-      note={shared > 1 ? `Wine details apply to all ${shared} bottles of this wine.` : undefined}
+      note={shared > 1 ? `Shared by all ${shared} bottles of this wine` : undefined}
       initial={{
         name: wine.name,
         producer: wine.producer,
@@ -355,7 +355,7 @@ export function ReviewBottlesScreen() {
       key={current.id}
       title={list.length > 1 ? `Review bottle · 1 of ${list.length}` : 'Review bottle'}
       submitLabel="Confirm"
-      note={`Read from the label by the cellar camera (${Math.round(current.confidence * 100)} % confidence). Correct anything that's wrong, then confirm.`}
+      note={`Read from the label · ${Math.round(current.confidence * 100)} % sure`}
       initial={{
         name: current.wine.name,
         producer: current.wine.producer,

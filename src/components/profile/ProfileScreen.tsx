@@ -20,8 +20,8 @@ import { DevScenarioPanel } from './DevScenarioPanel';
 
 const appearanceOptions: { value: ThemePreference; title: string; detail: string }[] = [
   { value: 'system', title: 'System', detail: "Match your phone's setting" },
-  { value: 'light', title: 'Light', detail: 'Light surfaces' },
-  { value: 'dark', title: 'Dark', detail: 'Dark surfaces, easier at night' },
+  { value: 'light', title: 'Light', detail: '' },
+  { value: 'dark', title: 'Dark', detail: '' },
 ];
 
 /** Two overlapping discs: the palette's background and its accent, in the current mode. */
@@ -120,7 +120,7 @@ export function ProfileScreen() {
         title="Theme"
         reduceMotion={reduceMotion}
         selectedId={preference}
-        sections={[{ items: appearanceOptions.map((o) => ({ id: o.value, title: o.title, detail: o.detail })) }]}
+        sections={[{ items: appearanceOptions.map((o) => ({ id: o.value, title: o.title, detail: o.detail || undefined })) }]}
         onPick={(id) => {
           setPreference(id as ThemePreference);
           setPicker(null);

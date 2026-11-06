@@ -134,9 +134,6 @@ function SheetBody({
         confirmingRemove ? (
           <View style={styles.block}>
             <AppText variant="bodyStrong">Take this bottle out of the cellar?</AppText>
-            <AppText variant="caption" color={colors.textSecondary}>
-              Opened bottles move to History. Either way the position becomes free.
-            </AppText>
             <View style={styles.actions}>
               <SheetAction icon="wine-outline" label="I opened it" primary disabled={busy} onPress={onOpened} />
               <SheetAction icon="exit-outline" label="Removed unopened" disabled={busy} onPress={onRemoved} />
@@ -160,9 +157,7 @@ function SheetBody({
                     Position uncertain
                   </AppText>
                   <AppText variant="caption" color={colors.textSecondary}>
-                    The cellar&apos;s sensors placed this bottle here with{' '}
-                    {Math.round((bottle.placement?.confidence ?? 0) * 100)} % confidence. It may be in a neighbouring
-                    position. Check the rack, then confirm it or move it.
+                    Placed by the sensors ({Math.round((bottle.placement?.confidence ?? 0) * 100)} % sure). It may be one position off.
                   </AppText>
                   <Button label="Confirm position" variant="link" onPress={onConfirmPosition} />
                 </View>

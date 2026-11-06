@@ -230,7 +230,7 @@ export function TasteScreen() {
     updateTaste({ [key]: next } as Partial<TastePreferences>);
   };
   return (
-    <SettingsPage title="Taste preferences" intro="The sommeliers and recommendations take these into account.">
+    <SettingsPage title="Taste preferences">
       {tasteOptions.map((group) => (
         <Section key={group.key} title={group.title}>
           <View style={styles.chips}>
@@ -279,7 +279,7 @@ export function PrivacyScreen() {
         <View style={styles.note} accessibilityLiveRegion="polite">
           <Ionicons name="mail-outline" size={18} color={colors.accent} />
           <AppText color={colors.textSecondary} style={styles.flex}>
-            A copy of your cellars, bottles and history will be emailed to {user?.email}. (Sent once the server is connected.)
+            Your data will be emailed to {user?.email}.
           </AppText>
         </View>
       ) : null}

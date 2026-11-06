@@ -42,7 +42,6 @@ export function SommelierHome() {
         <AppText variant="display" accessibilityRole="header">
           Sommelier
         </AppText>
-        <AppText color={colors.textSecondary}>A table of sommeliers who debate your wines. Join in whenever you like.</AppText>
       </View>
 
       <Section title={`Your sommeliers · ${personas.length}`}>
@@ -90,9 +89,6 @@ export function SommelierHome() {
               </View>
               <View style={styles.flex}>
                 <AppText variant="bodyStrong">{s.title}</AppText>
-                <AppText variant="caption" color={colors.textSecondary}>
-                  {s.detail}
-                </AppText>
               </View>
               <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
             </PressableScale>

@@ -10,7 +10,7 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { sommelierRepository } from '@/data/sommelier/mockSommelierRepository';
 import { builtInPersonas, loveLabels, scaleLabels } from '@/data/sommelier/personas';
 import { useSommelier } from '@/data/sommelier/sommelierStore';
-import { TABLE_MAX, TABLE_MIN } from '@/data/sommelier/types';
+import { TABLE_MIN } from '@/data/sommelier/types';
 import { makeStyles, useTheme } from '@/theme/ThemeContext';
 import { gutter, spacing, touchTarget } from '@/theme/tokens';
 
@@ -35,9 +35,6 @@ export function PersonaListScreen() {
         <AppText variant="display" accessibilityRole="header">
           Sommeliers
         </AppText>
-        <AppText color={colors.textSecondary}>
-          Add sommeliers that match your taste. Any {TABLE_MIN} to {TABLE_MAX} of them can sit at a tasting.
-        </AppText>
       </View>
 
       <View style={styles.rows}>
@@ -57,9 +54,6 @@ export function PersonaListScreen() {
               <AppText variant="caption" color={colors.textSecondary}>
                 {p.title}
                 {p.builtIn ? ' · Default' : ''}
-              </AppText>
-              <AppText variant="caption" color={colors.textMuted} numberOfLines={1}>
-                {scaleLabels[p.traits.scoring]} · {p.traits.loves.map((l) => loveLabels[l]).join(', ')}
               </AppText>
             </View>
             <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
