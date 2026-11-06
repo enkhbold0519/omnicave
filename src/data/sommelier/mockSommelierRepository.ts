@@ -1,5 +1,5 @@
 import { formatSlot } from '../cellarLayout';
-import { getBottles } from '../cellarStore';
+import { getBottles, getWines } from '../cellarStore';
 import { getDevScenario, type DevScenario } from '../devScenario';
 import * as db from '../mockDb';
 import {
@@ -75,7 +75,7 @@ export function createMockSommelierRepository({
     const result: Candidate[] = [];
     for (const b of getBottles()) {
       if (b.status !== 'in_cellar' || seen.has(b.wineId)) continue;
-      const wine = db.wines.find((w) => w.id === b.wineId);
+      const wine = getWines().find((w) => w.id === b.wineId);
       if (!wine) continue;
       seen.add(b.wineId);
       const cellar = db.cellars.find((c) => c.id === b.cellarId)?.name ?? 'your cellar';
@@ -117,7 +117,7 @@ export function createMockSommelierRepository({
     const task = (async () => {
       const d0 = debate(debateId);
       const roundNo = userText ? Math.max(1, d0.round) : d0.round + 1;
-      const wine = d0.topic.kind === 'wine' ? (db.wines.find((w) => w.id === (d0.topic as { wineId: string }).wineId) ?? null) : null;
+      const wine = d0.topic.kind === 'wine' ? (getWines().find((w) => w.id === (d0.topic as { wineId: string }).wineId) ?? null) : null;
       const pool = candidates();
       const taken = new Set(d0.messages.flatMap((m) => m.wineIds ?? []));
       let previous: { persona: Persona; score: Score } | null = null;
@@ -205,13 +205,13 @@ export function createMockSommelierRepository({
       if (unique.length < TABLE_MIN || unique.length > TABLE_MAX) throw new Error(`Seat ${TABLE_MIN} to ${TABLE_MAX} sommeliers at the table.`);
       const participants = unique.map((id) => getSommelierState().personas.find((p) => p.id === id));
       if (participants.some((p) => !p)) throw new Error('One of those sommeliers no longer exists.');
-      if (topic.kind === 'wine' && !db.wines.some((w) => w.id === topic.wineId)) throw new Error('Unknown wine.');
+      if (topic.kind === 'wine' && !getWines().some((w) => w.id === topic.wineId)) throw new Error('Unknown wine.');
       if (topic.kind === 'question' && !topic.text.trim() && topic.intent !== 'tonight') throw new Error('Ask a question first.');
 
       const d: Debate = {
         id: nextId('debate'),
         topic,
-        title: debateTitle(topic, db.wines),
+        title: debateTitle(topic, getWines()),
         participants: participants.map((p) => ({ ...p!, memory: [...p!.memory] })),
         messages: [],
         status: 'speaking',
@@ -262,7 +262,7 @@ export function createMockSommelierRepository({
         const last = [...d.messages].reverse().find((m) => m.author.kind === 'persona' && m.author.personaId === p.id && m.wineIds?.length);
         return last?.wineIds ? [{ personaId: p.id, wineId: last.wineIds[0] }] : [];
       });
-      const verdict = computeVerdict({ topic: d.topic, participants: d.participants, wines: db.wines, picks });
+      const verdict = computeVerdict({ topic: d.topic, participants: d.participants, wines: getWines(), picks });
       updateDebate(debateId, (x) => ({ ...x, status: 'ended', speakingPersonaId: null, verdict }));
     },
 

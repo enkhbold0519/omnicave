@@ -50,6 +50,8 @@ function RootNavigator() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="notifications" />
         <Stack.Screen name="add-bottle" />
+        <Stack.Screen name="edit-bottle" />
+        <Stack.Screen name="review-bottles" />
         <Stack.Screen name="wine/[id]" />
         <Stack.Screen name="briefing/[id]" />
         <Stack.Screen name="history" />

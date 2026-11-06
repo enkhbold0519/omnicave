@@ -1,20 +1,48 @@
 /**
- * The one place mock bottles live at runtime. Every repository reads from here and every change goes through
+ * The one place mock bottles and wines live at runtime. Every repository reads from here and every change goes through
  * `updateBottles`, so Home, Inventory and the Cellar Map always agree. Screens subscribe via `useDataVersion`
  * and refetch when it changes. In memory only: a reload starts again from the seed in mockDb.
  * (With a backend this becomes the server; the version becomes a refetch/push signal.)
  */
 import { useSyncExternalStore } from 'react';
 
-import { bottles as seed } from './mockDb';
-import type { Bottle } from './types';
+import { detectedBottles as seedDetections, bottles as seed, wines as seedWines } from './mockDb';
+import type { Bottle, DetectedBottle, Wine } from './types';
 
 let bottles: Bottle[] = seed;
+let wines: Wine[] = seedWines;
+let detections: DetectedBottle[] = seedDetections;
 let version = 0;
 const listeners = new Set<() => void>();
 
 export function getBottles(): Bottle[] {
   return bottles;
+}
+
+export function getWines(): Wine[] {
+  return wines;
+}
+
+/** Add a wine to the catalog (manual registration); bottles are added separately. */
+export function addWine(wine: Wine): void {
+  wines = [...wines, wine];
+}
+
+/** Change a wine's details (manual modification) and notify subscribers. */
+export function updateWine(id: string, change: Partial<Wine>): void {
+  wines = wines.map((w) => (w.id === id ? { ...w, ...change } : w));
+  version++;
+  listeners.forEach((l) => l());
+}
+
+export function getDetections(): DetectedBottle[] {
+  return detections;
+}
+
+export function removeDetection(id: string): void {
+  detections = detections.filter((d) => d.id !== id);
+  version++;
+  listeners.forEach((l) => l());
 }
 
 /** Replace the bottle list immutably and notify subscribers. */
@@ -27,6 +55,8 @@ export function updateBottles(change: (current: Bottle[]) => Bottle[]): void {
 /** Back to the seed data (tests). */
 export function resetCellarStore(): void {
   bottles = seed;
+  wines = seedWines;
+  detections = seedDetections;
   version++;
   listeners.forEach((l) => l());
 }

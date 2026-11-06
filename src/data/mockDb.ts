@@ -5,7 +5,7 @@
  * Drinking windows and notes are illustrative, not professional assessments.
  */
 import { LG_SIGNATURE_65, buildSlots, capacityOf, layoutById, zoneForStyle } from './cellarLayout';
-import type { AppNotification, Bottle, Briefing, Cellar, ConnectionStatus, SensorStatus, StorageSlot, Wine, ZoneId } from './types';
+import type { AppNotification, Bottle, Briefing, DetectedBottle, Cellar, ConnectionStatus, SensorStatus, StorageSlot, Wine, ZoneId } from './types';
 
 /** Both demo cellars are LG SIGNATURE units; each still names its own layout. */
 export const cellars: Cellar[] = [
@@ -193,6 +193,24 @@ function buildBottles(): Bottle[] {
 
 /** The seed data. At runtime, read and change bottles through `cellarStore`, never this array. */
 export const bottles: Bottle[] = buildBottles();
+
+/** Mock camera detections awaiting review. The second label was misread (vintage) to show correction. */
+export const detectedBottles: DetectedBottle[] = [
+  {
+    id: 'det-001',
+    cellarId: 'cellar-signature',
+    slotId: null,
+    confidence: 0.93,
+    wine: { name: 'Tignanello', producer: 'Antinori', vintage: 2019, style: 'Red', region: 'Tuscany', country: 'Italy', grapes: ['Sangiovese', 'Cabernet Sauvignon'] },
+  },
+  {
+    id: 'det-002',
+    cellarId: 'cellar-signature',
+    slotId: null,
+    confidence: 0.61,
+    wine: { name: 'Dom Pérignon', producer: 'Moët & Chandon', vintage: 2018, style: 'Sparkling', region: 'Champagne', country: 'France', grapes: ['Chardonnay', 'Pinot Noir'] },
+  },
+];
 
 export const briefings: Briefing[] = [
   { id: 'brief-sig-1', cellarId: 'cellar-signature', title: 'Barolo entering its window', summary: 'Your 2019 Barolo Albe is opening up. A good week to try a bottle.' },

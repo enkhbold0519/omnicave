@@ -168,6 +168,26 @@ export interface CellarMapData {
   environment: EnvironmentReading | null;
 }
 
+export interface NewBottleInput {
+  cellarId: string;
+  slotId: string | null;
+  wine: Pick<Wine, 'name' | 'producer' | 'vintage' | 'style' | 'region' | 'country' | 'grapes'>;
+}
+
+/**
+ * A bottle the cellar camera found but nobody has confirmed yet. `wine` is what label recognition read;
+ * the user reviews and corrects it before it becomes a Bottle.
+ */
+export interface DetectedBottle {
+  id: string;
+  cellarId: string;
+  /** Where the camera saw it; null if that position isn't free or known. */
+  slotId: string | null;
+  wine: NewBottleInput['wine'];
+  /** Label-reading confidence, 0–1. */
+  confidence: number;
+}
+
 export interface InventoryRepository {
   /** Bottles currently in the cellar(s). */
   listInventory(scope: CellarScope): Promise<InventoryData>;
@@ -178,6 +198,21 @@ export interface InventoryRepository {
   getCellarMap(cellarId: string): Promise<CellarMapData | null>;
 
   // Changes. Each rejects with a readable message when the change isn't possible (e.g. the slot is taken).
+  /**
+   * Manual registration: the wine's details plus where it goes. Reuses the catalog wine when name, winery and
+   * vintage match; `slotId` null adds it without a position.
+   */
+  createBottle(input: NewBottleInput): Promise<Bottle>;
+  /**
+   * Manual modification: the wine's details (shared by every bottle of that wine) and this bottle's location.
+   */
+  updateBottle(bottleId: string, input: NewBottleInput): Promise<void>;
+  /** Bottles detected by the camera, waiting for review. */
+  listDetections(): Promise<DetectedBottle[]>;
+  /** Register a reviewed (possibly corrected) detection as a bottle. */
+  confirmDetection(detectionId: string, input: NewBottleInput): Promise<Bottle>;
+  /** "Not a bottle": drop a detection. */
+  dismissDetection(detectionId: string): Promise<void>;
   /** Store a new bottle of a catalog wine in an empty slot. */
   addBottle(input: { cellarId: string; wineId: string; slotId: string }): Promise<Bottle>;
   /** Move a bottle (placed or not yet placed) into an empty slot of its own cellar; the position becomes confirmed. */

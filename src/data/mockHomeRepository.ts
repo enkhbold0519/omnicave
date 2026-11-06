@@ -1,4 +1,4 @@
-import { getBottles } from './cellarStore';
+import { getBottles, getWines } from './cellarStore';
 import { countBottles, pickDaily, pickFeaturedWine } from './derive';
 import { getDevScenario, type DevScenario } from './devScenario';
 import * as db from './mockDb';
@@ -44,7 +44,7 @@ export function createMockHomeRepository({
         cellar: { ...cellar },
         environment,
         bottleCount: countBottles(bottles, cellarId),
-        featuredWine: pickFeaturedWine(bottles, db.wines, cellarId, now),
+        featuredWine: pickFeaturedWine(bottles, getWines(), cellarId, now),
         briefing: pickDaily(
           db.briefings.filter((b) => b.cellarId === cellarId),
           now,

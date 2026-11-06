@@ -116,34 +116,49 @@ function Details({ details, now }: { details: WineDetails; now: Date }) {
           <AppText color={colors.textMuted}>None left in your cellars.</AppText>
         ) : (
           <View style={styles.rows}>
-            {inCellar.map(({ bottle, cellar, slot }) => (
-              <PressableScale
-                key={bottle.id}
-                onPress={() => findLocation(bottle, cellar)}
-                accessibilityRole="button"
-                accessibilityLabel={`${cellar.name}, ${slot ? formatSlot(slot) : 'not placed in a slot'}. Added ${formatDate(bottle.addedAt)}.`}
-                accessibilityHint="Find location. Opens the cellar map with this bottle highlighted."
-                scaleTo={0.985}
-                style={styles.row}
-                pressedStyle={styles.pressed}
-              >
-                <View style={styles.flex}>
-                  <AppText variant="bodyStrong">{cellar.name}</AppText>
-                  <AppText variant="caption" color={colors.textSecondary}>
-                    {slot ? formatSlot(slot) : 'Not placed'}
-                  </AppText>
-                  <AppText variant="caption" color={colors.textMuted}>
-                    Added {formatDate(bottle.addedAt)}
-                  </AppText>
+            {inCellar.map(({ bottle, cellar, slot }) => {
+              const where = `${cellar.name}, ${slot ? formatSlot(slot) : 'not placed in a slot'}`;
+              return (
+                <View key={bottle.id} style={styles.row}>
+                  <View style={styles.flex} accessible accessibilityLabel={`${where}. Added ${formatDate(bottle.addedAt)}.`}>
+                    <AppText variant="bodyStrong">{cellar.name}</AppText>
+                    <AppText variant="caption" color={colors.textSecondary}>
+                      {slot ? formatSlot(slot) : 'Not placed'}
+                    </AppText>
+                    <AppText variant="caption" color={colors.textMuted}>
+                      Added {formatDate(bottle.addedAt)}
+                    </AppText>
+                  </View>
+                  <PressableScale
+                    onPress={() => router.push({ pathname: '/edit-bottle', params: { bottleId: bottle.id, wineId: wine.id } })}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Edit bottle: ${where}`}
+                    scaleTo={0.95}
+                    style={styles.action}
+                    pressedStyle={styles.pressed}
+                  >
+                    <Ionicons name="create-outline" size={16} color={colors.accent} />
+                    <AppText variant="caption" color={colors.accent}>
+                      Edit
+                    </AppText>
+                  </PressableScale>
+                  <PressableScale
+                    onPress={() => findLocation(bottle, cellar)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Find location: ${where}`}
+                    accessibilityHint="Opens the cellar map with this bottle highlighted."
+                    scaleTo={0.95}
+                    style={styles.action}
+                    pressedStyle={styles.pressed}
+                  >
+                    <Ionicons name="locate-outline" size={16} color={colors.accent} />
+                    <AppText variant="caption" color={colors.accent}>
+                      Find
+                    </AppText>
+                  </PressableScale>
                 </View>
-                <View style={styles.find}>
-                  <Ionicons name="locate-outline" size={16} color={colors.accent} />
-                  <AppText variant="caption" color={colors.accent}>
-                    Find
-                  </AppText>
-                </View>
-              </PressableScale>
-            ))}
+              );
+            })}
           </View>
         )}
       </Section>
@@ -209,6 +224,6 @@ const useStyles = makeStyles((c) =>
     },
     factLabel: { width: 110 },
     pressed: { opacity: 0.6 },
-    find: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, minHeight: 44 },
+    action: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, minHeight: 44, paddingHorizontal: spacing.xs },
   }),
 );

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { Section } from '@/components/ui/Section';
 import { Segmented } from '@/components/ui/Segmented';
+import { TextField } from '@/components/ui/TextField';
 import { sommelierRepository } from '@/data/sommelier/mockSommelierRepository';
 import { focusLabels, loveLabels, personaColors, scaleLabels, strictnessLabels, toneLabels } from '@/data/sommelier/personas';
 import { useSommelier } from '@/data/sommelier/sommelierStore';
@@ -97,8 +98,8 @@ export function PersonaEditorScreen({ personaId }: { personaId?: string }) {
       </View>
 
       <Section title="Name">
-        <Field value={form.name} onChange={(name) => setForm((f) => ({ ...f, name }))} placeholder="e.g. Inês Duarte" label="Name" maxLength={40} />
-        <Field value={form.title} onChange={(title) => setForm((f) => ({ ...f, title }))} placeholder="Role, e.g. The Explorer" label="Role" maxLength={40} />
+        <TextField value={form.name} onChange={(name) => setForm((f) => ({ ...f, name }))} placeholder="e.g. Inês Duarte" label="Name" maxLength={40} />
+        <TextField value={form.title} onChange={(title) => setForm((f) => ({ ...f, title }))} placeholder="Role, e.g. The Explorer" label="Role" maxLength={40} />
       </Section>
 
       <Section title="Avatar color">
@@ -237,22 +238,6 @@ export function PersonaEditorScreen({ personaId }: { personaId?: string }) {
   );
 }
 
-function Field({ value, onChange, placeholder, label, maxLength }: { value: string; onChange: (v: string) => void; placeholder: string; label: string; maxLength: number }) {
-  const { colors } = useTheme();
-  const styles = useStyles();
-  return (
-    <TextInput
-      value={value}
-      onChangeText={onChange}
-      placeholder={placeholder}
-      placeholderTextColor={colors.textMuted}
-      selectionColor={colors.accent}
-      style={styles.field}
-      maxLength={maxLength}
-      accessibilityLabel={label}
-    />
-  );
-}
 
 function ChipGroup({ label, children }: { label: string; children: ReactNode }) {
   const styles = useStyles();

@@ -13,9 +13,10 @@ interface ButtonProps {
   /** primary: solid accent · secondary: hairline outline · link: text with arrow. */
   variant?: 'primary' | 'secondary' | 'link';
   accessibilityHint?: string;
+  disabled?: boolean;
 }
 
-export function Button({ label, onPress, variant = 'primary', accessibilityHint }: ButtonProps) {
+export function Button({ label, onPress, variant = 'primary', accessibilityHint, disabled }: ButtonProps) {
   const { colors } = useTheme();
   const styles = useStyles();
   const textColor = variant === 'primary' ? colors.textOnAccent : colors.accent;
@@ -24,9 +25,11 @@ export function Button({ label, onPress, variant = 'primary', accessibilityHint 
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityHint={accessibilityHint}
+      accessibilityState={{ disabled: !!disabled }}
+      disabled={disabled}
       onPress={onPress}
       containerStyle={styles.container}
-      style={[styles.base, styles[variant]]}
+      style={[styles.base, styles[variant], disabled && styles.disabled]}
       pressedStyle={variant === 'primary' ? styles.primaryPressed : styles.quietPressed}
     >
       <AppText variant="bodyStrong" color={textColor}>
@@ -53,5 +56,6 @@ const useStyles = makeStyles((c) =>
     link: { paddingHorizontal: 0 },
     primaryPressed: { backgroundColor: c.accentPressed },
     quietPressed: { opacity: 0.7 },
+    disabled: { opacity: 0.45 },
   }),
 );

@@ -105,6 +105,85 @@ describe('one shared store: Home, Inventory and the map stay consistent', () => 
   });
 });
 
+describe('manual registration (Add Bottle)', () => {
+  const details = { name: 'Etna Rosso', producer: 'Benanti', vintage: 2021, style: 'Red' as const, region: 'Sicily', country: 'Italy', grapes: ['Nerello Mascalese', ' '] };
+
+  it('adds a new wine and bottle at the chosen position, visible everywhere', async () => {
+    const slot = (await firstEmpty()).slot;
+    const before = await views();
+    const bottle = await inv().createBottle({ cellarId: SIG, slotId: slot.id, wine: details });
+    const after = await views();
+    expect(after.inventory).toBe(before.inventory + 1);
+    expect(after.home).toBe(before.home + 1);
+    expect(allCells(await mapOf()).find((c) => c.slot.id === slot.id)?.bottle?.id).toBe(bottle.id);
+    const wine = await inv().getWineDetails(bottle.wineId);
+    expect(wine?.wine).toMatchObject({ name: 'Etna Rosso', grapes: ['Nerello Mascalese'] });
+  });
+
+  it('reuses the catalog wine for the same name, winery and vintage, and allows no position', async () => {
+    const a = await inv().createBottle({ cellarId: SIG, slotId: null, wine: details });
+    const b = await inv().createBottle({ cellarId: SIG, slotId: null, wine: { ...details, name: 'etna rosso' } });
+    expect(b.wineId).toBe(a.wineId);
+    expect((await inv().getWineDetails(a.wineId))?.inCellar).toHaveLength(2);
+  });
+
+  it('rejects missing fields, impossible vintages and taken positions', async () => {
+    await expect(inv().createBottle({ cellarId: SIG, slotId: null, wine: { ...details, name: ' ' } })).rejects.toThrow('every field');
+    await expect(inv().createBottle({ cellarId: SIG, slotId: null, wine: { ...details, vintage: 2099 } })).rejects.toThrow('Vintage');
+    const taken = (await firstFull()).slot.id;
+    await expect(inv().createBottle({ cellarId: SIG, slotId: taken, wine: details })).rejects.toThrow('already taken');
+  });
+});
+
+describe('manual modification (Edit Bottle)', () => {
+  it('updates the wine details and moves the bottle, visible everywhere', async () => {
+    const cell = await firstFull();
+    const to = (await firstEmpty()).slot;
+    const details = (await inv().getWineDetails(cell.bottle!.wineId))!.wine;
+    const before = await views();
+    await inv().updateBottle(cell.bottle!.id, { cellarId: SIG, slotId: to.id, wine: { ...details, region: 'Edited region' } });
+    expect(await views()).toEqual(before);
+    const after = await inv().getWineDetails(cell.bottle!.wineId);
+    expect(after?.wine.region).toBe('Edited region');
+    expect(after?.inCellar.find((x) => x.bottle.id === cell.bottle!.id)?.slot?.id).toBe(to.id);
+  });
+
+  it('keeps its own position when only the details change, and rejects a taken one', async () => {
+    const [a, b] = allCells(await mapOf()).filter((c) => c.bottle && !c.uncertain);
+    const w = (await inv().getWineDetails(a.bottle!.wineId))!.wine;
+    await inv().updateBottle(a.bottle!.id, { cellarId: SIG, slotId: a.slot.id, wine: w });
+    await expect(inv().updateBottle(a.bottle!.id, { cellarId: SIG, slotId: b.slot.id, wine: w })).rejects.toThrow('already taken');
+  });
+});
+
+describe('review and correct (camera detections)', () => {
+  it('lists detections with a free position in the right zone', async () => {
+    const list = await inv().listDetections();
+    expect(list).toHaveLength(2);
+    const occupied = new Set(allCells(await mapOf()).filter((c) => c.bottle).map((c) => c.slot.id));
+    expect(list.every((d) => d.slotId && !occupied.has(d.slotId))).toBe(true);
+    expect(new Set(list.map((d) => d.slotId)).size).toBe(2);
+  });
+
+  it('registers a corrected detection and removes it from the queue', async () => {
+    const [d] = await inv().listDetections();
+    const before = await views();
+    const bottle = await inv().confirmDetection(d.id, { cellarId: d.cellarId, slotId: d.slotId, wine: { ...d.wine, vintage: 2018 } });
+    expect((await views()).inventory).toBe(before.inventory + 1);
+    expect((await inv().getWineDetails(bottle.wineId))?.wine.vintage).toBe(2018);
+    expect((await inv().listDetections()).map((x) => x.id)).not.toContain(d.id);
+    await expect(inv().confirmDetection(d.id, { cellarId: d.cellarId, slotId: null, wine: d.wine })).rejects.toThrow('already handled');
+  });
+
+  it('dismisses a detection without adding anything', async () => {
+    const [, d] = await inv().listDetections();
+    const before = await views();
+    await inv().dismissDetection(d.id);
+    expect(await views()).toEqual(before);
+    expect(await inv().listDetections()).toHaveLength(1);
+  });
+});
+
 describe('changes are validated', () => {
   it('rejects a taken position, a position in another cellar, and a bottle that has left', async () => {
     const taken = (await firstFull()).slot.id;

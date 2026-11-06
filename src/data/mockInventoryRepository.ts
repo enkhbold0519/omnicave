@@ -1,9 +1,9 @@
-import { layoutById } from './cellarLayout';
-import { getBottles, updateBottles } from './cellarStore';
+import { layoutById, zoneForStyle } from './cellarLayout';
+import { addWine, getBottles, getDetections, getWines, removeDetection, updateBottles, updateWine } from './cellarStore';
 import { getDevScenario, type DevScenario } from './devScenario';
 import * as db from './mockDb';
 import { readEnvironment } from './mockEnvironment';
-import type { Bottle, CellarMapData, CellarScope, InventoryData, InventoryRepository, WineDetails } from './types';
+import type { Bottle, CellarMapData, DetectedBottle, NewBottleInput, Wine, CellarScope, InventoryData, InventoryRepository, WineDetails } from './types';
 
 interface MockOptions {
   latencyMs?: number;
@@ -53,15 +53,70 @@ export function createMockInventoryRepository({
     if (taken) throw new Error('That position is already taken.');
   };
 
+  /** Validation shared by Add and Edit Bottle; returns the cleaned-up text fields. */
+  const checkBottleInput = (cellarId: string, input: NewBottleInput['wine']) => {
+    const name = input.name.trim();
+    const producer = input.producer.trim();
+    const grapes = input.grapes.map((g) => g.trim()).filter(Boolean);
+    if (!name || !producer || !input.region.trim() || !input.country.trim() || grapes.length === 0) throw new Error('Fill in every field.');
+    const year = now().getFullYear();
+    if (!Number.isInteger(input.vintage) || input.vintage < 1900 || input.vintage > year) throw new Error(`Vintage must be between 1900 and ${year}.`);
+    if (!db.cellars.some((c) => c.id === cellarId)) throw new Error('Unknown cellar.');
+    return { name, producer, grapes };
+  };
+
   const patch = (bottleId: string, change: Partial<Bottle>) =>
     updateBottles((all) => all.map((b) => (b.id === bottleId ? { ...b, ...change } : b)));
+
+async function createBottle({ cellarId, slotId, wine: input }: NewBottleInput): Promise<Bottle> {
+    await prepareChange();
+    const { name, producer, grapes } = checkBottleInput(cellarId, input);
+    if (slotId) assertFreeSlot(cellarId, slotId);
+
+    const same = (w: Wine) => w.name.toLowerCase() === name.toLowerCase() && w.producer.toLowerCase() === producer.toLowerCase() && w.vintage === input.vintage;
+    let wine = getWines().find(same);
+    if (!wine) {
+      // No drinking-window data for a manual entry yet; a simple estimate until label/AI data provides one.
+      wine = {
+        id: `wine-new-${Date.now().toString(36)}-${++newId}`,
+        name,
+        producer,
+        vintage: input.vintage,
+        style: input.style,
+        region: input.region.trim(),
+        country: input.country.trim(),
+        grapes,
+        drinkFrom: input.vintage + 2,
+        drinkUntil: input.vintage + 12,
+        note: 'Added manually.',
+      };
+      addWine(wine);
+    }
+    const bottle: Bottle = {
+      id: `btl-new-${Date.now().toString(36)}-${++newId}`,
+      cellarId,
+      wineId: wine.id,
+      status: 'in_cellar',
+      slotId,
+      placement: { source: 'manual' },
+      addedAt: now(),
+    };
+    updateBottles((all) => [...all, bottle]);
+    return bottle;
+  }
+
+  /** Mock "where the camera saw it": the first free position in the zone for the wine's style. */
+  const detectedSlot = (d: DetectedBottle, claimed: Set<string>) => {
+    const used = new Set(getBottles().filter((b) => b.status === 'in_cellar').flatMap((b) => (b.slotId ? [b.slotId] : [])));
+    return db.slots.find((x) => x.cellarId === d.cellarId && x.zoneId === zoneForStyle(d.wine.style) && !used.has(x.id) && !claimed.has(x.id))?.id ?? null;
+  };
 
   return {
     async listInventory(scope): Promise<InventoryData> {
       const bottles = await prepare();
       return {
         bottles: bottles.filter((b) => b.status === 'in_cellar' && inScope(scope)(b.cellarId)),
-        wines: db.wines,
+        wines: getWines(),
         cellars: db.cellars,
       };
     },
@@ -70,14 +125,14 @@ export function createMockInventoryRepository({
       const bottles = await prepare();
       return {
         bottles: bottles.filter((b) => b.status === 'opened' && inScope(scope)(b.cellarId)),
-        wines: db.wines,
+        wines: getWines(),
         cellars: db.cellars,
       };
     },
 
     async getWineDetails(wineId): Promise<WineDetails | null> {
       const bottles = await prepare();
-      const wine = db.wines.find((w) => w.id === wineId);
+      const wine = getWines().find((w) => w.id === wineId);
       if (!wine) return null;
       const withCellar = (status: 'in_cellar' | 'opened') =>
         bottles
@@ -105,14 +160,48 @@ export function createMockInventoryRepository({
         layout: layoutById(cellar.layoutId),
         slots: db.slots.filter((s) => s.cellarId === cellarId),
         bottles: bottles.filter((b) => b.status === 'in_cellar' && b.cellarId === cellarId),
-        wines: db.wines,
+        wines: getWines(),
         environment: readEnvironment(cellarId, scenario(), now()),
       };
     },
 
+    createBottle,
+
+    async listDetections(): Promise<DetectedBottle[]> {
+      await prepare();
+      const claimed = new Set<string>();
+      return getDetections().map((d) => {
+        const slotId = d.slotId ?? detectedSlot(d, claimed);
+        if (slotId) claimed.add(slotId);
+        return { ...d, slotId };
+      });
+    },
+
+    async confirmDetection(detectionId, input): Promise<Bottle> {
+      if (!getDetections().some((d) => d.id === detectionId)) throw new Error('That detection was already handled.');
+      const bottle = await createBottle(input);
+      removeDetection(detectionId);
+      return bottle;
+    },
+
+    async dismissDetection(detectionId): Promise<void> {
+      await prepareChange();
+      removeDetection(detectionId);
+    },
+
+    async updateBottle(bottleId, { cellarId, slotId, wine: input }: NewBottleInput): Promise<void> {
+      await prepareChange();
+      const bottle = findInCellar(bottleId);
+      const { name, producer, grapes } = checkBottleInput(cellarId, input);
+      if (slotId) assertFreeSlot(cellarId, slotId, bottleId);
+      updateWine(bottle.wineId, { name, producer, grapes, vintage: input.vintage, style: input.style, region: input.region.trim(), country: input.country.trim() });
+      const moved = cellarId !== bottle.cellarId || slotId !== bottle.slotId;
+      patch(bottleId, moved ? { cellarId, slotId, placement: { source: 'manual' } } : {});
+    },
+
     async addBottle({ cellarId, wineId, slotId }): Promise<Bottle> {
       await prepareChange();
-      if (!db.wines.some((w) => w.id === wineId)) throw new Error('Unknown wine.');
+      if (!getWines().some((w) => w.id === wineId)) throw new Error('Unknown wine.');
       assertFreeSlot(cellarId, slotId);
       const bottle: Bottle = {
         id: `btl-new-${Date.now().toString(36)}-${++newId}`,

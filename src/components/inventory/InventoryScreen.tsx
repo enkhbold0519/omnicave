@@ -1,3 +1,4 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, ScrollView, StyleSheet, View, useWindowDimensions, type TextInputInstance } from 'react-native';
@@ -8,6 +9,7 @@ import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { IconButton } from '@/components/ui/IconButton';
+import { PressableScale } from '@/components/ui/PressableScale';
 import { SearchField } from '@/components/ui/SearchField';
 import { Segmented } from '@/components/ui/Segmented';
 import { summarizeOccupancy } from '@/data/cellarMap';
@@ -20,12 +22,12 @@ import {
   type SortKey,
   type StyleFilter,
 } from '@/data/inventory';
-import type { CellarMapData, InventoryData } from '@/data/types';
+import type { CellarMapData, DetectedBottle, InventoryData } from '@/data/types';
 import { useActiveCellar } from '@/hooks/ActiveCellarContext';
 import { useNow } from '@/hooks/useNow';
 import { useQuery } from '@/hooks/useQuery';
 import { makeStyles, useTheme } from '@/theme/ThemeContext';
-import { gutter, spacing } from '@/theme/tokens';
+import { gutter, radii, spacing } from '@/theme/tokens';
 
 import { WineRow } from './WineRow';
 import { WineTile } from './WineTile';
@@ -70,6 +72,10 @@ export function InventoryScreen() {
   const occupancyQuery = useQuery<CellarMapData | null>(`occupancy|${activeCellar?.id ?? null}`, () =>
     activeCellar ? inventory.getCellarMap(activeCellar.id) : Promise.resolve(null),
   );
+  // Camera detections waiting for the user to review (spec: review and correct before registration).
+  const detections = useQuery<DetectedBottle[]>('detections', () => inventory.listDetections());
+  const toReview = detections.state.status === 'ready' ? detections.state.data.length : 0;
+
   const occupancy =
     occupancyQuery.state.status === 'ready' && occupancyQuery.state.data ? summarizeOccupancy(occupancyQuery.state.data) : null;
 
@@ -124,6 +130,7 @@ export function InventoryScreen() {
           <AppText variant="display" accessibilityRole="header" style={styles.flex}>
             Inventory
           </AppText>
+          <IconButton icon="add" accessibilityLabel="Add bottle" onPress={() => router.push('/add-bottle')} />
           <IconButton icon="time-outline" accessibilityLabel="History of opened bottles" onPress={() => router.push('/history')} />
           <IconButton
             icon={layout === 'list' ? 'grid-outline' : 'list-outline'}
@@ -167,6 +174,27 @@ export function InventoryScreen() {
           />
         </ScrollView>
       </View>
+
+      {toReview > 0 && (
+        <PressableScale
+          onPress={() => router.push('/review-bottles')}
+          accessibilityRole="button"
+          accessibilityLabel={`${toReview} new ${toReview === 1 ? 'bottle' : 'bottles'} detected. Review.`}
+          scaleTo={0.985}
+          containerStyle={styles.reviewWrap}
+          style={styles.review}
+          pressedStyle={styles.reviewPressed}
+        >
+          <Ionicons name="scan-outline" size={18} color={colors.accent} />
+          <AppText variant="bodyStrong" style={styles.flex}>
+            {toReview} new {toReview === 1 ? 'bottle' : 'bottles'} detected
+          </AppText>
+          <AppText variant="caption" color={colors.accent}>
+            Review
+          </AppText>
+          <Ionicons name="chevron-forward" size={14} color={colors.accent} />
+        </PressableScale>
+      )}
 
       {state.status === 'loading' && <HomeStateView kind="loading" />}
       {state.status === 'error' && (
@@ -232,5 +260,18 @@ const useStyles = makeStyles((c) =>
     summary: { paddingTop: spacing.sm, paddingBottom: spacing.md },
     noMatch: { alignItems: 'flex-start', gap: spacing.xs, paddingVertical: spacing.xl },
     statePad: { paddingHorizontal: gutter, paddingTop: spacing.lg },
+    reviewWrap: { paddingHorizontal: gutter, paddingBottom: spacing.sm },
+    review: {
+      minHeight: 48,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      paddingHorizontal: spacing.md,
+      borderRadius: radii.md,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: c.hairline,
+      backgroundColor: c.surface,
+    },
+    reviewPressed: { opacity: 0.7 },
   }),
 );

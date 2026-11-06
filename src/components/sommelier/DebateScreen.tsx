@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { IconButton } from '@/components/ui/IconButton';
 import { PressableScale } from '@/components/ui/PressableScale';
-import { wines } from '@/data/mockDb';
+import { getWines, useDataVersion } from '@/data/cellarStore';
 import { sommelierRepository } from '@/data/sommelier/mockSommelierRepository';
 import { useSommelier } from '@/data/sommelier/sommelierStore';
 import { useAccessibilityPrefs } from '@/hooks/useAccessibilityPrefs';
@@ -42,6 +42,8 @@ export function DebateScreen({ debateId }: { debateId: string }) {
   const [draft, setDraft] = useState('');
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<ScrollViewInstance>(null);
+  useDataVersion(); // re-render if wines are added
+  const wines = getWines();
 
   if (!debate) {
     return (
