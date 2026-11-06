@@ -53,6 +53,10 @@ function RootNavigator() {
         <Stack.Screen name="wine/[id]" />
         <Stack.Screen name="briefing/[id]" />
         <Stack.Screen name="history" />
+        <Stack.Screen name="tasting/new" />
+        <Stack.Screen name="tasting/[id]" />
+        <Stack.Screen name="sommeliers/index" />
+        <Stack.Screen name="sommeliers/edit" />
       </Stack>
     </>
   );

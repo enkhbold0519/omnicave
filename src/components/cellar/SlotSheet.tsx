@@ -18,6 +18,7 @@ const formatDate = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', 
 
 export interface SlotSheetActions {
   onOpenWine: (wineId: string) => void;
+  onAskSommeliers: (wineId: string) => void;
   onMove: () => void;
   onOpened: () => void;
   onRemoved: () => void;
@@ -78,6 +79,7 @@ function SheetBody({
   flash,
   unplacedCount,
   onOpenWine,
+  onAskSommeliers,
   onMove,
   onOpened,
   onRemoved,
@@ -178,7 +180,10 @@ function SheetBody({
               <SheetAction icon="swap-vertical-outline" label="Move" disabled={busy} onPress={onMove} />
               <SheetAction icon="remove-circle-outline" label="Remove" disabled={busy} onPress={() => setConfirmingRemove(true)} />
             </View>
-            <Button label="View wine" variant="link" onPress={() => onOpenWine(wine.id)} />
+            <View style={styles.links}>
+              <Button label="View wine" variant="link" onPress={() => onOpenWine(wine.id)} />
+              <Button label="Ask the sommeliers" variant="link" onPress={() => onAskSommeliers(wine.id)} />
+            </View>
           </>
         )
       ) : (
@@ -278,5 +283,6 @@ const useStyles = makeStyles((c) =>
     disabled: { opacity: 0.5 },
     pressed: { opacity: 0.75 },
     busy: { alignSelf: 'flex-start' },
+    links: { flexDirection: 'row', flexWrap: 'wrap', columnGap: spacing.xl },
   }),
 );

@@ -7,6 +7,7 @@ import { DrinkingTag } from '@/components/inventory/DrinkingTag';
 import { HomeStateView } from '@/components/home/HomeStateView';
 import { AppText } from '@/components/ui/AppText';
 import { BackHeader } from '@/components/ui/BackHeader';
+import { Button } from '@/components/ui/Button';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { RatingDots } from '@/components/ui/RatingDots';
 import { Section } from '@/components/ui/Section';
@@ -103,6 +104,12 @@ function Details({ details, now }: { details: WineDetails; now: Date }) {
         <AppText color={colors.textSecondary} style={styles.note}>
           {wine.note}
         </AppText>
+        <Button
+          label="Ask the sommeliers"
+          variant="link"
+          accessibilityHint="Starts a tasting where the sommeliers debate this wine"
+          onPress={() => router.push({ pathname: '/tasting/new', params: { topic: 'wine', wineId: wine.id } })}
+        />
       </View>
 
       <Section title={`In your cellars · ${inCellar.length}`}>

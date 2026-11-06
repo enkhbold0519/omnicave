@@ -1,7 +1,7 @@
 # CellarOS Companion — Phase 1 (Home)
 
-Expo SDK 58 · Expo Router · TypeScript. Home, Inventory, Wine Details, History, Cellar Map and Profile are built;
-Sommelier, Notifications and Add Bottle are labeled placeholders.
+Expo SDK 58 · Expo Router · TypeScript. Home, Inventory, Wine Details, History, Cellar Map, Sommelier and Profile are
+built; Notifications, Add Bottle and Briefing are labeled placeholders.
 All data is mock and local — no network, auth, database or AI services.
 
 ## Run in Expo Go
@@ -60,6 +60,19 @@ and scrolls to each match (↑/↓). Bottles the sensors placed with low confide
 and can be confirmed or moved. Zone headers show the configured **Target** next to the sensor's **Now** reading
 (amber when outside target, aged when stale).
 
+## Sommelier
+
+A table of 2–5 sommeliers debates a wine, what to open tonight, a meal pairing or any question. Each speaks once,
+then the table waits: **Continue**, **Join in** (type, quick replies, or `@Name` to ask one sommelier) or **End**
+for a verdict (scores side by side with a drinking-window timeline, or each sommelier's pick). Three fictional
+default sommeliers; add, edit or delete your own in the personality editor (values, scoring scale, region focus,
+strictness, tone, free-text description). Preferences you state ("I love Riesling") are remembered per sommelier
+and can be cleared. Start from the Sommelier tab, Wine Details or the map's bottom sheet.
+
+The replies come from a rule-based mock (`src/data/sommelier/mockEngine.ts`) that uses the wine's real data and
+each persona's traits. With the backend, one LLM speaks for every persona, prompted from the same persona fields and
+memory; `SommelierRepository` stays the same and streamed messages land in `sommelierStore`.
+
 **One source of truth.** At runtime all bottles live in `src/data/cellarStore.ts`; every repository reads it
 and every change goes through it, so Home, Inventory, Wine Details and the map stay consistent. Screens refetch
 quietly when its version changes. Changes are in memory only and reset when the app reloads.
@@ -83,6 +96,7 @@ src/
   components/home/     HomeScreen and its sections
   components/inventory/ InventoryScreen, list row, grid tile, HistoryScreen
   components/wine/     WineDetailsScreen
+  components/sommelier/ SommelierHome, NewTasting, Debate (+ bubbles, verdict), persona list and editor
   components/cellar/   CellarMapScreen, SlotGrid (cabinet), BottleEnd (SVG glass), SlotSheet, MapSearch, PickerSheet
   components/profile/  ProfileScreen (appearance) and the dev scenario panel
   components/ui/       AppText, Button, PlaceholderScreen

@@ -439,6 +439,7 @@ export function CellarMapScreen() {
               flash={syncing ? null : (slotFeedback?.flash ?? null)}
               unplacedCount={map.unplaced.length}
               onOpenWine={openWine}
+              onAskSommeliers={(wineId) => router.push({ pathname: '/tasting/new', params: { topic: 'wine', wineId } })}
               onClose={() => select(null)}
               onMove={() => startMove(selectedCell)}
               onOpened={() =>
