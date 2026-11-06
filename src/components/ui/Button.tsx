@@ -14,9 +14,11 @@ interface ButtonProps {
   variant?: 'primary' | 'secondary' | 'link';
   accessibilityHint?: string;
   disabled?: boolean;
+  /** Where the button sits in its container: left (default), centered, or full width. */
+  align?: 'start' | 'center' | 'stretch';
 }
 
-export function Button({ label, onPress, variant = 'primary', accessibilityHint, disabled }: ButtonProps) {
+export function Button({ label, onPress, variant = 'primary', accessibilityHint, disabled, align = 'start' }: ButtonProps) {
   const { colors } = useTheme();
   const styles = useStyles();
   const textColor = variant === 'primary' ? colors.textOnAccent : colors.accent;
@@ -28,7 +30,7 @@ export function Button({ label, onPress, variant = 'primary', accessibilityHint,
       accessibilityState={{ disabled: !!disabled }}
       disabled={disabled}
       onPress={onPress}
-      containerStyle={styles.container}
+      containerStyle={{ alignSelf: align === 'start' ? 'flex-start' : align }}
       style={[styles.base, styles[variant], disabled && styles.disabled]}
       pressedStyle={variant === 'primary' ? styles.primaryPressed : styles.quietPressed}
     >
@@ -42,7 +44,6 @@ export function Button({ label, onPress, variant = 'primary', accessibilityHint,
 
 const useStyles = makeStyles((c) =>
   StyleSheet.create({
-    container: { alignSelf: 'flex-start' },
     base: {
       minHeight: touchTarget,
       flexDirection: 'row',

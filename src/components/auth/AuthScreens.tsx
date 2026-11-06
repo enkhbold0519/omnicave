@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState, type ReactNode } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/ui/AppText';
@@ -17,6 +17,7 @@ import { gutter, spacing } from '@/theme/tokens';
 export function LoginScreen() {
   const router = useRouter();
   const { colors } = useTheme();
+  const styles = useStyles();
   const { logIn } = useAuth();
   const { created } = useLocalSearchParams<{ created?: string }>();
   const [email, setEmail] = useState('');
@@ -39,16 +40,10 @@ export function LoginScreen() {
 
   return (
     <Page>
-      <View style={{ gap: spacing.sm }}>
-        <AppText variant="overline" color={colors.textMuted}>
-          CellarOS
-        </AppText>
-        <AppText variant="display" accessibilityRole="header">
-          Log in
-        </AppText>
-      </View>
+      <Brand title="Welcome back" />
+
       {created ? (
-        <AppText color={colors.success} accessibilityRole="alert">
+        <AppText color={colors.success} accessibilityRole="alert" style={styles.center}>
           Account created. Log in to continue.
         </AppText>
       ) : null}
@@ -57,15 +52,19 @@ export function LoginScreen() {
         <TextField label="Password" placeholder="Password" value={password} onChange={setPassword} secure autoComplete="password" />
       </View>
       {error ? (
-        <AppText color={colors.danger} accessibilityRole="alert">
+        <AppText color={colors.danger} accessibilityRole="alert" style={styles.center}>
           {error}
         </AppText>
       ) : null}
-      <Button label={busy ? 'Logging in…' : 'Log In'} disabled={!isValidEmail(email) || !password || busy} onPress={() => void submit()} />
-      <Button label="Create an account" variant="link" onPress={() => router.push('/signup')} />
-      <AppText variant="caption" color={colors.textMuted}>
-        Demo account: {demoAccount.email} · {demoAccount.password}
-      </AppText>
+      <Button label={busy ? 'Logging in…' : 'Log in'} align="stretch" disabled={!isValidEmail(email) || !password || busy} onPress={() => void submit()} />
+      <View style={styles.footer}>
+        <Button label="Create an account" variant="link" align="center" onPress={() => router.push('/signup')} />
+        {__DEV__ ? (
+          <AppText variant="caption" color={colors.textMuted}>
+            Demo: {demoAccount.email} · {demoAccount.password}
+          </AppText>
+        ) : null}
+      </View>
     </Page>
   );
 }
@@ -74,6 +73,7 @@ export function LoginScreen() {
 export function SignUpScreen() {
   const router = useRouter();
   const { colors } = useTheme();
+  const styles = useStyles();
   const { signUp } = useAuth();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -99,10 +99,8 @@ export function SignUpScreen() {
   };
 
   return (
-    <Page back>
-      <AppText variant="display" accessibilityRole="header">
-        Create account
-      </AppText>
+    <Page>
+      <Brand title="Create account" />
       <View style={{ gap: spacing.md }}>
         <TextField label="Username" placeholder="Username" value={username} onChange={setUsername} autoComplete="username" maxLength={40} />
         <TextField label="Email" placeholder="Email" value={email} onChange={setEmail} keyboardType="email-address" autoComplete="email" />
@@ -113,11 +111,12 @@ export function SignUpScreen() {
         {confirm ? <Hint ok={matches} label={matches ? 'Passwords match' : "Passwords don't match"} /> : null}
       </View>
       {error ? (
-        <AppText color={colors.danger} accessibilityRole="alert">
+        <AppText color={colors.danger} accessibilityRole="alert" style={styles.center}>
           {error}
         </AppText>
       ) : null}
-      <Button label={busy ? 'Creating account…' : 'Sign Up'} disabled={!valid || busy} onPress={() => void submit()} />
+      <Button label={busy ? 'Creating account…' : 'Sign up'} align="stretch" disabled={!valid || busy} onPress={() => void submit()} />
+      <Button label="I already have an account" variant="link" align="center" onPress={() => router.back()} />
     </Page>
   );
 }
@@ -180,6 +179,24 @@ export function AccountScreen() {
   );
 }
 
+/** Logo, wordmark and page title, centered at the top of log-in and sign-up. */
+function Brand({ title }: { title: string }) {
+  const { colors } = useTheme();
+  const styles = useStyles();
+  return (
+    <View style={styles.brand}>
+      {/* App icon for now; swap the file for the real logo later. */}
+      <Image source={require('../../../assets/icon.png')} style={styles.logo} accessibilityIgnoresInvertColors accessible={false} />
+      <AppText variant="overline" color={colors.textMuted}>
+        CellarOS
+      </AppText>
+      <AppText variant="display" accessibilityRole="header">
+        {title}
+      </AppText>
+    </View>
+  );
+}
+
 function PasswordChecklist({ password }: { password: string }) {
   return (
     <View style={{ gap: 2 }}>
@@ -223,5 +240,9 @@ const useStyles = makeStyles((c) =>
   StyleSheet.create({
     root: { flex: 1, backgroundColor: c.background },
     content: { paddingHorizontal: gutter, gap: spacing.xl, width: '100%', maxWidth: 480, alignSelf: 'center' },
+    brand: { alignItems: 'center', gap: spacing.sm, marginTop: spacing.xl, marginBottom: spacing.md },
+    logo: { width: 112, height: 112, borderRadius: 26, marginBottom: spacing.md },
+    center: { textAlign: 'center' },
+    footer: { gap: spacing.sm, alignItems: 'center' },
   }),
 );
