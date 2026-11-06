@@ -1,7 +1,6 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, ScrollView, StyleSheet, TextInput, View, useWindowDimensions, type TextInputInstance } from 'react-native';
+import { FlatList, ScrollView, StyleSheet, View, useWindowDimensions, type TextInputInstance } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HomeStateView } from '@/components/home/HomeStateView';
@@ -9,7 +8,7 @@ import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { IconButton } from '@/components/ui/IconButton';
-import { PressableScale } from '@/components/ui/PressableScale';
+import { SearchField } from '@/components/ui/SearchField';
 import { Segmented } from '@/components/ui/Segmented';
 import { summarizeOccupancy } from '@/data/cellarMap';
 import {
@@ -26,7 +25,7 @@ import { useActiveCellar } from '@/hooks/ActiveCellarContext';
 import { useNow } from '@/hooks/useNow';
 import { useQuery } from '@/hooks/useQuery';
 import { makeStyles, useTheme } from '@/theme/ThemeContext';
-import { fonts, gutter, radii, spacing, touchTarget, typography } from '@/theme/tokens';
+import { gutter, spacing } from '@/theme/tokens';
 
 import { WineRow } from './WineRow';
 import { WineTile } from './WineTile';
@@ -143,28 +142,13 @@ export function InventoryScreen() {
           ]}
         />
 
-        <View style={styles.search}>
-          <Ionicons name="search-outline" size={18} color={colors.textMuted} />
-          <TextInput
-            ref={inputRef}
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Wine, winery, region, vintage, grape"
-            placeholderTextColor={colors.textMuted}
-            selectionColor={colors.accent}
-            style={styles.input}
-            returnKeyType="search"
-            autoCorrect={false}
-            autoCapitalize="none"
-            maxFontSizeMultiplier={1.6}
-            accessibilityLabel="Search inventory"
-          />
-          {query ? (
-            <PressableScale onPress={() => setQuery('')} accessibilityRole="button" accessibilityLabel="Clear search" style={styles.clear}>
-              <Ionicons name="close-circle" size={18} color={colors.textMuted} />
-            </PressableScale>
-          ) : null}
-        </View>
+        <SearchField
+          ref={inputRef}
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Wine, winery, region, vintage, grape"
+          accessibilityLabel="Search inventory"
+        />
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips} keyboardShouldPersistTaps="handled">
           <View style={styles.chipGroup} accessibilityRole="radiogroup" accessibilityLabel="Style">
@@ -240,26 +224,6 @@ const useStyles = makeStyles((c) =>
     flex: { flex: 1 },
     header: { paddingHorizontal: gutter, gap: spacing.md, paddingBottom: spacing.xs },
     titleRow: { flexDirection: 'row', alignItems: 'center', marginRight: -spacing.md },
-    search: {
-      minHeight: touchTarget,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-      paddingHorizontal: spacing.md,
-      borderRadius: radii.md,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: c.hairline,
-      backgroundColor: c.surface,
-    },
-    input: {
-      flex: 1,
-      minHeight: touchTarget,
-      fontFamily: fonts.regular,
-      fontSize: typography.body.fontSize,
-      color: c.textPrimary,
-      paddingVertical: 0,
-    },
-    clear: { width: 36, height: touchTarget, alignItems: 'center', justifyContent: 'center' },
     chips: { gap: spacing.sm, alignItems: 'center', paddingVertical: spacing.xs, paddingRight: gutter },
     chipGroup: { flexDirection: 'row', gap: spacing.sm },
     divider: { width: StyleSheet.hairlineWidth, height: 20, backgroundColor: c.hairline, marginHorizontal: spacing.xs },

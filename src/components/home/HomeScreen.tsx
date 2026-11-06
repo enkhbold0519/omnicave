@@ -6,10 +6,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Section } from '@/components/ui/Section';
 import { getCondition, homeSummary, isOutOfRange } from '@/data/derive';
 import { profile } from '@/data/mockDb';
+import type { HomeSnapshot } from '@/data/types';
 import { useActiveCellar } from '@/hooks/ActiveCellarContext';
 import { useAccessibilityPrefs } from '@/hooks/useAccessibilityPrefs';
-import { useHomeData } from '@/hooks/useHomeData';
 import { useNow } from '@/hooks/useNow';
+import { useQuery } from '@/hooks/useQuery';
 import { makeStyles, useTheme } from '@/theme/ThemeContext';
 import { gutter, spacing } from '@/theme/tokens';
 
@@ -29,7 +30,10 @@ export function HomeScreen() {
   const styles = useStyles();
   const { reduceMotion, screenReader } = useAccessibilityPrefs();
   const { repository, cellars, activeCellar, setActiveCellarId } = useActiveCellar();
-  const { state, reload } = useHomeData(repository, activeCellar?.id ?? null);
+  const cellarId = activeCellar?.id ?? null;
+  const { state, reload } = useQuery<HomeSnapshot | null>(`home|${cellarId}`, () =>
+    cellarId ? repository.getHomeSnapshot(cellarId) : Promise.resolve(null),
+  );
   const [refreshing, setRefreshing] = useState(false);
 
   const data = state.status === 'ready' ? state.data : null;
@@ -71,7 +75,7 @@ export function HomeScreen() {
         </View>
       </View>
 
-      {state.status === 'loading' && <HomeStateView kind="loading" />}
+      {(state.status === 'loading' || !activeCellar) && <HomeStateView kind="loading" />}
 
       {state.status === 'error' && (
         <HomeStateView kind="error" message={state.message} actionLabel="Try again" onAction={reload} />

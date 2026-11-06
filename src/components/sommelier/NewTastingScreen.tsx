@@ -5,7 +5,7 @@ import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottleEnd } from '@/components/cellar/BottleEnd';
-import { PickerSheet } from '@/components/cellar/PickerSheet';
+import { PickerSheet } from '@/components/ui/PickerSheet';
 import { AppText } from '@/components/ui/AppText';
 import { BackHeader } from '@/components/ui/BackHeader';
 import { Button } from '@/components/ui/Button';

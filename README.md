@@ -102,7 +102,7 @@ src/
   components/ui/       AppText, Button, PlaceholderScreen
   data/                types, mockDb (seed data), cellarStore (runtime bottles), cellarLayout (layout config), cellarMap, derive + inventory
                        (pure logic), mockHomeRepository, mockInventoryRepository, devScenario
-  hooks/               ActiveCellarContext, useHomeData, useAccessibilityPrefs, useNow
+  hooks/               ActiveCellarContext, useQuery, useAccessibilityPrefs, useNow
   theme/tokens.ts      palettes (each light + dark), type, spacing, radii, thresholds
   theme/ThemeContext   active theme, saved preference, makeStyles()
 ```

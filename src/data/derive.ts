@@ -85,3 +85,6 @@ export function pickFeaturedWine(bottles: Bottle[], wines: Wine[], cellarId: str
   const wine = pickDaily(ready, now);
   return wine ? { wine, quantity: counts.get(wine.id) ?? 0 } : null;
 }
+
+/** e.g. "12 Mar 2025". */
+export const formatDate = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });

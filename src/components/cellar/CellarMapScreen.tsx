@@ -33,7 +33,7 @@ import { cabinet, gutter, radii, spacing } from '@/theme/tokens';
 
 import { BottleEnd, EmptyRecess } from './BottleEnd';
 import { MapSearch } from './MapSearch';
-import { PickerSheet, type PickerItem } from './PickerSheet';
+import { PickerSheet, type PickerItem } from '@/components/ui/PickerSheet';
 import { SlotGrid } from './SlotGrid';
 import { SlotSheet } from './SlotSheet';
 

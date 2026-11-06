@@ -12,6 +12,7 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { RatingDots } from '@/components/ui/RatingDots';
 import { Section } from '@/components/ui/Section';
 import { formatSlot } from '@/data/cellarLayout';
+import { formatDate } from '@/data/derive';
 import { describeDrinkingWindow } from '@/data/inventory';
 import type { Bottle, Cellar, WineDetails } from '@/data/types';
 import { useActiveCellar } from '@/hooks/ActiveCellarContext';
@@ -22,8 +23,6 @@ import { gutter, spacing, wineStyleTints } from '@/theme/tokens';
 
 // Each Find press gets a new token so the map re-runs the search even for the same bottle.
 let findToken = 0;
-
-const formatDate = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
 /** Full profile of one wine: drinking window, where each bottle is, the facts, and its opening history. */
 export function WineDetailsScreen({ wineId }: { wineId: string }) {

@@ -2,10 +2,11 @@ import type { ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AppText } from '@/components/ui/AppText';
-import { ChoiceRow } from '@/components/ui/ChoiceRow';
 import { makeStyles, useTheme } from '@/theme/ThemeContext';
 import { gutter, radii, spacing } from '@/theme/tokens';
+
+import { AppText } from './AppText';
+import { ChoiceRow } from './ChoiceRow';
 
 export interface PickerItem {
   id: string;
@@ -19,12 +20,14 @@ interface PickerSheetProps {
   title: string;
   sections: { title?: string; items: PickerItem[] }[];
   reduceMotion: boolean;
+  /** Shows a checkmark on the current choice. */
+  selectedId?: string;
   onPick: (id: string) => void;
   onClose: () => void;
 }
 
-/** A scrollable bottom sheet of choices, styled like the cellar switcher. */
-export function PickerSheet({ visible, title, sections, reduceMotion, onPick, onClose }: PickerSheetProps) {
+/** A scrollable bottom sheet of choices (cellar switcher, wine and bottle pickers). */
+export function PickerSheet({ visible, title, sections, reduceMotion, selectedId, onPick, onClose }: PickerSheetProps) {
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   const { colors } = useTheme();
@@ -63,7 +66,7 @@ export function PickerSheet({ visible, title, sections, reduceMotion, onPick, on
                         title={item.title}
                         detail={item.detail}
                         leading={item.leading}
-                        selected={false}
+                        selected={item.id === selectedId}
                         first={i === 0}
                         onPress={() => onPick(item.id)}
                       />

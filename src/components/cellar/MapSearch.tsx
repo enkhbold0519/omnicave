@@ -1,11 +1,10 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { StyleSheet, TextInput, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/AppText';
 import { IconButton } from '@/components/ui/IconButton';
-import { PressableScale } from '@/components/ui/PressableScale';
+import { SearchField } from '@/components/ui/SearchField';
 import { makeStyles, useTheme } from '@/theme/ThemeContext';
-import { fonts, radii, spacing, touchTarget, typography } from '@/theme/tokens';
+import { spacing, touchTarget } from '@/theme/tokens';
 
 interface MapSearchProps {
   query: string;
@@ -37,27 +36,12 @@ export function MapSearch({ query, onChangeQuery, total, index, unplacedMatches,
 
   return (
     <View style={styles.root}>
-      <View style={styles.field}>
-        <Ionicons name="search-outline" size={18} color={colors.textMuted} />
-        <TextInput
-          value={query}
-          onChangeText={onChangeQuery}
-          placeholder="Find a wine in this cellar"
-          placeholderTextColor={colors.textMuted}
-          selectionColor={colors.accent}
-          style={styles.input}
-          returnKeyType="search"
-          autoCorrect={false}
-          autoCapitalize="none"
-          maxFontSizeMultiplier={1.6}
-          accessibilityLabel="Find a wine on the cellar map"
-        />
-        {query ? (
-          <PressableScale onPress={() => onChangeQuery('')} accessibilityRole="button" accessibilityLabel="Clear search" style={styles.clear}>
-            <Ionicons name="close-circle" size={18} color={colors.textMuted} />
-          </PressableScale>
-        ) : null}
-      </View>
+      <SearchField
+        value={query}
+        onChangeText={onChangeQuery}
+        placeholder="Find a wine in this cellar"
+        accessibilityLabel="Find a wine on the cellar map"
+      />
 
       {searching && (
         <View style={styles.status}>
@@ -80,26 +64,6 @@ const useStyles = makeStyles((c) =>
   StyleSheet.create({
     root: { gap: spacing.xs },
     flex: { flex: 1 },
-    field: {
-      minHeight: touchTarget,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-      paddingHorizontal: spacing.md,
-      borderRadius: radii.md,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: c.hairline,
-      backgroundColor: c.surface,
-    },
-    input: {
-      flex: 1,
-      minHeight: touchTarget,
-      fontFamily: fonts.regular,
-      fontSize: typography.body.fontSize,
-      color: c.textPrimary,
-      paddingVertical: 0,
-    },
-    clear: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
     status: { flexDirection: 'row', alignItems: 'center', minHeight: touchTarget },
   }),
 );

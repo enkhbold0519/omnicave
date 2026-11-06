@@ -9,12 +9,11 @@ import { IconButton } from '@/components/ui/IconButton';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { formatTarget, zoneLabels } from '@/data/cellarLayout';
 import type { MapCell } from '@/data/cellarMap';
+import { formatDate } from '@/data/derive';
 import { describeDrinkingWindow } from '@/data/inventory';
 import type { ZoneConfig } from '@/data/types';
 import { makeStyles, useTheme } from '@/theme/ThemeContext';
 import { motion, radii, spacing, touchTarget } from '@/theme/tokens';
-
-const formatDate = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
 export interface SlotSheetActions {
   onOpenWine: (wineId: string) => void;
