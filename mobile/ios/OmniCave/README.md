@@ -1,6 +1,8 @@
 # OmniCave iOS
 
-Native SwiftUI companion app, targeting iOS 17. Open `OmniCave.xcodeproj` in Xcode.
+Native SwiftUI companion app, targeting iOS 17. The project is in `mobile/ios/OmniCave.xcodeproj`; open that file in Xcode. Select an iPhone simulator in the device menu beside the OmniCave scheme, then press **Run** (or Command-R).
+
+The interface follows the supplied forest cellar design: warm cream surfaces, forest-green accents, wine-style colors, and a dark cellar map. The design reference names Montserrat, which is not bundled with this project; the app uses iOS's Avenir Next font so it works without adding font files.
 
 ## Demo mode
 
