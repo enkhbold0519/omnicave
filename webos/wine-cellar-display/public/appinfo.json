@@ -1,0 +1,10 @@
+{
+  "id": "com.cnalab.winecellar",
+  "version": "0.3.0",
+  "vendor": "Hanyang Univ. Software Engineering Team",
+  "type": "web",
+  "main": "index.html",
+  "title": "Wine Cellar",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png"
+}

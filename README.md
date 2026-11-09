@@ -268,3 +268,14 @@ OmniCave is being developed as a software engineering project, and the system ar
 This project is currently developed for educational and research purposes.
 
 License information will be added in the future.
+
+## webOS Display Prototype
+
+A runnable prototype of the integrated transparent display (webOS OSE) with a dev backend lives in [`webos/`](webos/README.md).
+
+```bat
+cd webos
+setup.cmd          :: one-time install (Windows)
+run-backend.cmd    :: http://localhost:8000
+run-display.cmd    :: http://localhost:5173
+```
