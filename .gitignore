@@ -18,3 +18,20 @@
 !.env.example
 node_modules/
 .DS_Store
+
+# Python / local databases (generated at runtime)
+__pycache__/
+*.py[cod]
+*.db
+*.sqlite3
+.venv/
+.pytest_cache/
+
+# webOS prototype (webos/)
+webos/tools/
+webos/backend/.venv/
+webos/backend/data/
+webos/wine-cellar-display/dist/
+webos/wine-cellar-display/out/
+*.ipk
+edge_state.json
