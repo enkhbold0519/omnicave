@@ -1,7 +1,7 @@
 """Framework-agnostic route table, mounted by main.py (FastAPI) and devserver.py (stdlib)."""
 from dataclasses import dataclass
 from typing import Any, Callable
-from . import devices as dv, inventory as inv, llm, services as s, vision as vi
+from . import devices as dv, inventory as inv, llm, services as s, tasting as t, vision as vi
 
 
 @dataclass
@@ -89,7 +89,13 @@ ROUTES: list[Route] = [
     Route("POST", "/api/ai/personal", lambda c: s.ai_personal(c.user, c.body), stream=True),
     Route("POST", "/api/ai/ask", lambda c: s.ai_ask(c.user, c.body), stream=True),
     Route("POST", "/api/ai/dialogue", lambda c: s.ai_dialogue(c.user, c.body), stream=True),
-    Route("GET", "/api/personas", lambda c: s.load_personas()),
+    # ---- tasting table: sommeliers (built-in + the user's own) and one streamed round per request
+    Route("GET", "/api/personas", lambda c: t.list_personas(c.user)),
+    Route("POST", "/api/personas", lambda c: t.create_persona(c.user, c.body)),
+    Route("PATCH", "/api/personas/{pid}", lambda c: t.update_persona(c.user, c.path["pid"], c.body)),
+    Route("DELETE", "/api/personas/{pid}", lambda c: t.delete_persona(c.user, c.path["pid"])),
+    Route("DELETE", "/api/personas/{pid}/memory", lambda c: t.clear_memory(c.user, c.path["pid"])),
+    Route("POST", "/api/ai/table", lambda c: t.ai_table(c.user, c.body), stream=True),
     # ---- briefing (FR6) & market (FR7)
     Route("GET", "/api/briefing", lambda c: s.briefing(c.user)),
     Route("GET", "/api/market/summary", lambda c: s.market_summary(c.user)),

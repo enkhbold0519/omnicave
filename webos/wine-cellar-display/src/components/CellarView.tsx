@@ -29,9 +29,9 @@ export default function CellarView(p: Props) {
  * ------------------------------------------------------------------ */
 function DoorView({ cellar, width, height, selectedId, highlight, ghosts, onSelect, placing, onPlace, onGhost }: Props) {
   const W = cellar.width_cm, H = cellar.height_cm, D = cellar.geometry.bottle_d
-  const labelCol = 230
-  const s = Math.min((width - labelCol - 20) / W, (height - 16) / H)
-  const ox = 10, oy = 8
+  const labelCol = 150, frame = 16
+  const s = Math.min((width - labelCol - frame * 2 - 8) / W, (height - frame * 2 - 8) / H)
+  const ox = frame + 4, oy = frame + 4
   const px = (x: number) => ox + x * s
   const py = (y: number) => oy + (H - y) * s
   const racks = [...cellar.racks].sort((a, b) => b.y_cm - a.y_cm)
@@ -51,41 +51,56 @@ function DoorView({ cellar, width, height, selectedId, highlight, ghosts, onSele
 
   return (
     <svg width={width} height={height} className={`cellar-svg ${placing ? 'placing' : ''}`} onClick={clickBg}>
-      <rect x={px(0)} y={py(H)} width={W * s} height={H * s} rx={14} className="cellar-box" />
+      <defs>
+        <linearGradient id="cab-light" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#fff2d6" stopOpacity="0.12" />
+          <stop offset="0.3" stopColor="#fff2d6" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      {/* smoked-glass cabinet: frame, dark interior, a soft light from the top */}
+      <rect x={px(0) - frame} y={py(H) - frame} width={W * s + frame * 2} height={H * s + frame * 2} rx={22} className="cab-frame" />
+      <rect x={px(0)} y={py(H)} width={W * s} height={H * s} rx={8} className="cellar-box" />
       {cellar.zones.map(z => (
         <g key={z.id}>
           <rect x={px(0)} y={py(Math.min(z.y_to, H))} width={W * s} height={(Math.min(z.y_to, H) - z.y_from) * s} className={`zone-band ${z.name.startsWith('Upper') ? 'cool' : 'warm'}`} />
-          <text x={px(0) + 12} y={py(Math.min(z.y_to, H)) + 22} className="zone-text">{z.name}</text>
+          <text x={px(0) + 14} y={py(Math.min(z.y_to, H)) + 26} className="zone-text">{z.name.split(' · ').pop()}</text>
         </g>
       ))}
+      <rect x={px(0)} y={py(H)} width={W * s} height={H * s} rx={8} fill="url(#cab-light)" pointerEvents="none" />
       {racks.map(r => (
         <g key={r.id}>
-          {r.kind === 'shelf' && <line x1={px(0)} x2={px(W)} y1={py(r.y_cm)} y2={py(r.y_cm)} className={`rack-line ${r.present ? '' : 'removed'}`} />}
-          <text x={px(W) + 14} y={py(r.y_cm) - 4} className="rack-name">{r.name}{r.present ? '' : ' · pulled out'}</text>
-          {!!r.present && (
-            <text x={px(W) + 14} y={py(r.y_cm) + 20} className={`rack-count ${r.over_capacity ? 'over' : ''}`}>
-              {r.count}/{r.capacity}{r.over_capacity ? ' over nominal' : ''}
-            </text>
-          )}
+          {r.kind === 'shelf' && (r.present
+            ? <><rect x={px(0)} y={py(r.y_cm)} width={W * s} height={7} className="rack-rail" /><line x1={px(0)} x2={px(W)} y1={py(r.y_cm) + 0.5} y2={py(r.y_cm) + 0.5} className="rack-edge" /></>
+            : <line x1={px(0)} x2={px(W)} y1={py(r.y_cm)} y2={py(r.y_cm)} className="rack-line removed" />)}
+          <text x={px(W) + frame + 14} y={py(r.y_cm) - 6} className="rack-name">{r.name}</text>
+          <text x={px(W) + frame + 14} y={py(r.y_cm) + 18} className={`rack-count ${r.over_capacity ? 'over' : ''}`}>
+            {r.present ? `${r.count} / ${r.capacity}` : 'Pulled out'}
+          </text>
         </g>
       ))}
       {sorted.map(b => {
         const back = b.layer === 'back'
         const rr = (D / 2) * s * (back ? 0.82 : 1)
-        const sel = b.id === selectedId
-        const hl = highlight.has(b.id)
-        const common = {
-          className: `btl ${back ? 'back' : ''} ${sel ? 'sel' : ''} ${hl ? 'hl' : ''}`,
-          onClick: (e: RMouseEvent) => { if (!placing) { e.stopPropagation(); onSelect(b) } },
-          style: { fill: colorVar(b.wine.color) },
+        const cls = `btl ${back ? 'back' : ''} ${b.id === selectedId ? 'sel' : ''} ${highlight.has(b.id) ? 'hl' : ''}`
+        const onClick = (e: RMouseEvent) => { if (!placing) { e.stopPropagation(); onSelect(b) } }
+        const unsure = b.source === 'vision' && b.confidence != null && b.confidence < 0.8
+        if (b.orientation === 'standing') {
+          return <rect key={b.id} className={cls} onClick={onClick} style={{ fill: colorVar(b.wine.color) }}
+                       x={px(b.x) - rr} y={py(b.y - D / 2 + 30)} width={rr * 2} height={30 * s} rx={rr} />
         }
-        return b.orientation === 'standing'
-          ? <rect key={b.id} {...common} x={px(b.x) - rr} y={py(b.y - D / 2 + 30)} width={rr * 2} height={30 * s} rx={rr} />
-          : <circle key={b.id} {...common} cx={px(b.x)} cy={py(b.y)} r={rr} />
+        const cx = px(b.x), cy = py(b.y)
+        return (
+          // a glass bottle end seen through the door: tinted glass, a bright rim, the dark punt
+          <g key={b.id} className={cls} onClick={onClick}>
+            <circle cx={cx} cy={cy} r={rr + 7} className="btl-ring" />
+            <circle cx={cx} cy={cy} r={rr} className="btl-glass" style={{ fill: colorVar(b.wine.color) }} />
+            <circle cx={cx} cy={cy} r={rr * 0.8} className="btl-rim" />
+            <circle cx={cx} cy={cy} r={rr * 0.36} className="btl-punt" />
+            <circle cx={cx - rr * 0.38} cy={cy - rr * 0.4} r={rr * 0.13} className="btl-shine" />
+            {unsure && <circle cx={cx} cy={cy} r={rr + 5} className="btl-unsure" />}
+          </g>
+        )
       })}
-      {sorted.filter(b => b.level > 0).map(b => (
-        <text key={'l' + b.id} x={px(b.x)} y={py(b.y) + 5} className="lvl-text" textAnchor="middle">{b.level}</text>
-      ))}
       {ghosts.filter(g => g.cellar_id === cellar.id).map(g => (
         <g key={'g' + g.id} className="ghost" onClick={(e: RMouseEvent) => { e.stopPropagation(); onGhost(g) }}>
           <circle cx={px(g.payload.x)} cy={py(g.payload.y)} r={(D / 2) * s} />
@@ -177,8 +192,10 @@ function View3D({ cellar, width, height, selectedId, highlight, onSelect }: Prop
         {items.map(i => i.el)}
       </svg>
       <div className="view3d-ctl">
-        {presets.map(([l, y, p]) => <button key={l} className="pill" onClick={() => { setYaw(y); setPitch(p) }}>{l}</button>)}
-        <span className="muted tiny">drag to rotate</span>
+        <span className="muted small">Drag to turn</span>
+        <div className="seg mini">
+          {presets.map(([l, y, p]) => <button key={l} onClick={() => { setYaw(y); setPitch(p) }}>{l}</button>)}
+        </div>
       </div>
     </div>
   )

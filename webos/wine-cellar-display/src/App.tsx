@@ -4,14 +4,15 @@ import { useDraft, usePoll } from './hooks'
 import type { Bottle, Cellar, CellarSummary, Detection, EnvZone, Notification, User } from './types'
 import Header from './components/Header'
 import Icon, { type IconName } from './components/Icon'
-import EnvStrip from './components/EnvStrip'
+import { StatusCard, Welcome } from './components/CellarStatus'
+import ClimateHistory from './components/ClimateHistory'
 import CellarView, { type PlacePoint, type ViewMode } from './components/CellarView'
-import BottleSheet from './components/BottleSheet'
 import BottleForm from './components/BottleForm'
 import ReviewDetection from './components/ReviewDetection'
 import Notifications from './components/Notifications'
 import Login from './views/Login'
-import Search from './views/Search'
+import Inventory from './views/Inventory'
+import WineDetails from './views/WineDetails'
 import Sommelier from './views/Sommelier'
 import Briefing from './views/Briefing'
 import Value from './views/Value'
@@ -80,7 +81,7 @@ function Main({ user, onUser, orientation, setOrientation }: { user: User; onUse
   const [savedPage, setTab] = useDraft<Page>('page', 'cellar')
   const tab: Page = PAGES.includes(savedPage) ? savedPage : 'cellar'
   const [lastTab, setLastTab] = useState<Tab>(tab === 'profile' ? 'cellar' : tab)
-  const go = (p: Page) => { if (p !== 'profile') setLastTab(p); setTab(p) }
+  const go = (p: Page) => { if (p !== 'profile') setLastTab(p); setTab(p); setDetail(null) }
   const [cellarId, setCellarId] = useDraft<number | null>('cellar', null)
   const cellars = usePoll<CellarSummary[]>('/api/cellars', 10_000)
   const cellar = usePoll<Cellar>(cellarId ? `/api/cellars/${cellarId}` : null, 5_000)
@@ -89,6 +90,9 @@ function Main({ user, onUser, orientation, setOrientation }: { user: User; onUse
   const detections = usePoll<Detection[]>('/api/detections', 5_000)
 
   const [selected, setSelected] = useState<Bottle | null>(null)
+  const [detail, setDetail] = useState<Bottle | null>(null)
+  const [climateZone, setClimateZone] = useState<EnvZone | null>(null)
+  const [askWine, setAskWine] = useState<Bottle | null>(null)
   const [highlight, setHighlight] = useState<Set<number>>(new Set())
   const [viewMode, setViewMode] = useDraft<ViewMode>('viewmode', 'door')
   const [placing, setPlacing] = useState<null | { bottleId: number; layer: 'front' | 'back' }>(null)
@@ -125,15 +129,21 @@ function Main({ user, onUser, orientation, setOrientation }: { user: User; onUse
 
   const refreshAll = () => { void cellar.refresh(); void cellars.refresh(); void notifs.refresh(); void detections.refresh() }
 
-  const pick = (b: Bottle, highlightSet?: Bottle[]) => {
+  /** Find: show the bottle on the cellar map, ringed and pulsing for a few seconds. */
+  const pick = (b: Bottle) => {
     if (b.cellar_id !== cellarId) setCellarId(b.cellar_id)
-    setSelected(b)
     go('cellar')
-    const hl = new Set((highlightSet ?? [b]).filter(x => x.cellar_id === b.cellar_id).map(x => x.id))
-    setHighlight(hl)
+    setSelected(b)
+    setHighlight(new Set([b.id]))
     setTimeout(() => setHighlight(new Set()), 8000)
   }
-  const pickById = async (id: number) => { try { pick(await api<Bottle>('GET', `/api/bottles/${id}`)) } catch (e) { flash((e as Error).message, 'warning') } }
+  /** Open Wine Details over the current page (tab bar stays). */
+  const openWine = (b: Bottle) => setDetail(b)
+  const openById = async (id: number) => { try { openWine(await api<Bottle>('GET', `/api/bottles/${id}`)) } catch (e) { flash((e as Error).message, 'warning') } }
+  const startMove = (b: Bottle) => {
+    if (b.cellar_id !== cellarId) setCellarId(b.cellar_id)
+    go('cellar'); setSelected(b); setPlacing({ bottleId: b.id, layer: b.layer })
+  }
 
   const place = async (pt: PlacePoint) => {
     if (!placing) return
@@ -155,13 +165,15 @@ function Main({ user, onUser, orientation, setOrientation }: { user: User; onUse
       <main className="content">
         {tab === 'cellar' && (
           <div className="view cellar-view">
-            <EnvStrip zones={env.data?.zones} stale={env.stale} />
+            <Welcome name={(user.display_name || user.username).split(' ')[0]} zones={env.data?.zones} bottles={cellar.data?.bottles.length ?? 0} offline={env.stale} />
+            <StatusCard zones={env.data?.zones} bottles={cellar.data?.bottles.length ?? 0} onBottles={() => go('inventory')} onZone={setClimateZone} />
             <div className="toolbar">
-              <div className="seg mini">
+              <div className="seg mini" role="tablist" aria-label="Map view">
                 <button className={viewMode === 'door' ? 'on' : ''} onClick={() => setViewMode('door')}>Door</button>
                 <button className={viewMode === '3d' ? 'on' : ''} onClick={() => setViewMode('3d')}>3D</button>
               </div>
-              <button className="btn" onClick={() => setForm({})}>＋ Add bottle</button>
+              {(cellars.data?.length ?? 0) > 1 && cellar.data && <span className="muted toolbar-name">{cellar.data.name}</span>}
+              <button className="btn primary add-btn" onClick={() => setForm({})}>＋ Add bottle</button>
             </div>
             {placing && (
               <div className="place-banner">
@@ -181,19 +193,21 @@ function Main({ user, onUser, orientation, setOrientation }: { user: User; onUse
             {cellar.data
               ? <MapArea>{(w, h) => (
                   <CellarView cellar={cellar.data!} mode={viewMode} width={w} height={h} selectedId={selected?.id ?? null}
-                              highlight={highlight} ghosts={pending} onSelect={b => pick(b)}
+                              highlight={highlight} ghosts={pending} onSelect={b => { setSelected(b); openWine(b) }}
                               placing={placing ? { layer: placing.layer } : null} onPlace={place} onGhost={d => setReview(d)} />
                 )}</MapArea>
               : <div className="muted">{cellar.error ?? 'Loading cellar…'}</div>}
-            {cellar.stale && <div className="offline-note">Offline — showing last synced inventory. Climate changes are queued.</div>}
-            {selected && !placing && <BottleSheet bottle={cellar.data?.bottles.find(b => b.id === selected.id) ?? selected} onClose={() => setSelected(null)} onEdit={() => setForm({ bottle: selected })}
-                                          onMove={() => setPlacing({ bottleId: selected.id, layer: selected.layer })} onChanged={refreshAll} />}
+            {cellar.stale && <div className="offline-note">Offline — showing the last saved inventory. Changes are sent when the connection is back.</div>}
           </div>
         )}
-        {tab === 'inventory' && <Search cellarId={cellarId} onPick={pick} />}
-        {tab === 'sommelier' && <Sommelier onPick={b => pick(b)} />}
+        {tab === 'inventory' && <Inventory cellarId={cellarId} multiCellar={(cellars.data?.length ?? 0) > 1} onOpen={openWine} />}
+        {tab === 'sommelier' && <Sommelier onPick={openWine} startWine={askWine} onStarted={() => setAskWine(null)} />}
         {tab === 'briefing' && <Briefing />}
-        {tab === 'value' && <Value onPick={pickById} />}
+        {tab === 'value' && <Value onPick={openById} />}
+        {detail && (
+          <WineDetails bottle={detail} onClose={() => setDetail(null)} onFind={pick} onMove={startMove}
+                       onEdit={b => setForm({ bottle: b })} onChanged={refreshAll} onAsk={b => { setAskWine(b); go('sommelier') }} />
+        )}
         {tab === 'profile' && (
           <Profile onBack={() => go(lastTab)} user={user} onUser={onUser} cellar={cellar.data} cellars={cellars.data ?? []} envZones={env.data?.zones}
                     onCellarsChanged={id => { void cellars.refresh(); void cellar.refresh(); if (id) setCellarId(id) }}
@@ -213,12 +227,13 @@ function Main({ user, onUser, orientation, setOrientation }: { user: User; onUse
       {toast && <div className={`toast-float lvl-${toast.level}`} onClick={() => setToast(null)}>{toast.text}</div>}
       {form && cellar.data && (
         <BottleForm cellar={cellar.data} bottle={form.bottle} onClose={() => setForm(null)}
-                    onSaved={b => { setForm(null); refreshAll(); pick(b) }} />
+                    onSaved={b => { setForm(null); refreshAll(); openWine(b) }} />
       )}
       {review && (
         <ReviewDetection d={review} onClose={() => { setReview(null); refreshAll() }}
-                         onConfirmed={b => { setReview(null); refreshAll(); pick(b); flash('Registered — critics are discussing it now') }} />
+                         onConfirmed={b => { setReview(null); refreshAll(); openWine(b); flash('Added — the sommeliers are tasting it now') }} />
       )}
+      {climateZone && cellarId && <ClimateHistory cellarId={cellarId} zone={climateZone} onClose={() => setClimateZone(null)} />}
       {showNotifs && <Notifications items={notifs.data?.items ?? []} onClose={() => setShowNotifs(false)} onChanged={() => notifs.refresh()} />}
     </div>
   )

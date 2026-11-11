@@ -163,14 +163,24 @@ export interface Detection {
   }
 }
 
-export interface Persona { id: string; name: string; title: string; color: string; lora_adapter?: string }
+export type Scoring = 'hundred' | 'twenty' | 'stars'
+export type Focus = 'old-world' | 'new-world' | 'everywhere'
+export type Love = 'power' | 'elegance' | 'acidity' | 'oak' | 'fruit' | 'age' | 'value' | 'terroir'
+export type Tone = 'formal' | 'warm' | 'playful' | 'blunt'
+export interface PersonaTraits { scoring: Scoring; focus: Focus; loves: Love[]; strictness: number; tone: Tone; description: string }
+/** A sommelier at the tasting table: built-in (server, read-only) or the user's own. */
+export interface Persona {
+  id: string; name: string; title: string; color: string; lora_adapter?: string
+  built_in?: boolean; traits?: PersonaTraits; philosophy?: string; memory?: string[]
+}
 
 export interface LlmInfo { provider: string; model: string; configured: boolean; lora_swapping: boolean }
 
 export type StreamEvent =
   | { type: 'items'; items: Bottle[]; purchase?: (Wine & { market: Market })[]; profile?: unknown }
   | { type: 'delta'; text: string; persona?: string }
-  | { type: 'meta'; personas: Persona[]; provider: LlmInfo }
+  | { type: 'meta'; personas?: Persona[]; provider: LlmInfo }
+  | { type: 'pick'; persona: string; bottle: Bottle }
   | { type: 'turn'; persona: string; name: string; title: string; color: string; adapter?: string }
   | { type: 'turn_end'; persona: string }
   | { type: 'error'; message: string }

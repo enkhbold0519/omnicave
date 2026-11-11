@@ -27,7 +27,6 @@ export default function StreamOutput({ s, onPick }: { s: ReturnType<typeof useSt
       )}
       {(s.text || s.running) && <div className="ai-text">{s.text}{s.running && <span className="cursor">▍</span>}</div>}
       {s.error && <div className="error">{s.error}</div>}
-      {s.firstTokenMs !== null && <div className="muted tiny">first token {s.firstTokenMs} ms</div>}
     </div>
   )
 }

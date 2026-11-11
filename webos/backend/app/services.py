@@ -142,6 +142,8 @@ def export_me(user: dict) -> dict:
             "bottles": db.rows(c, "SELECT b.*, w.name, w.producer, w.vintage FROM bottles b JOIN wines w ON w.id=b.wine_id WHERE b.user_id=?", (uid,)),
             "consumption": db.rows(c, "SELECT * FROM consumption WHERE user_id=?", (uid,)),
             "notifications": db.rows(c, "SELECT * FROM notifications WHERE user_id=?", (uid,)),
+            "sommeliers": db.rows(c, "SELECT * FROM user_personas WHERE user_id=?", (uid,)),
+            "sommelier_memory": db.rows(c, "SELECT * FROM persona_memory WHERE user_id=?", (uid,)),
         }
 
 
@@ -185,7 +187,8 @@ def environment(user: dict, cid: int, minutes: int = 30) -> dict:
             online = bool(latest) and latest["ts"] > utc(-stale_after)
             hums = [h["hum"] for h in hist]
             out.append(z | {
-                "latest": latest, "history": hist[-120:], "sensor_online": online,
+                # at most 120 points spread over the whole period (newest kept), so a 24 h chart really covers 24 h
+                "latest": latest, "history": hist[::-1][::-(-len(hist) // 120) or 1][::-1], "sensor_online": online,
                 "simulated_disconnect": z["id"] in simulator.state.disconnected,
                 "simulated_spike": z["id"] in simulator.state.spike,
                 "hum_stability": round(statistics.pstdev(hums), 2) if len(hums) > 1 else None,

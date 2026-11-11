@@ -117,6 +117,19 @@ CREATE TABLE IF NOT EXISTS sensor_readings (
   ts TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS ix_readings_zone_ts ON sensor_readings(zone_id, ts);
+CREATE TABLE IF NOT EXISTS user_personas (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  data TEXT NOT NULL,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS persona_memory (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  persona_id TEXT NOT NULL,
+  text TEXT NOT NULL,
+  created_at TEXT DEFAULT (datetime('now'))
+);
 CREATE TABLE IF NOT EXISTS notifications (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
