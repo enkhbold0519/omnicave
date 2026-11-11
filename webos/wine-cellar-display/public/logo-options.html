@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CellarOS logo options</title>
+<style>
+  :root { --gold: #e9d8b0; --green: #9dc2ad; --wine: #e0a3ae; }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: #000; color: #ece7dc; font-family: Montserrat, 'Segoe UI', system-ui, sans-serif; padding: 40px 24px 80px; }
+  h1 { font-weight: 300; font-size: 32px; margin-bottom: 6px; }
+  p.lead { color: #a3a79f; margin-bottom: 40px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 28px; max-width: 1400px; }
+  .opt { border: 1px solid #2a312d; border-radius: 16px; padding: 28px; display: flex; flex-direction: column; gap: 22px; }
+  .opt h2 { font-size: 15px; font-weight: 500; letter-spacing: 2.4px; text-transform: uppercase; color: #a3a79f; }
+  .opt p { color: #c9cbc4; font-size: 15px; line-height: 1.5; }
+  .big { display: flex; justify-content: center; padding: 18px 0; }
+  .big svg { width: 170px; height: 170px; }
+  .row { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+  .tile { width: 96px; height: 96px; border-radius: 22px; background: #181d1a; display: flex; align-items: center; justify-content: center; }
+  .tile svg { width: 64px; height: 64px; }
+  .tile.light { background: #f6f3ec; color: #23443a; }
+  .small svg { width: 28px; height: 28px; }
+  .word { display: flex; align-items: center; gap: 12px; font-size: 26px; font-weight: 300; letter-spacing: 0.5px; }
+  .word svg { width: 40px; height: 40px; }
+  .word b { font-weight: 500; }
+  .gold { color: var(--gold); } .green { color: var(--green); } .wine { color: var(--wine); }
+</style>
+</head>
+<body>
+<h1>CellarOS — logo options</h1>
+<p class="lead">On black (as on the transparent door), as an app icon on dark and light, tiny, and with the name. Pick a letter.</p>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <!-- A · Bottle end: the glass bottle end we draw on the cellar map, seen through the door -->
+    <symbol id="logo-a" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" stroke-width="6" />
+      <circle cx="50" cy="50" r="28" fill="none" stroke="currentColor" stroke-width="2" opacity="0.45" />
+      <circle cx="50" cy="50" r="12" fill="currentColor" />
+      <path d="M27,36 A26,26 0 0 1 40,24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" opacity="0.8" />
+    </symbol>
+    <!-- B · Cellar door: an arched cabinet with racks, one bottle lit -->
+    <symbol id="logo-b" viewBox="0 0 100 100">
+      <path d="M22,90 V44 A28,28 0 0 1 78,44 V90 Z" fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="round" />
+      <line x1="25" y1="62" x2="75" y2="62" stroke="currentColor" stroke-width="3" opacity="0.6" />
+      <line x1="25" y1="78" x2="75" y2="78" stroke="currentColor" stroke-width="3" opacity="0.6" />
+      <circle cx="50" cy="44" r="9" fill="currentColor" />
+    </symbol>
+    <!-- C · Stacked bottles: three bottle ends stacked, the top one found -->
+    <symbol id="logo-c" viewBox="0 0 100 100">
+      <circle cx="31" cy="64" r="18" fill="none" stroke="currentColor" stroke-width="5" />
+      <circle cx="69" cy="64" r="18" fill="none" stroke="currentColor" stroke-width="5" />
+      <circle cx="50" cy="32" r="18" fill="currentColor" />
+      <circle cx="50" cy="32" r="6" fill="#000" opacity="0.55" />
+    </symbol>
+    <!-- D · Glass and spark: a wine glass with the sommelier's spark (AI) -->
+    <symbol id="logo-d" viewBox="0 0 100 100">
+      <path d="M30,14 H70 L71,34 A21,21 0 0 1 29,34 Z" fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="round" />
+      <path d="M31,34 A19,19 0 0 0 69,34 Z" fill="currentColor" opacity="0.9" />
+      <line x1="50" y1="56" x2="50" y2="84" stroke="currentColor" stroke-width="6" stroke-linecap="round" />
+      <line x1="34" y1="88" x2="66" y2="88" stroke="currentColor" stroke-width="6" stroke-linecap="round" />
+      <path d="M82,10 l3,8 8,3 -8,3 -3,8 -3,-8 -8,-3 8,-3 z" fill="currentColor" />
+    </symbol>
+  </defs>
+</svg>
+
+<div class="grid">
+  <section class="opt">
+    <h2>A · Bottle end</h2>
+    <div class="big gold"><svg><use href="#logo-a" /></svg></div>
+    <div class="row">
+      <div class="tile gold"><svg><use href="#logo-a" /></svg></div>
+      <div class="tile light"><svg><use href="#logo-a" /></svg></div>
+      <span class="small green"><svg><use href="#logo-a" /></svg></span>
+    </div>
+    <div class="word gold"><svg><use href="#logo-a" /></svg><span>Cellar<b>OS</b></span></div>
+    <p>The glass bottle end you see through the door — the same shape as the bottles on our cellar map. Simple and readable at any size.</p>
+  </section>
+
+  <section class="opt">
+    <h2>B · Cellar door</h2>
+    <div class="big gold"><svg><use href="#logo-b" /></svg></div>
+    <div class="row">
+      <div class="tile gold"><svg><use href="#logo-b" /></svg></div>
+      <div class="tile light"><svg><use href="#logo-b" /></svg></div>
+      <span class="small green"><svg><use href="#logo-b" /></svg></span>
+    </div>
+    <div class="word gold"><svg><use href="#logo-b" /></svg><span>Cellar<b>OS</b></span></div>
+    <p>An arched cabinet with racks and one bottle lit — the appliance and its door. Says “cellar” most directly.</p>
+  </section>
+
+  <section class="opt">
+    <h2>C · Stacked bottles</h2>
+    <div class="big gold"><svg><use href="#logo-c" /></svg></div>
+    <div class="row">
+      <div class="tile gold"><svg><use href="#logo-c" /></svg></div>
+      <div class="tile light"><svg><use href="#logo-c" /></svg></div>
+      <span class="small green"><svg><use href="#logo-c" /></svg></span>
+    </div>
+    <div class="word gold"><svg><use href="#logo-c" /></svg><span>Cellar<b>OS</b></span></div>
+    <p>Three bottle ends stacked, the top one found and lit. Points at the paper’s idea: it maps bottles even when they’re stacked.</p>
+  </section>
+
+  <section class="opt">
+    <h2>D · Glass &amp; spark</h2>
+    <div class="big gold"><svg><use href="#logo-d" /></svg></div>
+    <div class="row">
+      <div class="tile gold"><svg><use href="#logo-d" /></svg></div>
+      <div class="tile light"><svg><use href="#logo-d" /></svg></div>
+      <span class="small green"><svg><use href="#logo-d" /></svg></span>
+    </div>
+    <div class="word gold"><svg><use href="#logo-d" /></svg><span>Cellar<b>OS</b></span></div>
+    <p>A wine glass with a small spark — wine plus the AI sommeliers. Friendliest, but the most common idea for wine apps.</p>
+  </section>
+</div>
+</body>
+</html>
