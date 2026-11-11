@@ -1,16 +1,17 @@
-import { useState, type ReactNode } from 'react'
-import { api, apiBase, mutateOrQueue, setApiBase, setToken } from '../api'
+import { useRef, useState, type ReactNode } from 'react'
+import { api, apiBase, setApiBase, setToken } from '../api'
 import { usePoll } from '../hooks'
 import type { Cellar, CellarSummary, EnvZone, LlmInfo, User } from '../types'
 import { Field, Modal } from '../components/ui'
-import Icon from '../components/Icon'
 import { initials } from '../components/Header'
-import RackEditor from '../components/RackEditor'
-import LinkedCellars from '../components/LinkedCellars'
+import CellarsSettings from '../components/CellarsSettings'
+import ClimateSettings from '../components/ClimateSettings'
+import { Choices, Info, PageHead, Row } from '../components/SettingsUi'
 import { applyPalette, getPalette, PALETTES, type PaletteId } from '../theme'
+import { getSaver, NIGHT_FROM, NIGHT_TO, SAVER_AFTER, SAVER_STYLES, setSaver as saveSaver } from '../saver'
 
 export type Orientation = 'auto' | 'portrait' | 'rotate'
-type Sub = 'account' | 'cellars' | 'climate' | 'taste' | 'privacy' | 'about'
+type Sub = 'account' | 'cellars' | 'climate' | 'taste' | 'privacy' | 'about' | 'appearance' | 'saver'
 
 interface Props {
   onBack: () => void
@@ -23,6 +24,7 @@ interface Props {
   onCellarChanged: () => void
   orientation: Orientation
   onOrientation: (o: Orientation) => void
+  onPreviewSaver: () => void
 }
 
 const ORIENTATIONS: { id: Orientation; title: string; detail: string }[] = [
@@ -42,10 +44,13 @@ const TASTE: { key: 'styles' | 'regions' | 'grapes'; title: string; options: str
 export default function Profile(p: Props) {
   const { onBack, user, onUser, cellar, cellars, envZones } = p
   const [sub, setSub] = useState<Sub | null>(null)
-  const [picker, setPicker] = useState<null | 'palette' | 'orientation' | 'briefing'>(null)
+  const [picker, setPicker] = useState<null | 'briefing'>(null)
+  const [saverCfg, setSaverCfg] = useState(getSaver)
+  const updSaver = (v: Parameters<typeof saveSaver>[0]) => { saveSaver(v); setSaverCfg(getSaver()) }
   const [palette, setPaletteState] = useState<PaletteId>(getPalette())
   const [msg, setMsg] = useState<string | null>(null)
-  const flash = (m: string) => { setMsg(m); setTimeout(() => setMsg(null), 3000) }
+  const flashT = useRef<number | null>(null)
+  const flash = (m: string) => { setMsg(m); if (flashT.current) clearTimeout(flashT.current); flashT.current = window.setTimeout(() => setMsg(null), 2200) }
 
   const patchMe = async (body: Record<string, unknown>, ok?: string) => {
     try { onUser(await api<User>('PATCH', '/api/me', body)); if (ok) flash(ok); return true }
@@ -54,26 +59,58 @@ export default function Profile(p: Props) {
   const logout = async () => { try { await api('POST', '/api/auth/logout') } catch { /* offline */ } setToken(null); onUser(null) }
 
   const back = () => setSub(null)
+  const toast = msg && <div className="saved-toast" role="status">{msg}</div>
   const page = (title: string, body: ReactNode) => (
-    <div className="view settings">
-      <PageHead title={title} onBack={back} />
-      {msg && <div className="toast">{msg}</div>}
-      {body}
-    </div>
+    <>
+      <div className="view settings">
+        <PageHead title={title} onBack={back} />
+        {body}
+      </div>
+      {toast}
+    </>
   )
 
-  if (sub === 'account') return page('Edit profile', <AccountForm user={user} onSave={patchMe} />)
-  if (sub === 'cellars') return page('My cellars', <>
-    <LinkedCellars cellars={cellars} currentId={cellar?.id ?? null} onChanged={p.onCellarsChanged} flash={flash} />
-    {cellar && <section><h3>Racks · {cellar.name}</h3><RackEditor cellar={cellar} onChanged={p.onCellarChanged} flash={flash} /></section>}
-  </>)
-  if (sub === 'climate') return page('Climate & alerts', <>
-    <p className="muted">{cellar ? `For ${cellar.name}. ` : ''}You get a notification when a zone stays outside its range.</p>
-    {envZones?.map(z => <ZoneEditor key={z.id} z={z} flash={flash} />)}
-  </>)
+  if (sub === 'account') return page('Edit profile', <><p className="muted">Your name and sign-in details.</p><AccountForm user={user} onSave={patchMe} /></>)
+  if (sub === 'cellars') return <><CellarsSettings cellars={cellars} onBack={back} onChanged={id => { p.onCellarsChanged(id); p.onCellarChanged() }} flash={flash} />{toast}</>
+  if (sub === 'climate') return <><ClimateSettings cellarName={cellar?.name} zones={envZones} onBack={back} flash={flash} />{toast}</>
   if (sub === 'taste') return page('Taste preferences', <TasteForm user={user} onSave={patchMe} />)
-  if (sub === 'privacy') return page('Privacy & data', <PrivacyPage user={user} onDeleted={() => { setToken(null); onUser(null) }} />)
+  if (sub === 'privacy') return page('Privacy & data', <><p className="muted">Your data belongs to you. Take a copy or delete it.</p><PrivacyPage user={user} onDeleted={() => { setToken(null); onUser(null) }} /></>)
   if (sub === 'about') return page('About', <AboutPage user={user} />)
+  if (sub === 'appearance') return page('Appearance', <>
+    <p className="muted">How this display looks.</p>
+    <section>
+      <h3>Palette</h3>
+      <Choices selected={palette} onPick={id => { applyPalette(id as PaletteId); setPaletteState(id as PaletteId) }}
+               options={PALETTES.map(x => ({ id: x.id, title: x.name, detail: x.description, leading: <span className="swatch" style={{ background: x.swatch }} /> }))} />
+    </section>
+    <section>
+      <h3>Screen</h3>
+      <Choices selected={p.orientation} options={ORIENTATIONS} onPick={id => p.onOrientation(id as Orientation)} />
+    </section>
+  </>)
+  if (sub === 'saver') return page('Screen saver', <>
+    <p className="muted">After a while without a touch, the door shows a calm, mostly see-through screen. Tap anywhere to wake it.</p>
+    <section>
+      <h3>Start after</h3>
+      <div className="seg">
+        {SAVER_AFTER.map(([v, l]) => <button key={v} className={saverCfg.after === v ? 'on' : ''} onClick={() => updSaver({ after: v })}>{v ? l.replace('minutes', 'min').replace('minute', 'min') : 'Off'}</button>)}
+      </div>
+    </section>
+    <section>
+      <h3>Style</h3>
+      <Choices selected={saverCfg.style} options={SAVER_STYLES.map(([id, title, detail]) => ({ id, title, detail }))}
+               onPick={id => updSaver({ style: id as typeof saverCfg.style })} />
+    </section>
+    <section>
+      <h3>Night mode</h3>
+      <div className="seg">
+        <button className={saverCfg.night ? 'on' : ''} onClick={() => updSaver({ night: true })}>On</button>
+        <button className={!saverCfg.night ? 'on' : ''} onClick={() => updSaver({ night: false })}>Off</button>
+      </div>
+      <p className="muted small">From {NIGHT_FROM}:00 to 0{NIGHT_TO}:00 the screen saver shows only the clock and alerts.</p>
+    </section>
+    <button className="btn big start-btn" onClick={p.onPreviewSaver}>Preview screen saver</button>
+  </>)
 
   const prefs = user.preferences
   const tasteCount = TASTE.reduce((n, g) => n + (prefs[g.key]?.length ?? 0), 0)
@@ -83,7 +120,7 @@ export default function Profile(p: Props) {
   return (
     <div className="view settings">
       <PageHead title="Profile" onBack={onBack} />
-      {msg && <div className="toast">{msg}</div>}
+      {toast}
 
       <div className="profile-hero">
         <div className="avatar-lg" aria-hidden="true">{initials(user)}</div>
@@ -104,82 +141,19 @@ export default function Profile(p: Props) {
       </section>
 
       <section>
-        <h3>Appearance</h3>
+        <h3>This display</h3>
         <div className="rows">
-          <Row label="Palette" kind="pick" value={PALETTES.find(x => x.id === palette)!.name}
-               leading={<span className="swatch" style={{ background: PALETTES.find(x => x.id === palette)!.swatch }} />} onClick={() => setPicker('palette')} />
-          <Row label="Screen" kind="pick" value={ORIENTATIONS.find(o => o.id === p.orientation)!.title} onClick={() => setPicker('orientation')} />
+          <Row label="Appearance" value={`${PALETTES.find(x => x.id === palette)!.name} · ${ORIENTATIONS.find(o => o.id === p.orientation)!.title}`}
+               leading={<span className="swatch" style={{ background: PALETTES.find(x => x.id === palette)!.swatch }} />} onClick={() => setSub('appearance')} />
+          <Row label="Screen saver" value={saverCfg.after ? `After ${saverCfg.after} min · ${SAVER_STYLES.find(x => x[0] === saverCfg.style)![1]}` : 'Off'} onClick={() => setSub('saver')} />
           <Row label="About" onClick={() => setSub('about')} />
         </div>
       </section>
 
       <button className="logout" onClick={logout}>Log out</button>
 
-      {picker === 'palette' && (
-        <Picker title="Palette" selected={palette} onClose={() => setPicker(null)}
-                options={PALETTES.map(x => ({ id: x.id, title: x.name, detail: x.description, leading: <span className="swatch" style={{ background: x.swatch }} /> }))}
-                onPick={id => { applyPalette(id as PaletteId); setPaletteState(id as PaletteId); setPicker(null) }} />
-      )}
-      {picker === 'orientation' && (
-        <Picker title="Screen" selected={p.orientation} onClose={() => setPicker(null)} options={ORIENTATIONS}
-                onPick={id => { p.onOrientation(id as Orientation); setPicker(null) }} />
-      )}
       {picker === 'briefing' && <BriefingTime value={user.briefing_time} onClose={() => setPicker(null)}
                                               onSave={async t => { if (await patchMe({ briefing_time: t }, 'Briefing time saved')) setPicker(null) }} />}
-    </div>
-  )
-}
-
-/* ---------- building blocks ---------- */
-
-function PageHead({ title, onBack }: { title: string; onBack: () => void }) {
-  return (
-    <div className="page-head">
-      <button className="icon-btn" onClick={onBack} aria-label="Back"><Icon name="back" /></button>
-      <h2>{title}</h2>
-    </div>
-  )
-}
-
-/** Label on the left, current value and a chevron on the right (Android SettingRow). */
-function Row({ label, value, leading, kind = 'open', onClick }: { label: string; value?: string; leading?: ReactNode; kind?: 'open' | 'pick'; onClick: () => void }) {
-  return (
-    <button className="set-row" onClick={onClick} aria-label={value ? `${label}: ${value}` : label}>
-      <span className="set-label">{label}</span>
-      {leading}
-      <span className="set-value">{value}</span>
-      <span className={`set-chev ${kind}`}><Icon name="chevron" size={24} /></span>
-    </button>
-  )
-}
-
-function Picker({ title, options, selected, onPick, onClose }: {
-  title: string; options: { id: string; title: string; detail?: string; leading?: ReactNode }[]; selected: string; onPick: (id: string) => void; onClose: () => void
-}) {
-  return (
-    <Modal title={title} onClose={onClose}>
-      <div className="rows">
-        {options.map(o => (
-          <button key={o.id} className={`pick-row ${o.id === selected ? 'on' : ''}`} onClick={() => onPick(o.id)} aria-pressed={o.id === selected}>
-            {o.leading}
-            <span className="br-main"><span className="br-title">{o.title}</span>{o.detail && <span className="br-sub">{o.detail}</span>}</span>
-            {o.id === selected && <span className="pick-check">✓</span>}
-          </button>
-        ))}
-      </div>
-    </Modal>
-  )
-}
-
-function Stepper({ label, value, onMinus, onPlus }: { label: string; value: string; onMinus: () => void; onPlus: () => void }) {
-  return (
-    <div className="stepper-row">
-      <span>{label}</span>
-      <div className="stepper-ctl">
-        <button className="step-btn" onClick={onMinus} aria-label={`Lower ${label}`}>−</button>
-        <b className="step-val">{value}</b>
-        <button className="step-btn" onClick={onPlus} aria-label={`Raise ${label}`}>+</button>
-      </div>
     </div>
   )
 }
@@ -241,36 +215,6 @@ function TasteForm({ user, onSave }: { user: User; onSave: (b: Record<string, un
   )
 }
 
-function ZoneEditor({ z, flash }: { z: EnvZone; flash: (m: string) => void }) {
-  const [v, setV] = useState({ target_temp: z.target_temp, target_hum: z.target_hum, temp_min: z.temp_min, temp_max: z.temp_max, hum_min: z.hum_min, hum_max: z.hum_max, alert_minutes: z.alert_minutes })
-  const changed = (Object.keys(v) as (keyof typeof v)[]).some(k => v[k] !== z[k])
-  const step = (k: keyof typeof v, d: number, min: number, max: number) => setV({ ...v, [k]: Math.min(max, Math.max(min, +(v[k] + d).toFixed(1))) })
-  const save = async () => {
-    try {
-      const r = await mutateOrQueue('PATCH', `/api/zones/${z.id}`, v, `${z.name} settings`)
-      flash(r ? `${z.name} updated` : 'Offline — will sync when the connection is back')
-    } catch (e) { flash((e as Error).message) }
-  }
-  return (
-    <section className="zone-editor">
-      <div className="zone-editor-head">
-        <span className="t-heading">{z.name}</span>
-        <span className="muted small">Now {z.latest ? `${z.latest.temp.toFixed(1)} °C · ${Math.round(z.latest.hum)} %` : '—'}</span>
-      </div>
-      <h3>Keep at</h3>
-      <Stepper label="Temperature" value={`${v.target_temp.toFixed(1)} °C`} onMinus={() => step('target_temp', -0.5, 4, 22)} onPlus={() => step('target_temp', 0.5, 4, 22)} />
-      <Stepper label="Humidity" value={`${v.target_hum} %`} onMinus={() => step('target_hum', -1, 40, 90)} onPlus={() => step('target_hum', 1, 40, 90)} />
-      <h3>Alert me outside</h3>
-      <Stepper label="Lowest temperature" value={`${v.temp_min.toFixed(1)} °C`} onMinus={() => step('temp_min', -0.5, 0, v.temp_max - 0.5)} onPlus={() => step('temp_min', 0.5, 0, v.temp_max - 0.5)} />
-      <Stepper label="Highest temperature" value={`${v.temp_max.toFixed(1)} °C`} onMinus={() => step('temp_max', -0.5, v.temp_min + 0.5, 30)} onPlus={() => step('temp_max', 0.5, v.temp_min + 0.5, 30)} />
-      <Stepper label="Lowest humidity" value={`${v.hum_min} %`} onMinus={() => step('hum_min', -1, 20, v.hum_max - 1)} onPlus={() => step('hum_min', 1, 20, v.hum_max - 1)} />
-      <Stepper label="Highest humidity" value={`${v.hum_max} %`} onMinus={() => step('hum_max', -1, v.hum_min + 1, 95)} onPlus={() => step('hum_max', 1, v.hum_min + 1, 95)} />
-      <Stepper label="For at least" value={`${v.alert_minutes} min`} onMinus={() => step('alert_minutes', -5, 5, 240)} onPlus={() => step('alert_minutes', 5, 5, 240)} />
-      <button className="btn primary" disabled={!changed} onClick={save}>Apply</button>
-    </section>
-  )
-}
-
 function PrivacyPage({ user, onDeleted }: { user: User; onDeleted: () => void }) {
   const [confirm, setConfirm] = useState(false)
   const exportData = async () => {
@@ -312,20 +256,17 @@ function AboutPage({ user }: { user: User }) {
         <Info label="Camera recognition" value={health.data ? (health.data.vision.provider === 'mock' ? 'Offline demo' : health.data.vision.provider) : '—'} />
         <Info label="Version" value="CellarOS display 0.3" />
       </div>
-      <section>
-        <h3>Server</h3>
+      <details className="advanced">
+        <summary>Advanced</summary>
         <Field label="Server address (empty = default)">
           <input value={base} placeholder="http://10.0.2.2:8000" onChange={e => setBase(e.target.value)} />
         </Field>
         <button className="btn" onClick={() => { setApiBase(base); location.reload() }}>Save & reconnect</button>
-      </section>
+      </details>
     </>
   )
 }
 
-function Info({ label, value }: { label: string; value: string }) {
-  return <div className="set-row static"><span className="set-label">{label}</span><span className="set-value">{value}</span></div>
-}
 
 function BriefingTime({ value, onSave, onClose }: { value: string; onSave: (t: string) => void; onClose: () => void }) {
   const [t, setT] = useState(value)

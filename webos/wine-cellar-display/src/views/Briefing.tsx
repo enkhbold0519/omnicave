@@ -119,7 +119,7 @@ export default function Briefing({ cellarId, onOpen, onValue }: Props) {
 }
 
 /** Drinking window as a bar from the first to the last good year, with a dot for this year. */
-function WindowBar({ from, to, year }: { from: number; to: number; year: number }) {
+export function WindowBar({ from, to, year }: { from: number; to: number; year: number }) {
   const lo = Math.min(from, year), hi = Math.max(to, year)
   const span = Math.max(1, hi - lo)
   const left = ((from - lo) / span) * 100, width = Math.max(2, ((to - from) / span) * 100)

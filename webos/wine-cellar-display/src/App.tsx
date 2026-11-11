@@ -6,6 +6,8 @@ import Header from './components/Header'
 import Icon, { type IconName } from './components/Icon'
 import { StatusCard, Welcome } from './components/CellarStatus'
 import ClimateHistory from './components/ClimateHistory'
+import ScreenSaver from './components/ScreenSaver'
+import { saverTimeoutMs } from './saver'
 import CellarView, { type PlacePoint, type ViewMode } from './components/CellarView'
 import BottleForm from './components/BottleForm'
 import ReviewDetection from './components/ReviewDetection'
@@ -93,6 +95,17 @@ function Main({ user, onUser, orientation, setOrientation }: { user: User; onUse
   const [detail, setDetail] = useState<Bottle | null>(null)
   const [climateZone, setClimateZone] = useState<EnvZone | null>(null)
   const [askWine, setAskWine] = useState<Bottle | null>(null)
+  const [saver, setSaver] = useState(false)
+
+  // screen saver after a while without touch (Profile → Appearance; ?saver=10 for a 10-second test)
+  useEffect(() => {
+    let last = Date.now()
+    const poke = () => { last = Date.now() }
+    const evs = ['pointerdown', 'keydown', 'wheel'] as const
+    evs.forEach(e => window.addEventListener(e, poke, true))
+    const t = setInterval(() => { const ms = saverTimeoutMs(); if (ms > 0 && Date.now() - last > ms) setSaver(true) }, 1000)
+    return () => { evs.forEach(e => window.removeEventListener(e, poke, true)); clearInterval(t) }
+  }, [])
   const [highlight, setHighlight] = useState<Set<number>>(new Set())
   const [viewMode, setViewMode] = useDraft<ViewMode>('viewmode', 'door')
   const [placing, setPlacing] = useState<null | { bottleId: number; layer: 'front' | 'back' }>(null)
@@ -212,7 +225,7 @@ function Main({ user, onUser, orientation, setOrientation }: { user: User; onUse
           <Profile onBack={() => go(lastTab)} user={user} onUser={onUser} cellar={cellar.data} cellars={cellars.data ?? []} envZones={env.data?.zones}
                     onCellarsChanged={id => { void cellars.refresh(); void cellar.refresh(); if (id) setCellarId(id) }}
                     onCellarChanged={() => { void cellar.refresh(); void cellars.refresh() }}
-                    orientation={orientation} onOrientation={setOrientation} />
+                    orientation={orientation} onOrientation={setOrientation} onPreviewSaver={() => setSaver(true)} />
         )}
       </main>
 
@@ -233,6 +246,7 @@ function Main({ user, onUser, orientation, setOrientation }: { user: User; onUse
         <ReviewDetection d={review} onClose={() => { setReview(null); refreshAll() }}
                          onConfirmed={b => { setReview(null); refreshAll(); openWine(b); flash('Added — the sommeliers are tasting it now') }} />
       )}
+      {saver && <ScreenSaver cellar={cellar.data} zones={env.data?.zones} onWake={() => setSaver(false)} />}
       {climateZone && cellarId && <ClimateHistory cellarId={cellarId} zone={climateZone} onClose={() => setClimateZone(null)} />}
       {showNotifs && <Notifications items={notifs.data?.items ?? []} onClose={() => setShowNotifs(false)} onChanged={() => notifs.refresh()} />}
     </div>
