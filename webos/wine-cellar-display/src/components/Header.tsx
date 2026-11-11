@@ -1,6 +1,7 @@
 import { useClock, useOnline } from '../hooks'
 import { queued } from '../api'
-import type { CellarSummary, LlmInfo, User } from '../types'
+import type { CellarSummary, User } from '../types'
+import Icon from './Icon'
 
 interface Props {
   user: User
@@ -9,34 +10,47 @@ interface Props {
   onCellar: (id: number) => void
   unread: number
   onBell: () => void
-  llm: LlmInfo | null
+  onProfile: () => void
+  profileOpen: boolean
 }
 
-export default function Header({ user, cellars, cellarId, onCellar, unread, onBell, llm }: Props) {
+export function initials(u: User) {
+  const name = (u.display_name || u.username).trim()
+  const parts = name.split(/\s+/).filter(Boolean)
+  return ((parts[0]?.[0] ?? '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase() || '?'
+}
+
+/** Clock on the left; cellar, connection, notifications and the profile avatar on the right.
+ *  Connection and sign-in state stay visible on every page (paper: usability NFR). */
+export default function Header({ user, cellars, cellarId, onCellar, unread, onBell, onProfile, profileOpen }: Props) {
   const t = useClock()
   const { net, cloud } = useOnline()
   const pending = queued().length
+  const conn = !net ? { cls: 'bad', text: 'No network' }
+    : !cloud ? { cls: 'warn', text: 'Offline' }
+    : pending > 0 ? { cls: 'warn', text: `Syncing ${pending}` }
+    : { cls: 'ok', text: 'Online' }
+
   return (
     <header className="header">
       <div className="clock-block">
-        <div className="clock">{t.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}</div>
-        <div className="date">{t.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })}</div>
+        <div className="clock">{t.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}</div>
+        <div className="date">{t.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
       </div>
       <div className="header-right">
-        <div className="chips">
-          <span className={`chip ${net && cloud ? 'ok' : 'bad'}`}>
-            <i className="led" /> {!net ? 'No network' : cloud ? 'Cloud connected' : 'Cloud offline · cached'}
-          </span>
-          <span className="chip ok"><i className="led" /> {user.display_name || user.username}</span>
-          {llm && <span className={`chip ${llm.provider === 'mock' ? 'warn' : 'ok'}`}>AI: {llm.provider === 'mock' ? 'offline mock' : llm.model}</span>}
-          {pending > 0 && <span className="chip warn">{pending} change(s) waiting to sync</span>}
-          <button className="bell" onClick={onBell} aria-label="Notifications">
-            🔔{unread > 0 && <span className="bell-n">{unread}</span>}
-          </button>
-        </div>
-        <select className="cellar-select" value={cellarId ?? ''} onChange={e => onCellar(Number(e.target.value))}>
-          {cellars.map(c => <option key={c.id} value={c.id}>{c.devices?.some(d => d.online) ? '● ' : ''}{c.name} ({c.bottle_count ?? 0})</option>)}
-        </select>
+        {cellars.length > 1 && (
+          <select className="cellar-select" value={cellarId ?? ''} onChange={e => onCellar(Number(e.target.value))} aria-label="Cellar">
+            {cellars.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        )}
+        <span className={`conn ${conn.cls}`} role="status"><i className="led" />{conn.text}</span>
+        <button className="icon-btn bell" onClick={onBell} aria-label={`Notifications${unread ? `, ${unread} unread` : ''}`}>
+          <Icon name="bell" />
+          {unread > 0 && <span className="bell-n">{unread > 9 ? '9+' : unread}</span>}
+        </button>
+        <button className={`avatar-btn ${profileOpen ? 'on' : ''}`} onClick={onProfile} aria-label={`Profile — signed in as ${user.username}`}>
+          {initials(user)}
+        </button>
       </div>
     </header>
   )

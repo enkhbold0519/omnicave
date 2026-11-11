@@ -129,7 +129,7 @@ export interface User {
   username: string
   email: string
   display_name: string
-  preferences: Record<string, string>
+  preferences: { styles?: string[]; regions?: string[]; grapes?: string[]; likes?: string; dislikes?: string }
   briefing_time: string
 }
 

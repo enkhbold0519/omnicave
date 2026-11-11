@@ -9,7 +9,6 @@ export default function LinkedCellars({ cellars, currentId, onChanged, flash }: 
   const [presets, setPresets] = useState<Record<string, string>>({})
   const [devices, setDevices] = useState<Device[]>([])
   const [link, setLink] = useState({ code: '', target: 'new', name: '', preset: 'tall' })
-  const [sim, setSim] = useState<{ uid: string; code: string } | null>(null)
 
   const load = () => api<Device[]>('GET', '/api/devices').then(setDevices).catch(() => setDevices([]))
   useEffect(() => {
@@ -25,13 +24,8 @@ export default function LinkedCellars({ cellars, currentId, onChanged, flash }: 
         code: link.code.trim(),
         ...(link.target === 'new' ? { name: link.name || undefined, preset: link.preset } : { cellar_id: Number(link.target) }),
       })
-      flash(`Linked → ${r.cellar.name}`); setLink({ ...link, code: '', name: '' }); setSim(null); void load(); onChanged(r.cellar.id)
+      flash(`Linked → ${r.cellar.name}`); setLink({ ...link, code: '', name: '' }); void load(); onChanged(r.cellar.id)
     } catch (e) { flash((e as Error).message) }
-  }
-  const simulate = async () => {
-    const uid = 'WC-DEMO-' + Math.random().toString(16).slice(2, 8).toUpperCase()
-    const r = await api<{ pairing_code: string }>('POST', '/api/devices/register', { uid, model: 'Demo wine cellar (simulated appliance)' })
-    setSim({ uid, code: r.pairing_code })
   }
   const unlink = async (d: Device) => { await api('DELETE', `/api/devices/${d.id}`); void load(); onChanged() }
   const rename = async (id: number, name: string) => { try { await api('PATCH', `/api/cellars/${id}`, { name }); onChanged() } catch (e) { flash((e as Error).message) } }
@@ -50,7 +44,7 @@ export default function LinkedCellars({ cellars, currentId, onChanged, flash }: 
 
       <div className="link-box">
         <h4>Link a cellar appliance</h4>
-        <p className="muted small">Power on the new cellar — it shows a 6-digit code on its screen (or run <code>edge/edge_agent.py</code>). Enter it here.</p>
+        <p className="muted small">Power on the new cellar. It shows a 6-digit code on its screen — enter it here.</p>
         <div className="form-grid">
           <label className="field"><span>Pairing code</span>
             <input inputMode="numeric" maxLength={6} value={link.code} onChange={e => setLink({ ...link, code: e.target.value.replace(/\D/g, '') })} /></label>
@@ -69,16 +63,8 @@ export default function LinkedCellars({ cellars, currentId, onChanged, flash }: 
         </div>
         <div className="row-btns">
           <button className="btn primary" disabled={link.code.length !== 6} onClick={doLink}>Link</button>
-          <button className="btn" onClick={simulate}>Simulate a new appliance</button>
           <button className="btn" onClick={addPlain}>Add cellar without a device</button>
         </div>
-        {sim && (
-          <div className="sim-screen">
-            <div className="muted tiny">{sim.uid} screen</div>
-            <div className="sim-code">{sim.code}</div>
-            <button className="btn" onClick={() => setLink({ ...link, code: sim.code })}>Use this code</button>
-          </div>
-        )}
       </div>
     </div>
   )
@@ -95,7 +81,7 @@ function CellarCard({ c, current, devices, onRename, onRemove, onUnlink, canRemo
         <input value={name} onChange={e => setName(e.target.value)} onBlur={() => name !== c.name && onRename(name)} />
         <span className="muted small">{c.bottle_count ?? 0} bottles · {c.width_cm}×{c.height_cm}×{c.depth_cm} cm</span>
       </div>
-      {devices.length === 0 && <div className="muted small">No device linked — inventory is managed manually / simulated.</div>}
+      {devices.length === 0 && <div className="muted small">No device linked — bottles are managed by hand.</div>}
       {devices.map(d => (
         <div key={d.id} className="dev-row">
           <i className={`led ${d.online ? 'on' : ''}`} />
