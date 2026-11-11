@@ -202,7 +202,7 @@ function Main({ user, onUser, orientation, setOrientation }: { user: User; onUse
         )}
         {tab === 'inventory' && <Inventory cellarId={cellarId} multiCellar={(cellars.data?.length ?? 0) > 1} onOpen={openWine} />}
         {tab === 'sommelier' && <Sommelier onPick={openWine} startWine={askWine} onStarted={() => setAskWine(null)} />}
-        {tab === 'briefing' && <Briefing />}
+        {tab === 'briefing' && <Briefing cellarId={cellarId} onOpen={openWine} onValue={() => go('value')} />}
         {tab === 'value' && <Value onPick={openById} />}
         {detail && (
           <WineDetails bottle={detail} onClose={() => setDetail(null)} onFind={pick} onMove={startMove}
