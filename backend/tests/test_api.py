@@ -1,5 +1,8 @@
 """End-to-end smoke test against the stdlib dev server (no pip needed).
     cd backend && python -m tests.test_api
+
+PostgreSQL run (the test database is WIPED first, so never point this at real data):
+    TEST_DATABASE_URL=postgresql://user:pass@localhost:5432/cellar_test python -m tests.test_api
 """
 import json
 import os
@@ -11,6 +14,8 @@ import urllib.request
 os.environ["DB_PATH"] = os.path.join(tempfile.mkdtemp(), "test.db")
 os.environ["SENSOR_INTERVAL"] = "0.5"
 os.environ["LLM_PROVIDER"] = "mock"
+# only an explicit TEST_DATABASE_URL selects PostgreSQL; a DATABASE_URL from .env is ignored
+os.environ["DATABASE_URL"] = os.environ.get("TEST_DATABASE_URL", "")
 
 from app import config, db, simulator  # noqa: E402
 from app.devserver import Handler  # noqa: E402
@@ -38,6 +43,10 @@ def call(method, path, body=None, stream=False, expect=200):
 
 def main():
     global BASE, TOKEN
+    if db.IS_PG:
+        with db.tx() as c:
+            c.executescript("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
+        print("[test] PostgreSQL:", config.DATABASE_URL.split("@")[-1])
     db.init()
     simulator.start()
     srv = ThreadingHTTPServer(("127.0.0.1", 0), Handler)

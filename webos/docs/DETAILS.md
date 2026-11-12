@@ -9,11 +9,13 @@ webos/
 ├─ run-backend.cmd           start FastAPI backend  → http://localhost:8000/docs
 ├─ run-display.cmd           start display dev UI   → http://localhost:5173
 ├─ webos-env.ps1             load ares-* commands into a PowerShell session
-├─ backend/                  FastAPI + SQLite dev backend (auth, inventory, sensors, vision, devices, AI, briefing, market)
 ├─ edge/                     code for the cellar hardware side
 │   ├─ edge_agent.py         runs on the appliance: pairing, telemetry, camera frames (stdlib only)
 │   └─ vision_server_example.py   reference Vision AI server for VISION_PROVIDER=http
 └─ wine-cellar-display/      React + TypeScript + Vite app packaged as a webOS .ipk
+
+../backend/                  shared FastAPI backend (SQLite in dev, PostgreSQL in production): auth, inventory, sensors, vision, devices, AI, briefing, market
+../deploy/                   Docker Compose (API + PostgreSQL + Caddy HTTPS + nightly backups) and the EC2 guide
 ```
 
 ## Quick start
@@ -27,7 +29,7 @@ webos/
    | `@webos-tools/cli` | LG's official webOS SDK CLI (`ares-*`) | package / install / launch / inspect apps |
    | VirtualBox 7 | virtual-machine host | runs the webOS OSE emulator |
    | webOS OSE 2.28.0 image | prebuilt emulator disk | a virtual webOS device |
-   | Python 3.12 + venv | Python runtime, isolated package folder | backend runs here (`backend\.venv`) |
+   | Python 3.12 + venv | Python runtime, isolated package folder | backend runs here (`..\backend\.venv`) |
    | FastAPI + Uvicorn | Python web framework + its server | the REST/streaming API the display talks to |
 
 2. `run-backend.cmd` → keep it open.
@@ -53,7 +55,7 @@ camera in cellar ─frame─▶ POST /api/device/vision/frame ─▶ VISION_PROV
 edge-side model  ─detections─▶ POST /api/device/vision/detections
                                      └──────────────▶ reconcile(): unchanged / moved / new (review) / removed
 ```
-- The detection contract (cellar coordinates in cm + optional label) is documented at the top of `backend/app/vision.py`.
+- The detection contract (cellar coordinates in cm + optional label) is documented at the top of `../backend/app/vision.py`.
 - Matching order:
   1. stable tag id
   2. same spot and compatible label
@@ -77,7 +79,7 @@ python edge/edge_agent.py --server http://localhost:8000 --images some_photos/  
 
 ## AI (Hugging Face / OpenAI / own LoRA server)
 
-Edit `backend\.env` then restart the backend:
+Edit `..\backend\.env` then restart the backend:
 
 | `LLM_PROVIDER` | Needs | Notes |
 |---|---|---|
@@ -87,7 +89,7 @@ Edit `backend\.env` then restart the backend:
 | `vllm` | your server at `VLLM_BASE_URL` | each persona's `lora_adapter` is sent as `model` → **server-side dynamic LoRA swapping** (vLLM `--enable-lora --lora-modules ...`) |
 
 API keys live only in the backend. The display never sees them.
-Critic personas live in `backend/personas.json`. Add one there and it appears in the debate with no display update (FR9 "continuous persona expansion").
+Critic personas live in `../backend/personas.json`. Add one there and it appears in the debate with no display update (FR9 "continuous persona expansion").
 The personas have fictional names. They are *inspired by* the scoring philosophies the paper cites, so the app never puts invented quotes in real critics' mouths.
 
 ## Requirement coverage
@@ -128,10 +130,10 @@ The personas have fictional names. They are *inspired by* the scoring philosophi
 | NFR | Offline fallback (view inventory, temperature control) | ✅ | cached data + “Cloud offline · cached” chip; zone changes queued and synced |
 | NFR | Preserve unsaved input across restarts / network drops | ✅ | drafts in localStorage (forms, search, AI prompts) |
 | NFR | Secure auth, hashed passwords, per-user isolation | ✅ | bearer tokens (hashed at rest), PBKDF2-SHA256 passwords, every query scoped by user |
-| NFR | TLS 1.3 end-to-end | ⛔ | deployment concern: put the backend behind HTTPS (Caddy / Nginx / Cloudflare) |
+| NFR | TLS 1.3 end-to-end | ✅ | production stack terminates HTTPS in Caddy (Let's Encrypt, TLS 1.3), see `../deploy/` |
 | NFR | GDPR export / delete | ✅ | Settings → Export my data / Delete account |
 | NFR | Network + auth state on main display | ✅ | header chips |
-| NFR | Cloud backup & recovery | ✅ | all state lives in the backend DB; display is stateless apart from cache |
+| NFR | Cloud backup & recovery | ✅ | all state lives in the backend DB (PostgreSQL in production, nightly `pg_dump`, 14 days kept); display is stateless apart from cache |
 
 ## Display notes
 - **Portrait first.** The app draws a fixed 1080×1920 canvas and scales it to any screen.
@@ -141,7 +143,7 @@ The personas have fictional names. They are *inspired by* the scoring philosophi
 
 ## Tests
 ```
-cd backend
+cd ..\backend
 python -m tests.test_api      # end-to-end API test, stdlib only (no pip needed)
 ```
 

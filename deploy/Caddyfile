@@ -1,0 +1,6 @@
+# SITE_ADDRESS (deploy/.env) is the public host name, e.g. 3-35-12-34.sslip.io or api.example.com.
+# Caddy gets and renews the Let's Encrypt certificate itself and redirects http -> https.
+{$SITE_ADDRESS} {
+	# no response compression: it can hold back the AI's streamed (SSE) answers
+	reverse_proxy api:8000
+}

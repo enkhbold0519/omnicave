@@ -6,7 +6,7 @@
 #  - webOS OSE emulator image (prebuilt, qemux86-64)    -> .\tools\emulator
 #  - VirtualBox VM "webos-image" (port 6622 -> ssh)
 #  - npm install for .\wine-cellar-display
-#  - Python 3.12 + venv + FastAPI/Uvicorn for .\backend
+#  - Python 3.12 + venv + FastAPI/Uvicorn for ..\backend (repo root)
 #
 #  Run:  setup.cmd   (or)   powershell -ExecutionPolicy Bypass -File .\setup.ps1
 #  Re-running is safe: finished steps are skipped.
@@ -30,7 +30,7 @@ $Tools     = Join-Path $Root "tools"
 $Node16Dir = Join-Path $Tools "node16"
 $EmuDir    = Join-Path $Tools "emulator"
 $AppDir    = Join-Path $Root "wine-cellar-display"
-$BackDir   = Join-Path $Root "backend"
+$BackDir   = Join-Path (Split-Path $Root -Parent) "backend"   # shared backend lives at the repo root
 $Node16Ver = "16.20.2"
 
 function Step($msg) { Write-Host "`n==> $msg" -ForegroundColor Cyan }
@@ -173,16 +173,18 @@ if ($exists) {
 Step "6/7  App dependencies (wine-cellar-display)"
 # ---------------------------------------------------------------------
 if ($SkipAppInstall) { Warn "skipped (-SkipAppInstall)" }
-elseif (Test-Path (Join-Path $AppDir "node_modules")) { Ok "node_modules already present" }
 else {
+    # always run: quick when nothing changed, and picks up new packages after a git pull
     Push-Location $AppDir
-    npm install
+    npm install --no-audit --no-fund
+    $code = $LASTEXITCODE
     Pop-Location
-    Ok "npm install done"
+    if ($code -ne 0) { throw "npm install failed" }
+    Ok "app dependencies up to date"
 }
 
 # ---------------------------------------------------------------------
-Step "7/7  Python backend (FastAPI + Uvicorn in backend\.venv)"
+Step "7/7  Python backend (FastAPI + Uvicorn in ..\backend\.venv)"
 # ---------------------------------------------------------------------
 if ($SkipBackend) { Warn "skipped (-SkipBackend)" }
 else {

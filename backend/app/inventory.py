@@ -395,9 +395,10 @@ def remove_bottle(user: dict, bid: int, reason: str = "removed") -> dict:
 
 def settle_above(c, gone: dict) -> None:
     """Bottles stacked on a removed bottle drop one level (gravity)."""
-    for o in db.rows(c, "SELECT * FROM bottles WHERE cellar_id=? AND rack_id IS ? AND status='stored' AND level > ? AND abs(x-?) < ? AND abs(z-?) < 15",
-                     (gone["cellar_id"], gone["rack_id"], gone["level"], gone["x"], geo.D, gone["z"])):
-        c.execute("UPDATE bottles SET level=level-1, y=round(y-?,1) WHERE id=?", (geo.STACK_STEP, o["id"]))
+    rack = "rack_id IS NULL" if gone["rack_id"] is None else "rack_id=?"
+    params = [gone["cellar_id"]] + ([] if gone["rack_id"] is None else [gone["rack_id"]]) + [gone["level"], gone["x"], geo.D, gone["z"]]
+    for o in db.rows(c, f"SELECT * FROM bottles WHERE cellar_id=? AND {rack} AND status='stored' AND level > ? AND abs(x-?) < ? AND abs(z-?) < 15", params):
+        c.execute("UPDATE bottles SET level=level-1, y=? WHERE id=?", (round(o["y"] - geo.STACK_STEP, 1), o["id"]))
 
 
 SEARCH_FIELDS = {

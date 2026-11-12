@@ -31,7 +31,7 @@ def _tick() -> None:
         real = {r["cellar_id"] for r in db.rows(c, "SELECT cellar_id FROM devices WHERE last_telemetry > ?", (services.utc(-30),))}
         for z in zones:
             zid = z["id"]
-            if zid not in state.disconnected and z["cellar_id"] not in real:
+            if config.SIMULATE_SENSORS and zid not in state.disconnected and z["cellar_id"] not in real:
                 d = state.drift.get(zid, 0.0) * 0.9 + random.gauss(0, 0.08)
                 state.drift[zid] = d
                 t = z["target_temp"] + d + random.gauss(0, 0.12)

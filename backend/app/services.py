@@ -1,4 +1,4 @@
-"""Business logic. Pure Python + sqlite3; no web framework imports here."""
+"""Business logic. Pure Python + SQL via db.py (SQLite or PostgreSQL); no web framework imports here."""
 from __future__ import annotations
 
 import json
