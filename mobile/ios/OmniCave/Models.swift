@@ -5,6 +5,12 @@ struct Account: Codable, Equatable {
     var email: String
 }
 
+struct WinePosition: Codable, Equatable, Hashable {
+    var x: Double
+    var y: Double
+    var z: Double
+}
+
 struct Wine: Identifiable, Codable, Equatable, Hashable {
     var id: UUID = UUID()
     var name: String
@@ -16,6 +22,7 @@ struct Wine: Identifiable, Codable, Equatable, Hashable {
     var cellarID: UUID
     var drinkingWindow: String = "2024–2032"
     var value: Double = 45
+    var mapPosition: WinePosition?
     var style: WineStyle {
         let label = "\(name) \(grape)".lowercased()
         if label.contains("rosé") || label.contains("rose") { return .rose }

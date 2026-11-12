@@ -4,7 +4,7 @@ import UIKit
 @main
 struct OmniCaveApp: App {
     @StateObject private var model = AppModel(service: AppConfig.useMock ? MockService() : BackendService(baseURL: AppConfig.backendURL))
-    @AppStorage("appearance") private var appearance = "system"
+    @AppStorage("appearance") private var appearance = "dark"
 
     var body: some Scene {
         WindowGroup {
@@ -13,7 +13,10 @@ struct OmniCaveApp: App {
             }
             .environmentObject(model)
             .tint(.forestAccent)
-            .preferredColorScheme(appearance == "light" ? .light : appearance == "dark" ? .dark : nil)
+            .preferredColorScheme(appearance == "light" ? .light : .dark)
+            .task {
+                if appearance != "light" && appearance != "dark" { appearance = "dark" }
+            }
         }
     }
 }

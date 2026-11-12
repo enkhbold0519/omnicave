@@ -8,6 +8,7 @@ final class AppModel: ObservableObject {
     @Published var wines: [Wine] = []
     @Published var cellars: [Cellar] = []
     @Published var selectedCellar: UUID?
+    @Published var mapTargetWine: UUID?
     @Published var error: String?
     @Published var notice: String?
     @Published var busy = false
