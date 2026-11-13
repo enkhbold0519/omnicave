@@ -107,11 +107,20 @@ const state = { opts: null, mode: "lora", transcript: [], busy: false, wine: nul
 function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
 
 async function init() {
+  if (location.protocol === "file:") {
+    $("#status").innerHTML = '<span class="err">opened as a file</span>';
+    $("#stage").innerHTML = '<p class="err">This page needs the server. Start it with ' +
+      '<code>.venv\\Scripts\\python serve.py</code> in ai/lora, then open ' +
+      '<a href="http://127.0.0.1:8001/" style="color:var(--accent)">http://127.0.0.1:8001/</a>.</p>';
+    return;
+  }
   try {
     const r = await fetch("/demo/options");
     state.opts = await r.json();
   } catch (e) {
     $("#status").innerHTML = '<span class="err">server not reachable</span>';
+    $("#stage").innerHTML = '<p class="err">The server is not answering. Is <code>serve.py</code> still running? ' +
+      'It takes about 30 s to load the model after starting.</p>';
     return;
   }
   const o = state.opts;
