@@ -1,0 +1,25 @@
+{
+  "_about": "Hand-reviewed mapping from webos/backend/app/catalog.py wines to X-Wines WineID (X-Wines Full, CC0-1.0, de Azambuja et al. 2023, doi:10.3390/bdcc7010020). null = no matching wine in X-Wines; never guess a near miss.",
+  "wines": [
+    {"producer": "Domaine Fourrier", "name": "Gevrey-Chambertin", "xwines_id": 130226, "note": "exact name"},
+    {"producer": "Domaine Raveneau", "name": "Chablis 1er Cru Montée de Tonnerre", "xwines_id": 112972, "note": "listed as Raveneau, Chablis Premier Cru 'Montée de Tonnerre'"},
+    {"producer": "Domaine Roulot", "name": "Meursault", "xwines_id": 119241, "note": "village Meursault Blanc"},
+    {"producer": "Domaine Arnoux-Lachaux", "name": "Bourgogne Rouge", "xwines_id": 133502, "note": "listed as Pinot Noir Bourgogne"},
+    {"producer": "Charles Heidsieck", "name": "Brut Réserve", "xwines_id": 111525, "note": "exact name"},
+    {"producer": "Bollinger", "name": "La Grande Année", "xwines_id": 111444, "note": "La Grande Année Brut (not the rosé)"},
+    {"producer": "Jacques Lassaigne", "name": "Extra Brut Les Vignes de Montgueux", "xwines_id": 113329, "note": "Les Vignes de Montgueux Extra Brut Blanc de Blancs"},
+    {"producer": "Domaine Jean-Louis Chave", "name": "Hermitage", "xwines_id": 111797, "note": "L'Hermitage red (not the blanc)"},
+    {"producer": "Domaine du Vieux Télégraphe", "name": "Châteauneuf-du-Pape", "xwines_id": 111467, "note": "La Crau red (not the blanc)"},
+    {"producer": "Château Léoville Barton", "name": "Château Léoville Barton", "xwines_id": 111425, "note": "grand vin, listed as Saint-Julien (Grand Cru Classé)"},
+    {"producer": "François Cotat", "name": "Sancerre Les Monts Damnés", "xwines_id": null, "note": "only Pascal Cotat is listed, a different producer"},
+    {"producer": "Domaine Tempier", "name": "Bandol Rosé", "xwines_id": 112080, "note": "exact name"},
+    {"producer": "G.D. Vajra", "name": "Barolo", "xwines_id": 135928, "note": "Albe Barolo, the estate's classic Barolo"},
+    {"producer": "Il Poggione", "name": "Brunello di Montalcino", "xwines_id": 135860, "note": "listed as Tenuta Il Poggione; not the Riserva"},
+    {"producer": "J.J. Prüm", "name": "Riesling Kabinett Wehlener Sonnenuhr", "xwines_id": 106641, "note": "listed as Joh. Jos. Prüm"},
+    {"producer": "La Rioja Alta", "name": "Rioja Gran Reserva 904", "xwines_id": 155308, "note": "exact name"},
+    {"producer": "Ridge Vineyards", "name": "Napa Valley Cabernet Sauvignon", "xwines_id": null, "note": "Ridge Estate Cabernet is Santa Cruz Mountains, not this wine"},
+    {"producer": "Taylor's", "name": "Port Vintage", "xwines_id": 101744, "note": "Vintage Port (not LBV or single-quinta)"},
+    {"producer": "Château Suduiraut", "name": "Sauternes", "xwines_id": 111478, "note": "grand vin, Premier Grand Cru Classé"},
+    {"producer": "Felton Road", "name": "Pinot Noir Bannockburn", "xwines_id": 193521, "note": "Bannockburn Pinot Noir"}
+  ]
+}

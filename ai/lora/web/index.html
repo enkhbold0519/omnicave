@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OmniCave Critic Lab</title>
+<style>
+  :root {
+    --bg: #000; --panel: #0d0d0f; --line: #23232a; --text: #ecebe6; --muted: #8d8b85;
+    --accent: #c9a96e; --bad: #d9534f; --ok: #5cb85c; --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { padding: 18px 24px; border-bottom: 1px solid var(--line); display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+  header h1 { margin: 0; font-size: 20px; letter-spacing: .02em; }
+  header .sub { color: var(--muted); font-size: 13px; }
+  main { display: grid; grid-template-columns: 340px 1fr; gap: 0; min-height: calc(100vh - 62px); }
+  aside { border-right: 1px solid var(--line); padding: 18px; display: flex; flex-direction: column; gap: 18px; }
+  section.stage { padding: 18px 24px 120px; overflow-y: auto; }
+  label.h { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 6px; }
+  select, input[type=text], textarea { width: 100%; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; font: inherit; }
+  .persona { border: 1px solid var(--line); border-radius: var(--radius); padding: 10px; margin-bottom: 8px; background: var(--panel); }
+  .persona.off { opacity: .45; }
+  .persona .top { display: flex; align-items: center; gap: 8px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .persona .name { font-weight: 600; }
+  .persona .title { color: var(--muted); font-size: 12px; }
+  .persona select { margin-top: 8px; padding: 5px 8px; font-size: 13px; }
+  .modes { display: flex; gap: 6px; }
+  .modes button { flex: 1; }
+  button { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; font: inherit; cursor: pointer; }
+  button.on { border-color: var(--accent); color: var(--accent); }
+  button.primary { background: var(--accent); color: #111; border-color: var(--accent); font-weight: 600; }
+  button:disabled { opacity: .4; cursor: default; }
+  .note { color: var(--muted); font-size: 12px; }
+  .wine-card { border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 18px; }
+  .wine-card .w { font-size: 18px; font-weight: 600; }
+  .turn { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 18px; }
+  .turn.both { grid-template-columns: 1fr 1fr; }
+  .bubble { border: 1px solid var(--line); border-left: 3px solid var(--c, var(--accent)); border-radius: var(--radius); padding: 12px 14px; background: var(--panel); }
+  .bubble.base { border-left-color: #555; }
+  .bubble .who { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; margin-bottom: 6px; }
+  .bubble .who b { color: var(--c, var(--text)); }
+  .tag { font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; }
+  .bubble .text { white-space: pre-wrap; }
+  .bubble .text.empty::after { content: "..."; color: var(--muted); }
+  details { margin-top: 8px; }
+  details summary { cursor: pointer; color: var(--muted); font-size: 12px; }
+  details pre { white-space: pre-wrap; font-size: 12px; color: #b9b6ad; background: #050506; border: 1px solid var(--line); border-radius: 8px; padding: 8px; margin: 6px 0 0; }
+  .ask { position: fixed; left: 340px; right: 0; bottom: 0; background: rgba(0,0,0,.92); border-top: 1px solid var(--line); padding: 12px 24px; display: flex; gap: 8px; }
+  .ask select { width: 200px; flex: none; }
+  .err { color: var(--bad); }
+  @media (max-width: 860px) {
+    main { grid-template-columns: 1fr; }
+    aside { border-right: 0; border-bottom: 1px solid var(--line); }
+    .ask { left: 0; flex-wrap: wrap; padding: 10px 16px; }
+    .ask select { width: 100%; }
+    .turn.both { grid-template-columns: 1fr; }
+    section.stage { padding: 16px 16px 150px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>OmniCave Critic Lab</h1>
+  <span class="sub" id="status">connecting...</span>
+</header>
+<main>
+  <aside>
+    <div>
+      <label class="h" for="wine">Wine on the table</label>
+      <select id="wine"></select>
+    </div>
+    <div>
+      <label class="h">Critics (in speaking order)</label>
+      <div id="personas"></div>
+      <div class="note">Uncheck to skip a critic. The dropdown picks which trained LoRA speaks for them.</div>
+    </div>
+    <div>
+      <label class="h">Mode</label>
+      <div class="modes">
+        <button data-mode="lora" class="on">LoRA</button>
+        <button data-mode="base">Base</button>
+        <button data-mode="both">Compare</button>
+      </div>
+      <div class="note" style="margin-top:6px">Every mode gets the same retrieved evidence. Base = same prompt, no LoRA.</div>
+    </div>
+    <div>
+      <label class="h" for="owner">Owner context (optional)</label>
+      <input type="text" id="owner" placeholder="e.g. likes older vintages, dinner party tonight">
+    </div>
+    <button class="primary" id="run">Start debate</button>
+  </aside>
+  <section class="stage" id="stage">
+    <p class="note">Pick a wine and press <b>Start debate</b>. Each critic speaks in turn and sees what the previous critics said, like the cellar door display.</p>
+  </section>
+</main>
+<div class="ask">
+  <select id="askWho"></select>
+  <input type="text" id="askText" placeholder="Ask a critic a follow-up question about this wine (experimental)">
+  <button id="askBtn">Ask</button>
+</div>
+<script>
+const $ = (s) => document.querySelector(s);
+const state = { opts: null, mode: "lora", transcript: [], busy: false, wine: null };
+
+function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+async function init() {
+  if (location.protocol === "file:") {
+    $("#status").innerHTML = '<span class="err">opened as a file</span>';
+    $("#stage").innerHTML = '<p class="err">This page needs the server. Start it with ' +
+      '<code>.venv\\Scripts\\python serve.py</code> in ai/lora, then open ' +
+      '<a href="http://127.0.0.1:8001/" style="color:var(--accent)">http://127.0.0.1:8001/</a>.</p>';
+    return;
+  }
+  try {
+    const r = await fetch("/demo/options");
+    state.opts = await r.json();
+  } catch (e) {
+    $("#status").innerHTML = '<span class="err">server not reachable</span>';
+    $("#stage").innerHTML = '<p class="err">The server is not answering. Is <code>serve.py</code> still running? ' +
+      'It takes about 30 s to load the model after starting.</p>';
+    return;
+  }
+  const o = state.opts;
+  $("#status").textContent = `${o.base_model} · RAG ${o.rag ? "on" : "off"} · ${o.adapters.length} LoRA loaded`;
+  $("#wine").innerHTML = o.wines.map((w, i) =>
+    `<option value="${i}">${esc(w.producer)} ${esc(w.name)} ${esc(w.vintage)} (${esc(w.region)})</option>`).join("");
+  $("#personas").innerHTML = o.personas.map((p) => {
+    const mine = o.adapters.filter((a) => a === p.lora_adapter || a.startsWith(p.lora_adapter + "-"));
+    const opts = mine.map((a) => `<option value="${esc(a)}">${esc(a)}</option>`).join("");
+    return `<div class="persona ${mine.length ? "" : "off"}" data-id="${p.id}">
+      <div class="top"><input type="checkbox" ${mine.length ? "checked" : ""}>
+        <span class="dot" style="background:${p.color}"></span>
+        <div><div class="name">${esc(p.name)}</div><div class="title">${esc(p.title)}</div></div></div>
+      ${mine.length ? `<select>${opts}</select>` : '<div class="note">no LoRA loaded (base model only)</div>'}
+    </div>`;
+  }).join("");
+  $("#askWho").innerHTML = o.personas.map((p) => `<option value="${p.id}">Ask ${esc(p.name)}</option>`).join("");
+}
+
+function chosen() {
+  return [...document.querySelectorAll(".persona")].filter((el) => el.querySelector("input").checked).map((el) => {
+    const p = state.opts.personas.find((x) => x.id === el.dataset.id);
+    const sel = el.querySelector("select");
+    return { ...p, adapter: sel ? sel.value : null };
+  });
+}
+
+function bubble(p, kind) {
+  const div = document.createElement("div");
+  div.className = "bubble" + (kind === "base" ? " base" : "");
+  div.style.setProperty("--c", p.color);
+  div.innerHTML = `<div class="who"><b>${esc(p.name)}</b><span class="tag">${kind === "base" ? "base model" : esc(p.adapter || p.lora_adapter)}</span>
+    <span class="tag meta">...</span></div><div class="text empty"></div>
+    <details><summary>retrieved evidence</summary><pre></pre></details>`;
+  return div;
+}
+
+async function streamTurn(p, kind, el, extra = {}) {
+  const body = { wine: state.wine.label, persona: p.id, transcript: state.transcript, mode: kind === "base" ? "base" : "lora",
+                 adapter: p.adapter, owner_context: $("#owner").value.trim() || null, ...extra };
+  const textEl = el.querySelector(".text"), metaEl = el.querySelector(".meta");
+  let text = "";
+  try {
+    const r = await fetch("/demo/turn", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error?.message || r.statusText); }
+    const reader = r.body.getReader(), dec = new TextDecoder();
+    let buf = "";
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let i;
+      while ((i = buf.indexOf("\n\n")) >= 0) {
+        const line = buf.slice(0, i).trim(); buf = buf.slice(i + 2);
+        if (!line.startsWith("data:")) continue;
+        const ev = JSON.parse(line.slice(5));
+        if (ev.type === "start") el.querySelector("pre").textContent = ev.evidence || "(no evidence block)";
+        if (ev.type === "delta") { text += ev.text; textEl.textContent = text; textEl.classList.remove("empty"); }
+        if (ev.type === "done") metaEl.textContent = `TTFT ${ev.ttft?.toFixed(2)}s · ${ev.seconds.toFixed(1)}s`;
+      }
+    }
+  } catch (e) {
+    textEl.classList.remove("empty");
+    textEl.innerHTML = `<span class="err">${esc(e.message)}</span>`;
+  }
+  return text.trim();
+}
+
+async function runDebate() {
+  if (state.busy) return;
+  const list = chosen();
+  if (!list.length) return;
+  state.busy = true; $("#run").disabled = true; $("#askBtn").disabled = true;
+  state.wine = state.opts.wines[+$("#wine").value];
+  state.transcript = [];
+  const w = state.wine;
+  const stage = $("#stage");
+  stage.innerHTML = `<div class="wine-card"><div class="w">${esc(w.producer)} ${esc(w.name)} ${esc(w.vintage)}</div>
+    <div class="note">${esc(w.region)} · ${esc(w.grape)} · ${esc(w.color)}</div></div>`;
+  for (const p of list) {
+    const row = document.createElement("div");
+    row.className = "turn" + (state.mode === "both" ? " both" : "");
+    stage.appendChild(row);
+    let spoken;
+    if (state.mode === "both") {
+      const a = bubble(p, "lora"), b = bubble(p, "base");
+      row.append(a, b);
+      const transcript = [...state.transcript];
+      [spoken] = await Promise.all([streamTurn(p, "lora", a), streamTurn(p, "base", b, { transcript })]);
+    } else {
+      const a = bubble(p, state.mode);
+      row.append(a);
+      spoken = await streamTurn(p, state.mode, a);
+    }
+    if (spoken) state.transcript.push(`${p.name}: ${spoken}`);
+    row.scrollIntoView({ behavior: "smooth", block: "end" });
+  }
+  state.busy = false; $("#run").disabled = false; $("#askBtn").disabled = false;
+}
+
+async function ask() {
+  const q = $("#askText").value.trim();
+  if (!q || state.busy) return;
+  if (!state.wine) state.wine = state.opts.wines[+$("#wine").value];
+  const p = { ...state.opts.personas.find((x) => x.id === $("#askWho").value) };
+  const card = document.querySelector(`.persona[data-id="${p.id}"] select`);
+  p.adapter = card ? card.value : null;
+  state.busy = true; $("#askBtn").disabled = true;
+  const stage = $("#stage");
+  const qEl = document.createElement("div");
+  qEl.className = "note"; qEl.style.margin = "6px 0"; qEl.textContent = `You → ${p.name}: ${q}`;
+  stage.appendChild(qEl);
+  const row = document.createElement("div"); row.className = "turn"; stage.appendChild(row);
+  const kind = state.mode === "base" || !p.adapter ? "base" : "lora";
+  const b = bubble(p, kind); row.append(b);
+  $("#askText").value = "";
+  await streamTurn(p, kind, b, { question: q });
+  row.scrollIntoView({ behavior: "smooth", block: "end" });
+  state.busy = false; $("#askBtn").disabled = false;
+}
+
+document.querySelectorAll(".modes button").forEach((b) => b.addEventListener("click", () => {
+  document.querySelectorAll(".modes button").forEach((x) => x.classList.toggle("on", x === b));
+  state.mode = b.dataset.mode;
+}));
+$("#run").addEventListener("click", runDebate);
+$("#askBtn").addEventListener("click", ask);
+$("#askText").addEventListener("keydown", (e) => { if (e.key === "Enter") ask(); });
+init();
+</script>
+</body>
+</html>
