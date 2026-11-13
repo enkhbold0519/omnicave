@@ -31,7 +31,7 @@ from pathlib import Path
 import torch
 import uvicorn
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from transformers import (AutoModelForCausalLM, AutoTokenizer, StoppingCriteria, StoppingCriteriaList,
                           TextIteratorStreamer)
 
@@ -133,6 +133,70 @@ def build_app(engine: Engine, api_key: str | None, rag: bool) -> FastAPI:
 
     def authorized(request: Request) -> bool:
         return not api_key or request.headers.get("authorization", "") == f"Bearer {api_key}"
+
+    # ------------------------------------------------------------ interactive demo (web/index.html)
+    catalog = evidence.load_catalog()
+    personas = prompts.load_personas()
+
+    @app.get("/")
+    def demo_page():
+        return FileResponse(HERE / "web" / "index.html", media_type="text/html")
+
+    @app.get("/demo/options")
+    def demo_options():
+        return {
+            "base_model": engine.model_id,
+            "rag": rag,
+            "wines": [{"label": prompts.wine_label(w), "producer": w["producer"], "name": w["name"],
+                       "vintage": w["vintage"] or "NV", "color": w["color"], "region": w["region"], "grape": w["grape"]}
+                      for w in catalog],
+            "personas": [{k: p[k] for k in ("id", "name", "title", "color", "lora_adapter")}
+                         | {"available": p["lora_adapter"] in engine.adapters} for p in personas],
+            "adapters": list(engine.adapters),
+        }
+
+    @app.post("/demo/turn")
+    async def demo_turn(request: Request):
+        """One debate turn, built exactly like the backend's ai_dialogue, streamed as SSE events."""
+        body = await request.json()
+        p = next((x for x in personas if x["id"] == body.get("persona")), None)
+        label = body.get("wine")
+        if p is None or label not in {prompts.wine_label(w) for w in catalog}:
+            return error(400, "unknown persona or wine", "invalid_request_error")
+        model = engine.model_id if body.get("mode") == "base" else (body.get("adapter") or p["lora_adapter"])
+        if model not in engine.model_ids():
+            return error(404, f"LoRA '{model}' is not loaded", "not_found_error")
+        uctx = body.get("owner_context") or prompts.owner_context({}, 0, [], [], [])
+        messages = prompts.critic_messages(p, label, uctx, [str(t) for t in body.get("transcript") or []])
+        question = str(body.get("question") or "").strip()
+        if question:  # experimental: the LoRAs were trained on debate turns, not free questions
+            messages[-1]["content"] += f"\nThe owner asks you directly: {question}"
+        block, note = ("", "rag off")
+        if rag:
+            messages, note = with_evidence(messages)
+            block = messages[-1]["content"].split("\n\n" + prompts.EVIDENCE_HEADER, 1)
+            block = prompts.EVIDENCE_HEADER + block[1] if len(block) == 2 else ""
+        cancel = threading.Event()
+        max_tokens = 260 if question else prompts.MAX_TOKENS
+
+        def events():
+            start, first, text = time.perf_counter(), None, ""
+            yield "data: " + json.dumps({"type": "start", "model": model, "evidence": block, "rag": note}) + "\n\n"
+            try:
+                for piece in engine.stream(model, messages, max_tokens, 0.8, 0.9, cancel):
+                    if not piece:
+                        continue
+                    if first is None:
+                        first = time.perf_counter() - start
+                    text += piece
+                    yield "data: " + json.dumps({"type": "delta", "text": piece}) + "\n\n"
+                yield "data: " + json.dumps({"type": "done", "ttft": first, "seconds": time.perf_counter() - start,
+                                             "text": text.strip()}) + "\n\n"
+            finally:
+                cancel.set()
+                print(f"[demo {model}] {note}; TTFT {first if first is None else round(first, 3)}s")
+
+        return StreamingResponse(events(), media_type="text/event-stream")
 
     @app.get("/health")
     def health():

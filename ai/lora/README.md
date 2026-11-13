@@ -51,6 +51,17 @@ python make_dataset.py
 ```
 `check_prompt_sync.py` and `make_dataset.py` only need the standard library.
 
+## Critic Lab (interactive web page)
+`serve.py` also serves a small page at http://127.0.0.1:8001/ (`web/index.html`). Pick a wine and
+the critics, then watch the debate stream. Modes: **LoRA**, **Base** (same prompt and evidence, no
+LoRA) and **Compare** (side by side). Each turn shows its TTFT and the retrieved evidence.
+Follow-up questions to one critic are experimental, because the LoRAs were trained on debate turns
+only. To compare LoRA ranks, start the server on the rank-study folder and choose the LoRA per
+critic from its dropdown:
+```bat
+.venv\Scripts\python serve.py --adapters-dir rank_study
+```
+
 ## Use it from the webOS app
 Add to the local `webos/backend/.env` (never committed), then restart the backend:
 ```
