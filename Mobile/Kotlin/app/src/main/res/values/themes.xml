@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.OmniCave" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- Dark window with a black background, so the app does not flash white while it starts. -->
+    <style name="Theme.OmniCave" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/black</item>
+    </style>
 </resources>
