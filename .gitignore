@@ -35,3 +35,11 @@ webos/wine-cellar-display/dist/
 webos/wine-cellar-display/out/
 *.ipk
 edge_state.json
+
+# AI / LoRA work (ai/): weights, adapters and generated data stay local
+ai/lora/adapters/
+ai/lora/data/
+ai/lora/runs/
+ai/lora/eval/*.jsonl
+ai/data/
+*.safetensors

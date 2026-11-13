@@ -204,7 +204,8 @@ def main():
     call("POST", "/api/ai/ask", {"query": ""}, expect=400)
     ev = call("POST", "/api/ai/dialogue", {"bottle_id": call("GET", f"/api/cellars/{cid}")["bottles"][0]["id"]}, stream=True)
     turns = [e for e in ev if e["type"] == "turn"]
-    assert len(turns) == 3 and ev[0]["type"] == "meta"
+    personas = json.loads(config.PERSONAS_PATH.read_text(encoding="utf-8"))
+    assert len(turns) == len(personas) and ev[0]["type"] == "meta"
 
     # briefing + market
     br = call("GET", "/api/briefing")
