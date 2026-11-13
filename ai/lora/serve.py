@@ -151,7 +151,8 @@ def build_app(engine: Engine, api_key: str | None, rag: bool) -> FastAPI:
                        "vintage": w["vintage"] or "NV", "color": w["color"], "region": w["region"], "grape": w["grape"]}
                       for w in catalog],
             "personas": [{k: p[k] for k in ("id", "name", "title", "color", "lora_adapter")}
-                         | {"available": p["lora_adapter"] in engine.adapters} for p in personas],
+                         | {"available": any(a == p["lora_adapter"] or a.startswith(p["lora_adapter"] + "-")
+                                           for a in engine.adapters)} for p in personas],
             "adapters": list(engine.adapters),
         }
 
