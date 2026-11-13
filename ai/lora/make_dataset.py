@@ -300,8 +300,9 @@ def generate(per_wine_train: int, per_wine_eval: int, year: int, seed: int) -> N
 
 # ---------------------------------------------------------------- checks (shared with eval.py)
 def sentences(text: str, wine: str) -> int:
-    # Producer names such as "G.D. Vajra" contain dots, so mask the wine label first.
-    return len(re.split(r"(?<=[.!?])\s+", text.replace(wine, "WINE").strip()))
+    # Producer names such as "G.D. Vajra" and "N.V." contain dots, so mask them first.
+    masked = text.replace(wine, "WINE").replace("N.V.", "NV")
+    return len(re.split(r"(?<=[.!?])\s+", masked.strip()))
 
 
 def mentioned_notes(text: str) -> set[str]:
@@ -345,6 +346,7 @@ def crowd_grounding(reply: str, wine: dict, wine_label: str, ev: CrowdEvidence |
     else:
         uses = any(p.lower() in low for p in ev.pairings) or (ev.body or "").lower() in low
     claims = True
+    low = reply.lower()
     if ranked:  # the wording must match the numbers: "right around" only when |delta| < 0.1
         near_said = "right around" in low
         above, below = "above its neighbours" in low, "below its neighbours" in low
@@ -352,6 +354,8 @@ def crowd_grounding(reply: str, wine: dict, wine_label: str, ev: CrowdEvidence |
             claims = near_said and not (above or below)
         else:
             claims = (not near_said) and (above if ev.delta > 0 else below) and f"{ev.delta:+.2f}" in reply
+    if ev is not None and re.search(r"nobody\b.*\brated the\b.*\bvintage", low) and ev.vintage_ratings > 0:
+        claims = False  # says the vintage is unrated while the evidence lists ratings for it
     no_pairings = reply
     for p in sorted((ev.pairings if ev else []) + evd.PAIRING_POOL, key=len, reverse=True):
         no_pairings = re.sub(re.escape(p), " ", no_pairings, flags=re.I)  # "Game Meat" is food, not the "game" note

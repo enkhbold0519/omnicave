@@ -136,6 +136,20 @@ Files to touch: `ai/lora/eval.py`
 | Loss | Assistant tokens only | The model should learn the reply, not to echo the prompt |
 | Seed | 42 | Reproducible runs |
 
+### Rank study and release (2026-11-13)
+- Fixed the crowd wording: retrieval now writes the relation ("above its peers") into the evidence,
+  and crowd-taste was retrained. Eval: all 4 personas 100% on every metric (`eval/report.md`).
+- Rank study (`ai/lora/rank_study/`, user request, kept for another project): power-critic and
+  crowd-taste at r=4/alpha 8 vs r=16/alpha 32. r=4 has 1/4 of the parameters (17.7 MB vs 70.5 MB)
+  and trains in about half the time. Same style metrics; higher eval loss; 2/40 factual misses for
+  crowd r=4 (says an N.V. wine is unrated). `claims_match` now checks that claim, and the sentence
+  counter ignores "N.V.". `eval.py --rescore` re-grades saved replies.
+- Critic Lab web page (`web/index.html`, served by `serve.py`); not yet checked live.
+- LoRA weights are published as GitHub Release assets (pre-release `lora-poc-2026-11-13`):
+  `omnicave-lora-r16.zip` and `omnicave-lora-rank-study.zip`. The GitHub CLI is the portable build
+  in %LOCALAPPDATA%\gh-portable, because the MSI install needed a UAC click that Remote Control
+  cannot give.
+
 ## Not yet specified
 - Gate answers still open: weight source (HF Hub or ModelScope), reply language.
 - RunPod phase: base model (Qwen2.5-7B-Instruct or a newer Qwen), GPU type, budget, vLLM flags,

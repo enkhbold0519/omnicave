@@ -1,6 +1,6 @@
 # Persona LoRA + RAG eval (2026-11-13)
 
-Base `Qwen/Qwen2.5-1.5B-Instruct`, 20 held-out prompts per persona, temperature 0.8, max_tokens 180. Both conditions receive the same retrieved evidence: critics get the simulated critic store, crowd-taste gets real X-Wines peer-relative data (CC0). Held-out wines are not in the training set. claims_match (crowd-taste only) checks that 'right around / above / below its neighbours' matches the evidence delta.
+Base `Qwen/Qwen2.5-1.5B-Instruct`, 20 held-out prompts per persona, temperature 0.8, max_tokens 180. Both conditions receive the same retrieved evidence: critics get the simulated critic store, crowd-taste gets real X-Wines peer-relative data (CC0). Held-out wines are not in the training set. claims_match (crowd-taste only) checks that 'right around / above / below its neighbours' matches the evidence delta and that a 'nobody has rated the vintage' claim matches a zero vintage count.
 
 | Persona | Condition | scale | leak | sentences | years_grounded | notes_grounded | uses_evidence | claims_match | TTFT mean | TTFT p95 | Words | Fallback |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |

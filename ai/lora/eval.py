@@ -56,13 +56,9 @@ def main() -> int:
                     help="comma-separated LoRA name suffixes to compare, e.g. '-r16,-r4' (default: the plain name)")
     ap.add_argument("--skip-base", action="store_true", help="do not run the base+RAG condition")
     ap.add_argument("--report", default="report", help="output name: eval/<report>.md and .jsonl")
+    ap.add_argument("--rescore", action="store_true",
+                    help="re-grade the saved replies in eval/<report>.jsonl with the current checks (no generation)")
     args = ap.parse_args()
-
-    os.environ["LLM_PROVIDER"] = "vllm"
-    os.environ["VLLM_BASE_URL"] = args.url
-    os.environ["VLLM_BASE_MODEL"] = args.model
-    sys.path.insert(0, str(prompts.BACKEND))
-    from app import llm  # noqa: E402  (webos backend client, imported read-only)
 
     wines = {short_label(w): w for w in load_catalog()}
     rows = [json.loads(line) for line in (DATA / "eval.jsonl").read_text(encoding="utf-8").splitlines()]
@@ -74,8 +70,26 @@ def main() -> int:
     conditions = lambda p: ([] if args.skip_base else [("base+RAG", None)]) + [
         (f"LoRA{s}+RAG", p["lora_adapter"] + s) for s in suffixes]
     OUT.mkdir(exist_ok=True)
+    jsonl = OUT / ("results.jsonl" if args.report == "report" else f"{args.report}.jsonl")
     results = []
-    for p in personas:
+    if args.rescore:
+        by_id = {r["id"]: r for r in rows}
+        for res in map(json.loads, jsonl.read_text(encoding="utf-8").splitlines()):
+            row = by_id[res["id"]]
+            res |= grounding(res["reply"], res["persona"], wines[row["wine"]], row["wine"],
+                             from_dict(row["evidence"]), row["year"])
+            results.append(res)
+        personas = [p for p in personas if any(r["persona"] == p["id"] for r in results)]
+        args.limit = max(sum(1 for r in results if r["persona"] == p["id"] and r["condition"] == c)
+                         for p in personas for c, _ in conditions(p))
+        print(f"re-graded {len(results)} saved replies from {jsonl.name}")
+    else:
+        os.environ["LLM_PROVIDER"] = "vllm"
+        os.environ["VLLM_BASE_URL"] = args.url
+        os.environ["VLLM_BASE_MODEL"] = args.model
+        sys.path.insert(0, str(prompts.BACKEND))
+        from app import llm  # noqa: E402  (webos backend client, imported read-only)
+    for p in ([] if args.rescore else personas):
         mine = [r for r in rows if r["persona"] == p["id"]][:args.limit]
         for cond, adapter in conditions(p):
             for i, row in enumerate(mine):
@@ -94,7 +108,6 @@ def main() -> int:
                 print(f"{p['id']:13s} {cond:13s} {i + 1:2d}/{len(mine)} scale={g['scale']!s:5s} "
                       f"years={g['years_grounded']!s:5s} notes={g['notes_grounded']!s:5s} ttft={ttft:.2f}s", flush=True)
 
-    jsonl = OUT / ("results.jsonl" if args.report == "report" else f"{args.report}.jsonl")
     with open(jsonl, "w", encoding="utf-8") as fh:
         for r in results:
             fh.write(json.dumps(r, ensure_ascii=False) + "\n")
@@ -105,7 +118,8 @@ def main() -> int:
              f"{prompts.MAX_TOKENS}. Both conditions receive the same retrieved evidence: critics get the "
              "simulated critic store, crowd-taste gets real X-Wines peer-relative data (CC0). "
              "Held-out wines are not in the training set. claims_match (crowd-taste only) checks that "
-             "'right around / above / below its neighbours' matches the evidence delta.", "",
+             "'right around / above / below its neighbours' matches the evidence delta and that a "
+             "'nobody has rated the vintage' claim matches a zero vintage count.", "",
              "| " + " | ".join(head) + " |", "|" + " --- |" * len(head)]
     for p in personas:
         for cond, _ in conditions(p):
