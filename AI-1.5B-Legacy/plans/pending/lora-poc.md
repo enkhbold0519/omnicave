@@ -35,10 +35,10 @@ for the end-to-end check.
 
 ### Phase 1: Environment and base model
 Verified when: a CUDA venv runs the base model on the GPU and streams a reply.
-Files to touch: `ai/lora/requirements.txt`, `ai/lora/README.md`, `ai/lora/smoke.py`, `.gitignore`
+Files to touch: `AI-1.5B-Legacy/lora/requirements.txt`, `AI-1.5B-Legacy/lora/README.md`, `AI-1.5B-Legacy/lora/smoke.py`, `.gitignore`
 
 #### Step 1.1: CUDA venv (Size: S)
-- Acceptance: Python 3.12 venv at `ai/lora/.venv`; `torch.cuda.is_available()` is True;
+- Acceptance: Python 3.12 venv at `AI-1.5B-Legacy/lora/.venv`; `torch.cuda.is_available()` is True;
   exact versions pinned in `requirements.txt`.
 - Verification: `.venv\Scripts\python -c "import torch; print(torch.cuda.get_device_name(0))"`
 - Blocked by: none (needs approval: about 3 GB of downloads)
@@ -51,7 +51,7 @@ Files to touch: `ai/lora/requirements.txt`, `ai/lora/README.md`, `ai/lora/smoke.
 
 ### Phase 2: Prompt mirror and template dataset
 Verified when: training samples use exactly the message layout the backend sends.
-Files to touch: `ai/lora/prompts.py`, `ai/lora/check_prompt_sync.py`, `ai/lora/make_dataset.py`
+Files to touch: `AI-1.5B-Legacy/lora/prompts.py`, `AI-1.5B-Legacy/lora/check_prompt_sync.py`, `AI-1.5B-Legacy/lora/make_dataset.py`
 
 #### Step 2.1: Prompt mirror + sync check (Size: S)
 - Acceptance: `prompts.critic_messages(persona, label, owner_ctx, transcript)` reproduces the
@@ -71,7 +71,7 @@ Files to touch: `ai/lora/prompts.py`, `ai/lora/check_prompt_sync.py`, `ai/lora/m
 
 ### Phase 3: Training
 Verified when: three adapters exist and eval loss drops versus step 0.
-Files to touch: `ai/lora/train.py`
+Files to touch: `AI-1.5B-Legacy/lora/train.py`
 
 #### Step 3.1: `train.py` (Size: M)
 - Acceptance: PEFT LoRA (r=16, alpha=32, dropout 0.05, all linear proj); loss on assistant
@@ -82,7 +82,7 @@ Files to touch: `ai/lora/train.py`
 
 ### Phase 4: Serving
 Verified when: the backend debate streams three different LoRA voices.
-Files to touch: `ai/lora/serve.py`, `ai/lora/serve_check.py`
+Files to touch: `AI-1.5B-Legacy/lora/serve.py`, `AI-1.5B-Legacy/lora/serve_check.py`
 
 #### Step 4.1: `serve.py` (Size: M)
 - Acceptance: FastAPI on :8001 with `GET /v1/models` (base + 3 adapters) and
@@ -101,12 +101,12 @@ Files to touch: `ai/lora/serve.py`, `ai/lora/serve_check.py`
 
 ### Phase 5: Evaluation
 Verified when: a short report compares prompt-only with prompt+LoRA on the held-out wines.
-Files to touch: `ai/lora/eval.py`
+Files to touch: `AI-1.5B-Legacy/lora/eval.py`
 
 #### Step 5.1: `eval.py` (Size: S)
 - Acceptance: for each held-out sample, run base (adapter disabled) and the persona adapter.
   Report scale adherence %, fact consistency (vintage/producer match CATALOG), mean/p95 TTFT,
-  and reply length. Results go to `ai/lora/eval/report.md`.
+  and reply length. Results go to `AI-1.5B-Legacy/lora/eval/report.md`.
 - Verification: `python eval.py`
 - Blocked by: 4.1
 
@@ -115,7 +115,7 @@ Files to touch: `ai/lora/eval.py`
 | --- | --- | --- |
 | Where to run the PoC | Local PC first, RunPod for the 7B run | Debugging on paid GPU time wastes the professor's budget |
 | Folder | Top-level `ai/`, no edits under `webos/` | Other members may edit `webos/` (user, 2026-11-11) |
-| Prompt source of truth | Mirror in `ai/lora/prompts.py` + sync check against `services.py` | Keeps `webos/` untouched while catching prompt drift |
+| Prompt source of truth | Mirror in `AI-1.5B-Legacy/lora/prompts.py` + sync check against `services.py` | Keeps `webos/` untouched while catching prompt drift |
 | PoC training data | Template-generated from `CATALOG` + persona rules | PoC verifies the pipeline, not quality (user, 2026-11-11) |
 | Serving stack (local) | Own FastAPI + transformers + PEFT server | vLLM is Linux-only and WSL breaks this PC's boot; same OpenAI contract as vLLM, so the backend is unchanged |
 | PoC base model | Qwen2.5-1.5B-Instruct (Apache-2.0) | Same family and chat template as the planned 7B; fits 8 GB in bf16 without quantization |
@@ -139,7 +139,7 @@ Files to touch: `ai/lora/eval.py`
 ### Rank study and release (2026-11-13)
 - Fixed the crowd wording: retrieval now writes the relation ("above its peers") into the evidence,
   and crowd-taste was retrained. Eval: all 4 personas 100% on every metric (`eval/report.md`).
-- Rank study (`ai/lora/rank_study/`, user request, kept for another project): power-critic and
+- Rank study (`AI-1.5B-Legacy/lora/rank_study/`, user request, kept for another project): power-critic and
   crowd-taste at r=4/alpha 8 vs r=16/alpha 32. r=4 has 1/4 of the parameters (17.7 MB vs 70.5 MB)
   and trains in about half the time. Same style metrics; higher eval loss; 2/40 factual misses for
   crowd r=4 (says an N.V. wine is unrated). `claims_match` now checks that claim, and the sentence
@@ -172,7 +172,7 @@ Files to touch: `ai/lora/eval.py`
 | 2 Prompt + dataset | done: check_prompt_sync OK (drift test fails as expected); 304 train / 40 eval per persona, --check OK |
 | 3 Training | first dry run OK 2026-11-13 on the old dataset (20 steps: eval loss 2.06 -> 0.50, 307 s, peak 5.77 GiB, LoRA file 70.5 MB fp32). RAG dataset built and checked (105/912 training debates without evidence). RAG dry run OK (20 steps: eval loss 1.91 -> 0.24, 481 s, peak 6.47 GiB). Full run done 2026-11-13 (run by Claude at the user's request): eval loss power 1.91 -> 0.094, fruit 2.77 -> 0.109, classicist 2.99 -> 0.101; about 20-22 min each; peak VRAM 6.47 / 7.02 / 7.45 GiB (classicist close to the 8 GB limit) |
 | 4 Serving | serve.py + serve_check.py OK with the first dry-run LoRA (TTFT 0.69 s, 404 fallback works). RAG step added; served prompt equals training prompt for 120/120 eval rows. RAG dry-run LoRA on a held-out wine: scale, sentences, years and notes all grounded (TTFT 0.60 s); the base model with the same evidence ignored it. App check pending |
-| 5 Evaluation | done 2026-11-13, `ai/lora/eval/report.md`: LoRA+RAG 100% on scale, sentences, years and notes for all 3 personas (classicist uses_evidence 95%), 0% scale leak; base+RAG 0-15% scale, 5-25% sentences, up to 45% leak. TTFT 0.13-0.15 s mean. Caveats: template data (low diversity), only 4 held-out wines, the notes metric only sees descriptors in our vocabulary (so base hallucination is undercounted), no no-evidence cases in eval |
+| 5 Evaluation | done 2026-11-13, `AI-1.5B-Legacy/lora/eval/report.md`: LoRA+RAG 100% on scale, sentences, years and notes for all 3 personas (classicist uses_evidence 95%), 0% scale leak; base+RAG 0-15% scale, 5-25% sentences, up to 45% leak. TTFT 0.13-0.15 s mean. Caveats: template data (low diversity), only 4 held-out wines, the notes metric only sees descriptors in our vocabulary (so base hallucination is undercounted), no no-evidence cases in eval |
 
 ### Finding 2026-11-13: targets teach facts the prompt does not contain
 The backend label has producer, name, vintage, region, grape and color, but **no drinking
@@ -186,7 +186,7 @@ the prompt shows (vintage + grape/color aging rule). Decision pending with the u
 is to ground each bottle's evaluation in retrieved evidence (CellarTracker-style community notes,
 sommelier/critic evaluations). LoRA learns persona style and how to interpret evidence; facts
 come from retrieval at inference time.
-- `ai/lora/evidence.py`: retrieval interface. In the PoC it is a **simulated** store for the 20
+- `AI-1.5B-Legacy/lora/evidence.py`: retrieval interface. In the PoC it is a **simulated** store for the 20
   catalog wines (window, critic consensus, community average, tasting notes), clearly labelled
   as simulated. Real connectors come later, after checking each source's terms of use.
 - `serve.py` finds the wine in the backend's debate prompt (`prompts.parse_label`) and appends
@@ -197,12 +197,12 @@ come from retrieval at inference time.
 - Eval: base + RAG vs LoRA + RAG on held-out wines; facts must match the served evidence.
 
 ### Real data, step 1 (2026-11-13): X-Wines
-- Downloaded into `ai/data/raw/` (gitignored): X-Wines Full wines (4.4 MB zip) and ratings
+- Downloaded into `AI-7B/data/raw/` (gitignored): X-Wines Full wines (4.4 MB zip) and ratings
   (297 MB zip, 21M rows), CC0-1.0, from the authors' official Google Drive; and the OpenML mirror
   of WineEnthusiast 2017-2020 (41.7 MB ARFF, 81,115 reviews, uploader-labelled CC0 but scraped from
   winemag.com, so treat it as research-only). Kaggle needs the user's login, so it was skipped.
 - `sources/xwines_catalog_map.json`: hand-reviewed mapping, 18/20 catalog wines (François Cotat and
-  the Ridge Napa Cabernet have no true match). `build_xwines.py` -> `ai/data/xwines_evidence.json`
+  the Ridge Napa Cabernet have no true match). `build_xwines.py` -> `AI-1.5B-Legacy/data/xwines_evidence.json`
   with real ratings, body, acidity, pairings and type percentile.
 - X-Wines ratings stop in 2022, so 2021-2023 vintages have no vintage-level ratings; evidence
   must fall back to the all-vintage average and say so.

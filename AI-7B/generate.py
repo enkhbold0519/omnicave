@@ -6,7 +6,7 @@ block. The teacher (Qwen2.5-32B-Instruct-AWQ via vLLM) writes N candidates per t
 persona card. verify7b.check() keeps the first candidate that passes; that reply then goes
 into the transcript for the next persona. A turn with no passing candidate ends that debate.
 
-Output: data/train.jsonl, data/eval.jsonl (ai/lora/train.py format) and data/gen_report.json.
+Output: data/train.jsonl, data/eval.jsonl (train.py format) and data/gen_report.json.
 Usage (pod):  python generate.py [--debates-train 3] [--debates-eval 1] [--n 4]
 """
 from __future__ import annotations
@@ -20,7 +20,6 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE / "lora"))  # ai/lora is copied next to this file on the pod
 import prompts  # noqa: E402
 
 import evidence7b as ev7  # noqa: E402

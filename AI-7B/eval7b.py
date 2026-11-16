@@ -14,7 +14,6 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE / "lora"))
 import prompts  # noqa: E402
 
 import verify7b  # noqa: E402

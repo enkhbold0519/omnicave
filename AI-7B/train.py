@@ -4,7 +4,7 @@ The base model stays frozen. Only the low-rank A/B matrices on the 7 linear proj
 every layer are trained, and the adapter is saved unmerged so the server can swap personas
 per request. Loss is computed on the assistant reply only.
 
-Usage (from ai/lora, with the CUDA venv):
+Usage (from AI-7B on a CUDA machine; see CLAUDE.md for the pod setup):
   .venv\\Scripts\\python train.py --persona power-critic --max-steps 20   # dry run
   .venv\\Scripts\\python train.py --persona all                           # all three personas
 
@@ -207,7 +207,7 @@ def train_one(persona: dict, args: argparse.Namespace, tok) -> dict:
 def main() -> None:
     args = parse_args()
     if not torch.cuda.is_available():
-        raise SystemExit("CUDA is not available. Run this with ai/lora/.venv, not the global Python.")
+        raise SystemExit("CUDA is not available. Run this on the GPU pod (or a CUDA venv).")
     personas = prompts.load_personas()
     chosen = personas if args.persona == "all" else [p for p in personas if p["id"] == args.persona]
     if not chosen:

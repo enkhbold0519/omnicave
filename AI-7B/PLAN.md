@@ -1,9 +1,11 @@
 # OmniCave critics on Qwen2.5-7B (RunPod)
 
-Goal: move the persona LoRA + RAG pipeline from the 1.5B PoC (`ai/lora/`) to
+Goal: move the persona LoRA + RAG pipeline from the 1.5B PoC (`AI-1.5B-Legacy/lora/`) to
 `Qwen/Qwen2.5-7B-Instruct` on a rented RunPod GPU, with four base personas, better training data
-and vLLM serving that the webOS backend can reach. Reuse `ai/lora/` code; `AI-7B/` holds only what
-differs for 7B and RunPod.
+and vLLM serving that the webOS backend can reach. Since 2026-11-16 `AI-7B/` is self-contained: the
+shared base files (`prompts.py`, `train.py`, `check_prompt_sync.py`, `build_xwines.py`, the X-Wines
+mapping) were copied here from the PoC, which now lives in `AI-1.5B-Legacy/` (rank study and the
+Critic Lab rank demo).
 
 Requirements: paper FR "Cloud-Powered Multi-Agent LLM Dialog System" (central base model, no
 aggressive quantization, server-side dynamic LoRA swapping, persona expansion without appliance
@@ -84,7 +86,7 @@ Verified when: at least 1,000 verified samples per persona, with held-out wines 
 ### Phase 3: Training
 Verified when: 4 LoRAs exist with eval loss below the step-0 baseline and no OOM.
 #### Step 3.1: Train (Size: S)
-- Acceptance: `ai/lora/train.py` reused with `--model Qwen/Qwen2.5-7B-Instruct` (batch/accum tuned to
+- Acceptance: `AI-1.5B-Legacy/lora/train.py` reused with `--model Qwen/Qwen2.5-7B-Instruct` (batch/accum tuned to
   the GPU); hyperparameters reported to the user before the full run.
 - Verification: 20-step dry run, then full runs; `train_log.json` per persona
 - Blocked by: 2.3
@@ -95,7 +97,7 @@ Verified when: the webOS display shows a 4-persona debate from RunPod.
 - Acceptance: `vllm serve ... --enable-lora --lora-modules <4> --max-lora-rank 16 --max-loras 4`;
   `serve.py` gains a vLLM engine option (proxy instead of local transformers); one public URL with an
   API key; Critic Lab works from the laptop.
-- Verification: `ai/lora/serve_check.py --url <pod>/v1`
+- Verification: `AI-1.5B-Legacy/lora/serve_check.py --url <pod>/v1`
 - Blocked by: 3.1
 #### Step 4.2: Backend hookup (Size: S)
 - Acceptance: `webos/backend/app/llm.py` sends `VLLM_API_KEY` (today it sends "EMPTY"), and

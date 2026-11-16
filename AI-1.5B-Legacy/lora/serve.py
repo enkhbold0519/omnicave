@@ -14,7 +14,7 @@ The base model is loaded once; every persona LoRA under adapters/ stays resident
 Endpoints: GET /health, GET /v1/models, POST /v1/chat/completions (stream and non-stream).
 One GPU, so a lock runs one generation at a time.
 
-Usage (from ai/lora):
+Usage (from AI-1.5B-Legacy/lora):
   .venv\\Scripts\\python serve.py                      # http://127.0.0.1:8001/v1
   .venv\\Scripts\\python serve.py --api-key SECRET     # require "Authorization: Bearer SECRET"
 """
@@ -273,7 +273,7 @@ def main() -> None:
     ap.add_argument("--no-rag", action="store_true", help="do not append retrieved evidence (ablation)")
     args = ap.parse_args()
     if not torch.cuda.is_available():
-        raise SystemExit("CUDA is not available. Run this with ai/lora/.venv, not the global Python.")
+        raise SystemExit("CUDA is not available. Run this with AI-1.5B-Legacy/lora/.venv, not the global Python.")
     engine = Engine(args.model, args.adapters_dir)
     uvicorn.run(build_app(engine, args.api_key, not args.no_rag), host=args.host, port=args.port, log_level="warning")
 

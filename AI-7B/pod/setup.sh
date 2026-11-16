@@ -19,9 +19,12 @@ print("transformers", transformers.__version__, "peft", peft.__version__, "vllm"
 EOF
 pip freeze > /root/omnicave/pip-freeze.txt
 echo "== download $(date -Is)"
-hf download Qwen/Qwen2.5-7B-Instruct --quiet
-hf download Qwen/Qwen2.5-32B-Instruct-AWQ --quiet
-for m in Qwen/Qwen2.5-7B-Instruct Qwen/Qwen2.5-32B-Instruct-AWQ; do
+# TEACHER=0 skips the 19 GB teacher model (enough for serving/demo pods; data generation needs it).
+models="Qwen/Qwen2.5-7B-Instruct"
+[ "${TEACHER:-1}" = "1" ] && models="$models Qwen/Qwen2.5-32B-Instruct-AWQ"
+pip install -q ninja  # vLLM JIT-compiles kernels at startup and fails without it
+for m in $models; do hf download "$m" --quiet; done
+for m in $models; do
   f=$(hf download "$m" LICENSE --quiet)
   grep -q "Apache License" "$f" && echo "$m: Apache-2.0" || { echo "$m: LICENSE is not Apache-2.0"; exit 1; }
 done

@@ -1,10 +1,10 @@
 """Build real community evidence for the catalog wines from X-Wines (CC0-1.0).
 
-Input (download into ai/data/raw/, see README):
+Input (download into AI-7B/data/raw/, see CLAUDE.md):
   XWines_Full_100K_wines.zip   wine attributes (grapes, body, acidity, food pairings, ABV, vintages)
   XWines_Full_21M_ratings.zip  21M user ratings (1-5 stars, with vintage and date)
 Mapping: sources/xwines_catalog_map.json (hand-reviewed; null = not in X-Wines)
-Output:  ai/data/xwines_evidence.json, keyed by "producer|name"
+Output:  AI-7B/data/xwines_evidence.json, keyed by "producer|name"
 
 Per mapped wine: attributes (grapes, pairings, body, acidity, ABV) and a PEER-RELATIVE crowd
 signal. Raw star averages are not comparable across regions and grapes (Burgundy rates low,
@@ -28,9 +28,9 @@ from collections import defaultdict
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parents[1]
-RAW = ROOT / "ai" / "data" / "raw"
-OUT = ROOT / "ai" / "data" / "xwines_evidence.json"
+ROOT = HERE.parent
+RAW = HERE / "data" / "raw"
+OUT = HERE / "data" / "xwines_evidence.json"
 MAP = HERE / "sources" / "xwines_catalog_map.json"
 CATALOG_PY = ROOT / "webos" / "backend" / "app" / "catalog.py"
 MIN_RATINGS = 30

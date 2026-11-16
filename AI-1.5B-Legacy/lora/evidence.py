@@ -142,7 +142,7 @@ def lookup(label: str) -> Evidence | None:
 
 # ---------------------------------------------------------------- crowd evidence (real, X-Wines)
 CROWD_ID = "crowd-taste"
-XWINES_JSON = prompts.REPO / "ai" / "data" / "xwines_evidence.json"
+XWINES_JSON = prompts.REPO / "AI-1.5B-Legacy" / "data" / "xwines_evidence.json"
 PAIRING_POOL = ["Beef", "Lamb", "Veal", "Poultry", "Pork", "Game Meat", "Rich Fish", "Lean Fish", "Shellfish",
                 "Spicy Food", "Pasta", "Mushrooms", "Cured Meat", "Soft Cheese", "Blue Cheese", "Goat Cheese",
                 "Appetizer", "Aperitif", "Sweet Dessert", "Fruit Dessert", "Vegetarian"]

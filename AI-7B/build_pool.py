@@ -1,9 +1,9 @@
 """Build the 7B wine pool with real evidence (runs locally, standard library only).
 
-Sources (in ai/data/raw/, see ai/lora/README.md and AI-7B/PLAN.md):
+Sources (in AI-7B/data/raw/, see AI-7B/CLAUDE.md):
   Updated-Wine-Enthusiast-Reviews.arff  81k reviews 2017-2020 (OpenML mirror, research use only)
   XWines_Full_100K_wines.zip / XWines_Full_21M_ratings.zip  (CC0)
-  ai/data/xwines_evidence.json  crowd evidence for the 20 catalog wines (ai/lora/build_xwines.py)
+  AI-7B/data/xwines_evidence.json  crowd evidence for the 20 catalog wines (AI-7B/build_xwines.py)
 
 Pool:
   A  ~300 bottles from the reviews: critic evidence = the bottle's own review + its peer group.
@@ -35,10 +35,10 @@ import evidence7b as ev7
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
-RAW = ROOT / "ai" / "data" / "raw"
+RAW = HERE / "data" / "raw"
 OUT = HERE / "data"
 CATALOG_PY = ROOT / "webos" / "backend" / "app" / "catalog.py"
-XW_EVIDENCE = ROOT / "ai" / "data" / "xwines_evidence.json"
+XW_EVIDENCE = HERE / "data" / "xwines_evidence.json"
 SEED = 42
 MIN_GROUP = 15        # reviews needed for a critic peer group
 MIN_RATINGS = 30      # X-Wines ratings needed per wine

@@ -63,7 +63,7 @@ eval_replies.jsonl               every generated reply with its per-check result
 ```
 
 ## Reproduce
-From `ai/lora` with the CUDA venv (see `../README.md`):
+From `AI-1.5B-Legacy/lora` with the CUDA venv (see `../README.md`):
 ```bat
 python make_dataset.py
 .venv\Scripts\python train.py --persona power-critic --r 4 --alpha 8 --batch 2 --grad-accum 8 --out-dir rank_study --name-suffix=-r4

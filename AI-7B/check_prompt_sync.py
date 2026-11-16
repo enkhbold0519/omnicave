@@ -1,4 +1,4 @@
-"""Fail if the backend's debate prompt no longer matches ai/lora/prompts.py.
+"""Fail if the backend's debate prompt no longer matches AI-7B/prompts.py.
 
 Run this before generating data or training. If it fails, someone changed the prompt in
 webos/backend/app/services.py: update prompts.py (snippets and functions) to match, then

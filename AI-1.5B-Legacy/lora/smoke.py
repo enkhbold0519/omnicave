@@ -25,7 +25,7 @@ def main() -> None:
     args = ap.parse_args()
 
     if not torch.cuda.is_available():
-        raise SystemExit("CUDA is not available. Run this with ai/lora/.venv, not the global Python.")
+        raise SystemExit("CUDA is not available. Run this with AI-1.5B-Legacy/lora/.venv, not the global Python.")
     print(f"GPU: {torch.cuda.get_device_name(0)}")
 
     license_text = open(hf_hub_download(args.model, "LICENSE"), encoding="utf-8").read()

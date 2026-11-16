@@ -1,4 +1,9 @@
-# Persona LoRA + RAG PoC
+# Persona LoRA + RAG PoC (legacy, Qwen2.5-1.5B)
+
+> **Legacy.** Superseded by `AI-7B/` (Qwen2.5-7B, real evidence, 4 personas). This folder stays for the LoRA
+> rank study (`rank_study/`, r=4 vs r=16) and the Critic Lab web demo of it
+> (`serve.py --adapters-dir rank_study`). Weights: GitHub Release `lora-poc-2026-11-13`. Raw data downloads
+> now live in `AI-7B/data/raw/`. The critics' evidence here is simulated.
 
 Facts come from retrieval and style comes from LoRA. Retrieved evidence (drinking window,
 critic consensus, community notes) is appended to each critic-debate prompt. One LoRA per critic
@@ -32,7 +37,7 @@ rented RunPod GPU can use vLLM with the same adapter names.
 
 ## Setup (Windows, NVIDIA driver with CUDA >= 13.2)
 ```bat
-cd ai\lora
+cd AI-1.5B-Legacy\lora
 py -3.12 -m venv .venv
 .venv\Scripts\python -m pip install torch==2.14.1 --index-url https://download.pytorch.org/whl/cu132
 .venv\Scripts\python -m pip install -r requirements.txt
