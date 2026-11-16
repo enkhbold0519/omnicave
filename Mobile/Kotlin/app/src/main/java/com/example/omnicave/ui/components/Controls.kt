@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -39,6 +40,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -59,6 +61,8 @@ fun AppTextField(
     isPassword: Boolean = false,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
+    enabled: Boolean = true,
+    lines: Int = 1,
 ) {
     val colors = AppTheme.colors
     val interaction = remember { MutableInteractionSource() }
@@ -72,7 +76,9 @@ fun AppTextField(
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
-            singleLine = true,
+            enabled = enabled,
+            singleLine = lines == 1,
+            minLines = lines,
             textStyle = AppType.body.copy(color = colors.fg),
             cursorBrush = SolidColor(colors.accent),
             visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
@@ -87,8 +93,8 @@ fun AppTextField(
                         .heightIn(min = 48.dp)
                         .background(colors.surface, ControlShape)
                         .border(1.dp, if (focused) colors.accent else colors.hairline, ControlShape)
-                        .padding(horizontal = 14.dp),
-                    contentAlignment = Alignment.CenterStart,
+                        .padding(horizontal = 14.dp, vertical = if (lines > 1) 12.dp else 0.dp),
+                    contentAlignment = if (lines > 1) Alignment.TopStart else Alignment.CenterStart,
                 ) {
                     if (value.isEmpty()) {
                         Text(text = placeholder, style = AppType.body, color = colors.muted)
@@ -247,4 +253,45 @@ fun WindowBadge(status: String, modifier: Modifier = Modifier) {
         maxLines = 1,
         modifier = modifier.background(background, RoundedCornerShape(6.dp)).padding(horizontal = 8.dp, vertical = 2.dp),
     )
+}
+
+/** A quiet outlined button for secondary actions. [danger] marks the confirming step of a removal. */
+@Composable
+fun SecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, danger: Boolean = false) {
+    val colors = AppTheme.colors
+    Box(
+        modifier = modifier
+            .heightIn(min = 44.dp)
+            .clip(ControlShape)
+            .background(if (danger) colors.dangerSoft else Color.Transparent)
+            .border(1.dp, if (danger) colors.dangerSoft else colors.hairline, ControlShape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 18.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(text = text, style = AppType.bodyStrong, color = if (danger) colors.danger else colors.fg)
+    }
+}
+
+/** The heading of a page inside a tab: a back arrow and the page's title. */
+@Composable
+fun PageHead(title: String, onBack: () -> Unit, modifier: Modifier = Modifier) {
+    Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier.size(40.dp).clip(CircleShape).clickable(role = Role.Button, onClickLabel = "Back", onClick = onBack),
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            Icon(AppIcons.Back, contentDescription = "Back", tint = AppTheme.colors.fg, modifier = Modifier.size(24.dp))
+        }
+        Text(text = title, style = AppType.title, color = AppTheme.colors.fg, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+/** The title of a section, with an optional text button at its right end. */
+@Composable
+fun SectionHead(title: String, modifier: Modifier = Modifier, link: String? = null, onLink: () -> Unit = {}) {
+    Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(title, style = AppType.title, color = AppTheme.colors.fg, modifier = Modifier.weight(1f))
+        if (link != null) LinkButton(link, onLink)
+    }
 }

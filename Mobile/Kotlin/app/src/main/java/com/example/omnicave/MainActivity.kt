@@ -125,6 +125,7 @@ fun App() {
 
             else -> MainScreen(
                 user = current,
+                onUser = { user = it },
                 onLogout = {
                     scope.launch {
                         // Tell the server, but log out locally even if that fails.

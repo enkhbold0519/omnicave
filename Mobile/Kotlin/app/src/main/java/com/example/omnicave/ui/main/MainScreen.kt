@@ -13,11 +13,15 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -25,14 +29,17 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -44,17 +51,34 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import com.example.omnicave.data.Api
 import com.example.omnicave.data.ApiException
+import com.example.omnicave.data.Bottle
 import com.example.omnicave.data.CellarSummary
+import com.example.omnicave.data.Notification
 import com.example.omnicave.data.NotificationList
 import com.example.omnicave.data.User
 import com.example.omnicave.data.initials
+import com.example.omnicave.data.shownName
+import com.example.omnicave.ui.briefing.BriefingScreen
+import com.example.omnicave.ui.cellar.CellarScreen
 import com.example.omnicave.ui.components.AppIcons
 import com.example.omnicave.ui.components.LinkButton
+import com.example.omnicave.ui.components.SectionHead
 import com.example.omnicave.ui.inventory.InventoryScreen
+import com.example.omnicave.ui.profile.PROFILE_PAGES
 import com.example.omnicave.ui.profile.ProfileScreen
+import com.example.omnicave.ui.sommelier.SommelierScreen
 import com.example.omnicave.ui.theme.AppTheme
+import com.example.omnicave.ui.value.ValueScreen
+import com.example.omnicave.ui.wine.BottleFormScreen
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Locale
+import java.util.TimeZone
+import com.example.omnicave.ui.wine.WineDetailsScreen
 import com.example.omnicave.ui.theme.AppType
 
 /** The five main pages, same as the display. Profile opens from the avatar, not from the tab bar. */
@@ -71,18 +95,58 @@ enum class MainTab(val label: String, val icon: ImageVector) {
  * a top bar (page title, bell, avatar), the page itself, and the tab bar.
  */
 @Composable
-fun MainScreen(user: User, onLogout: () -> Unit, modifier: Modifier = Modifier) {
+fun MainScreen(user: User, onUser: (User) -> Unit, onLogout: () -> Unit, modifier: Modifier = Modifier) {
+    val scope = rememberCoroutineScope()
     // rememberSaveable keeps the open page when the phone is rotated.
     var tab by rememberSaveable { mutableStateOf(MainTab.Cellar) }
     var profileOpen by rememberSaveable { mutableStateOf(false) }
-    var unread by remember { mutableIntStateOf(0) }
+    // The settings page open inside Profile (a key of PROFILE_PAGES), or null for Profile itself.
+    var profilePage by rememberSaveable { mutableStateOf<String?>(null) }
+    val profileBack = {
+        if (profilePage != null) profilePage = null else profileOpen = false
+        Unit
+    }
+    var notifications by remember { mutableStateOf(NotificationList()) }
+    var notificationsOpen by remember { mutableStateOf(false) }
+    var cellarLoads by remember { mutableIntStateOf(0) }
     var cellars by remember { mutableStateOf<List<CellarSummary>>(emptyList()) }
     var cellarId by rememberSaveable { mutableStateOf<Int?>(null) }
+    // The wine whose details page is open over the current tab, if any.
+    var detail by remember { mutableStateOf<Bottle?>(null) }
+    // The add/edit form, drawn over everything else: adding a new bottle, or editing this one.
+    var adding by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf<Bottle?>(null) }
+    val formOpen = adding || editing != null
+    val closeForm = {
+        adding = false
+        editing = null
+    }
+    // On the cellar map: the bottle ringed after Find, and the bottle waiting for its new spot after Move.
+    var highlight by remember { mutableStateOf<Int?>(null) }
+    var moving by remember { mutableStateOf<Bottle?>(null) }
+    val showOnMap = { b: Bottle, move: Boolean ->
+        cellarId = b.cellarId
+        tab = MainTab.Cellar
+        detail = null
+        highlight = b.id
+        moving = if (move) b else null
+    }
+    // The ring fades after a few seconds.
+    LaunchedEffect(highlight, moving) {
+        if (highlight != null && moving == null) {
+            delay(8000)
+            highlight = null
+        }
+    }
+    // Set by "Ask the sommeliers" on a wine page; the Sommelier tab then opens a tasting for it.
+    var askWine by remember { mutableStateOf<Bottle?>(null) }
+    // Counts changes to bottles; pages reload their lists when it goes up.
+    var changes by remember { mutableIntStateOf(0) }
     // Remembers each page's own state (search text, filters) while another tab is open.
     val pages = rememberSaveableStateHolder()
 
-    // Load the user's cellars once and start with the first one.
-    LaunchedEffect(Unit) {
+    // Load the user's cellars (again after a change in settings) and start with the first one.
+    LaunchedEffect(cellarLoads) {
         try {
             cellars = Api.get<List<CellarSummary>>("/api/cellars")
             if (cellars.none { it.id == cellarId }) cellarId = cellars.firstOrNull()?.id
@@ -94,37 +158,131 @@ fun MainScreen(user: User, onLogout: () -> Unit, modifier: Modifier = Modifier) 
     // Refresh the bell's number on start and whenever the user changes page.
     LaunchedEffect(tab, profileOpen) {
         try {
-            unread = Api.get<NotificationList>("/api/notifications").unread
+            notifications = Api.get<NotificationList>("/api/notifications")
         } catch (e: ApiException) {
             // keep the last number
         }
     }
 
-    // The phone's Back button closes Profile. On a tab it leaves the app, as usual.
-    BackHandler(enabled = profileOpen) { profileOpen = false }
+    // The phone's Back button closes Profile or the wine page. On a tab it leaves the app, as usual.
+    BackHandler(enabled = detail != null) { detail = null }
+    BackHandler(enabled = formOpen, onBack = closeForm)
+    BackHandler(enabled = profileOpen, onBack = profileBack)
 
     Column(modifier = modifier.fillMaxSize()) {
         TopBar(
-            title = if (profileOpen) "Profile" else tab.label,
+            title = when {
+                profileOpen -> PROFILE_PAGES[profilePage] ?: "Profile"
+                adding -> "Add bottle"
+                editing != null -> "Edit bottle"
+                else -> tab.label
+            },
             user = user,
-            unread = unread,
+            unread = notifications.unread,
+            onBell = { notificationsOpen = true },
             profileOpen = profileOpen,
+            showBack = profileOpen || formOpen || detail != null,
             cellars = cellars,
             cellarId = cellarId,
             onCellar = { cellarId = it },
-            onBack = { profileOpen = false },
-            onProfile = { profileOpen = !profileOpen },
+            onBack = {
+                when {
+                    profileOpen -> profileBack()
+                    formOpen -> closeForm()
+                    else -> detail = null
+                }
+            },
+            onProfile = {
+                profileOpen = !profileOpen
+                profilePage = null
+            },
         )
         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
             if (profileOpen) {
-                ProfileScreen(user = user, onLogout = onLogout)
+                ProfileScreen(
+                    user = user,
+                    page = profilePage,
+                    onPage = { profilePage = it },
+                    cellars = cellars,
+                    cellarId = cellarId,
+                    onUser = onUser,
+                    onLogout = onLogout,
+                    onCellarsChanged = { newId ->
+                        if (newId != null) cellarId = newId
+                        cellarLoads++
+                        changes++
+                    },
+                )
             } else {
                 pages.SaveableStateProvider(tab) {
                     when (tab) {
-                        // Opening a wine comes with the Wine Details page.
-                        MainTab.Inventory -> InventoryScreen(cellarId = cellarId, onOpen = { })
-                        else -> ComingSoon(tab)
+                        MainTab.Cellar -> CellarScreen(
+                            cellarId = cellarId,
+                            reloadKey = changes,
+                            userName = user.shownName.substringBefore(' '),
+                            highlightId = highlight,
+                            moving = moving,
+                            onMoveDone = { moved ->
+                                moving = null
+                                if (moved != null) {
+                                    changes++
+                                    highlight = moved.id
+                                }
+                            },
+                            onOpen = { detail = it },
+                            onAdd = { adding = cellarId != null },
+                            onInventory = { tab = MainTab.Inventory },
+                        )
+                        MainTab.Inventory -> InventoryScreen(
+                            cellarId = cellarId,
+                            reloadKey = changes,
+                            onOpen = { detail = it },
+                            onAdd = { adding = cellarId != null },
+                        )
+                        MainTab.Sommelier -> SommelierScreen(
+                            startWine = askWine,
+                            onStarted = { askWine = null },
+                            backEnabled = detail == null && !formOpen,
+                            onPick = { detail = it },
+                        )
+                        MainTab.Briefing -> BriefingScreen(
+                            cellarId = cellarId,
+                            onOpen = { detail = it },
+                            onValue = { tab = MainTab.Value },
+                        )
+                        MainTab.Value -> ValueScreen(onOpen = { detail = it })
                     }
+                }
+                // Drawn over the page, which stays as it was (scroll position, search) underneath.
+                // key(...) starts the page afresh when another wine, or an edited one, is shown.
+                detail?.let {
+                    key(it) {
+                        WineDetailsScreen(
+                            bottle = it,
+                            onClose = { detail = null },
+                            onEdit = { b -> editing = b },
+                            onFind = { b -> showOnMap(b, false) },
+                            onMove = { b -> showOnMap(b, true) },
+                            onAsk = { b ->
+                                askWine = b
+                                tab = MainTab.Sommelier
+                                detail = null
+                            },
+                            onChanged = { changes++ },
+                        )
+                    }
+                }
+                if (formOpen) {
+                    BottleFormScreen(
+                        cellarId = editing?.cellarId ?: cellarId ?: 0,
+                        bottle = editing,
+                        onClose = closeForm,
+                        onSaved = { saved ->
+                            closeForm()
+                            changes++
+                            detail = saved
+                        },
+                    )
                 }
             }
         }
@@ -133,9 +291,63 @@ fun MainScreen(user: User, onLogout: () -> Unit, modifier: Modifier = Modifier) 
             onSelect = {
                 tab = it
                 profileOpen = false
+                profilePage = null
+                detail = null
+                moving = null
+                closeForm()
             },
         )
     }
+    if (notificationsOpen) {
+        NotificationsDialog(
+            list = notifications.items,
+            onClose = { notificationsOpen = false },
+            onReadAll = {
+                scope.launch {
+                    try {
+                        Api.request("POST", "/api/notifications/read", "{}")
+                        notifications = Api.get<NotificationList>("/api/notifications")
+                    } catch (e: ApiException) {
+                        // the list stays as it is
+                    }
+                }
+            },
+        )
+    }
+}
+
+/** The newest notifications; the ones already read are dimmed. */
+@Composable
+private fun NotificationsDialog(list: List<Notification>, onReadAll: () -> Unit, onClose: () -> Unit) {
+    val colors = AppTheme.colors
+    Dialog(onDismissRequest = onClose) {
+        Column(modifier = Modifier.background(colors.surface, RoundedCornerShape(16.dp)).padding(16.dp).heightIn(max = 480.dp)) {
+            SectionHead("Notifications", link = if (list.any { it.read == 0 }) "Mark all read" else null, onLink = onReadAll)
+            if (list.isEmpty()) Text("Nothing yet.", style = AppType.caption, color = colors.muted)
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                items(list, key = { it.id }) { n ->
+                    Column(modifier = Modifier.alpha(if (n.read != 0) 0.55f else 1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        val level = when (n.level) {
+                            "critical" -> colors.danger
+                            "warning" -> colors.warn
+                            else -> colors.accent
+                        }
+                        Text(n.kind.uppercase(), style = AppType.overline, color = level)
+                        Text(n.message, style = AppType.body, color = colors.fg)
+                        Text(localTime(n.createdAt), style = AppType.caption, color = colors.muted)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** "2026-11-16 03:20:00" (UTC, as the server stores it) gives "16 Nov 12:20" on a phone in Seoul. */
+private fun localTime(utc: String): String = try {
+    val parser = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }
+    SimpleDateFormat("d MMM HH:mm", Locale.US).format(parser.parse(utc.replace('T', ' ').take(19))!!)
+} catch (e: Exception) {
+    utc
 }
 
 @Composable
@@ -143,7 +355,9 @@ private fun TopBar(
     title: String,
     user: User,
     unread: Int,
+    onBell: () -> Unit,
     profileOpen: Boolean,
+    showBack: Boolean,
     cellars: List<CellarSummary>,
     cellarId: Int?,
     onCellar: (Int) -> Unit,
@@ -155,10 +369,10 @@ private fun TopBar(
         modifier = Modifier
             .fillMaxWidth()
             .height(64.dp)
-            .padding(start = if (profileOpen) 8.dp else 20.dp, end = 12.dp),
+            .padding(start = if (showBack) 8.dp else 20.dp, end = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (profileOpen) {
+        if (showBack) {
             Box(
                 modifier = Modifier
                     .size(48.dp)
@@ -195,20 +409,22 @@ private fun TopBar(
                 }
             }
         }
-        Bell(unread)
+        Bell(unread, onBell)
         Avatar(user = user, on = profileOpen, onClick = onProfile)
     }
 }
 
-/** Shows how many notifications are unread. Opening the list comes in a later step. */
+/** Shows how many notifications are unread and opens the list. */
 @Composable
-private fun Bell(unread: Int) {
+private fun Bell(unread: Int, onClick: () -> Unit) {
     val colors = AppTheme.colors
     val description = if (unread > 0) "Notifications, $unread unread" else "Notifications"
     Box(
         modifier = Modifier
             .size(48.dp)
-            .clearAndSetSemantics { contentDescription = description },
+            .clip(CircleShape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = description },
         contentAlignment = Alignment.Center,
     ) {
         Icon(AppIcons.Bell, contentDescription = null, tint = colors.fg2, modifier = Modifier.size(24.dp))
@@ -293,19 +509,5 @@ private fun TabBar(selected: MainTab?, onSelect: (MainTab) -> Unit) {
                 }
             }
         }
-    }
-}
-
-/** Stands in for a page that is built in a later step. */
-@Composable
-private fun ComingSoon(tab: MainTab) {
-    val colors = AppTheme.colors
-    Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
-    ) {
-        Icon(tab.icon, contentDescription = null, tint = colors.muted, modifier = Modifier.size(40.dp))
-        Text("${tab.label} is coming soon", style = AppType.body, color = colors.muted)
     }
 }

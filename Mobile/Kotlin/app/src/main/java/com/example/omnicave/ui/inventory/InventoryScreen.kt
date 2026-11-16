@@ -35,6 +35,8 @@ import androidx.compose.ui.unit.dp
 import com.example.omnicave.data.Api
 import com.example.omnicave.data.ApiException
 import com.example.omnicave.data.Bottle
+import com.example.omnicave.data.styleName
+import com.example.omnicave.data.wineKey
 import com.example.omnicave.ui.components.AppTextField
 import com.example.omnicave.ui.components.LinkButton
 import com.example.omnicave.ui.components.Pill
@@ -55,7 +57,13 @@ private enum class Sort(val label: String) { Name("Name"), Vintage("Vintage"), R
 
 /** The bottles of one cellar as a list of wines, with search, filters and sorting. */
 @Composable
-fun InventoryScreen(cellarId: Int?, onOpen: (Bottle) -> Unit, modifier: Modifier = Modifier) {
+fun InventoryScreen(
+    cellarId: Int?,
+    reloadKey: Int,
+    onOpen: (Bottle) -> Unit,
+    onAdd: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val colors = AppTheme.colors
     var query by rememberSaveable { mutableStateOf("") }
     var style by rememberSaveable { mutableStateOf("all") }
@@ -68,7 +76,8 @@ fun InventoryScreen(cellarId: Int?, onOpen: (Bottle) -> Unit, modifier: Modifier
 
     // The search runs on the server (name, winery, region, vintage, grape). Typing restarts this
     // block, so the request is only sent once the user has paused for a moment.
-    LaunchedEffect(query, cellarId) {
+    // A new [reloadKey] means a bottle was changed elsewhere, so the list is fetched again.
+    LaunchedEffect(query, cellarId, reloadKey) {
         delay(200)
         val cellar = if (cellarId != null) "&cellar_id=$cellarId" else ""
         try {
@@ -84,7 +93,7 @@ fun InventoryScreen(cellarId: Int?, onOpen: (Bottle) -> Unit, modifier: Modifier
     val wines = remember(bottles, style, readyOnly, sort) {
         bottles
             .filter { (style == "all" || it.wine.color == style) && (!readyOnly || it.windowStatus == "ready") }
-            .groupBy { b -> b.wine.id?.let { "w$it" } ?: "${b.wine.producer}|${b.wine.name}|${b.wine.vintage}" }
+            .groupBy { it.wineKey }
             .toList()
             .sortedWith(
                 when (sort) {
@@ -98,13 +107,16 @@ fun InventoryScreen(cellarId: Int?, onOpen: (Bottle) -> Unit, modifier: Modifier
     val filtered = query.isNotBlank() || style != "all" || readyOnly
 
     Column(modifier = modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(
-            text = "$bottleCount ${if (bottleCount == 1) "bottle" else "bottles"} · " +
-                "${wines.size} ${if (wines.size == 1) "wine" else "wines"}",
-            style = AppType.caption,
-            color = colors.muted,
-            modifier = Modifier.padding(horizontal = 20.dp),
-        )
+        Row(modifier = Modifier.padding(start = 20.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = "$bottleCount ${if (bottleCount == 1) "bottle" else "bottles"} · " +
+                    "${wines.size} ${if (wines.size == 1) "wine" else "wines"}",
+                style = AppType.caption,
+                color = colors.muted,
+                modifier = Modifier.weight(1f),
+            )
+            LinkButton(text = "＋ Add bottle", onClick = onAdd)
+        }
         AppTextField(
             value = query,
             onValueChange = { query = it },
@@ -150,7 +162,7 @@ fun InventoryScreen(cellarId: Int?, onOpen: (Bottle) -> Unit, modifier: Modifier
                     }
                     else -> {
                         Text("No bottles yet", style = AppType.title, color = colors.fg)
-                        Text("Add a bottle from the Cellar page.", style = AppType.body, color = colors.muted)
+                        Text("Tap Add bottle to start your cellar.", style = AppType.body, color = colors.muted)
                     }
                 }
             }
@@ -169,7 +181,6 @@ fun InventoryScreen(cellarId: Int?, onOpen: (Bottle) -> Unit, modifier: Modifier
 private fun WineRow(bottles: List<Bottle>, onClick: () -> Unit) {
     val colors = AppTheme.colors
     val wine = bottles[0].wine
-    val styleName = STYLES.firstOrNull { it.first == wine.color }?.second ?: wine.color
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -182,7 +193,7 @@ private fun WineRow(bottles: List<Bottle>, onClick: () -> Unit) {
         Box(Modifier.width(4.dp).fillMaxHeight().background(wineTint(wine.color), RoundedCornerShape(2.dp)))
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
-                text = "${wine.vintage?.takeIf { it > 0 } ?: "NV"} · $styleName".uppercase(),
+                text = "${wine.vintage?.takeIf { it > 0 } ?: "NV"} · ${styleName(wine.color)}".uppercase(),
                 style = AppType.overline,
                 color = colors.muted,
             )
