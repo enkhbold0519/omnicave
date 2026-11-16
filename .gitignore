@@ -42,4 +42,9 @@ ai/lora/data/
 ai/lora/runs/
 ai/lora/eval/*.jsonl
 ai/data/
+# AI-7B: LoRA weights, generated datasets (built from research-only reviews) and raw eval replies stay local
+AI-7B/adapters/
+AI-7B/data/
+AI-7B/eval/*.jsonl
+AI-7B/logs/
 *.safetensors

@@ -15,6 +15,7 @@ Mirrors:
 from __future__ import annotations
 
 import json
+import os
 import re
 from pathlib import Path
 
@@ -44,8 +45,9 @@ MAX_TOKENS = 180  # ai_dialogue's per-turn limit
 
 
 def load_personas() -> list[dict]:
-    """Personas in the order the backend speaks them."""
-    return json.loads(PERSONAS_JSON.read_text(encoding="utf-8"))
+    """Personas in the order the backend speaks them. OMNICAVE_PERSONAS overrides the file (AI-7B)."""
+    path = Path(os.environ.get("OMNICAVE_PERSONAS") or PERSONAS_JSON)
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def owner_context(prefs: dict, total: int, colors: list, regions: list, grapes: list) -> str:

@@ -47,6 +47,7 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--max-len", type=int, default=768)
     ap.add_argument("--max-steps", type=int, default=-1, help="stop after N optimizer steps (dry run)")
     ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--data-dir", type=Path, default=DATA, help="folder with train.jsonl and eval.jsonl")
     ap.add_argument("--out-dir", type=Path, default=ADAPTERS,
                     help="parent folder for the saved LoRA (default adapters/)")
     ap.add_argument("--name-suffix", default="",
@@ -59,8 +60,8 @@ def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def load_rows(split: str, persona: str) -> list[dict]:
-    path = DATA / f"{split}.jsonl"
+def load_rows(split: str, persona: str, data_dir: Path = DATA) -> list[dict]:
+    path = data_dir / f"{split}.jsonl"
     if not path.exists():
         raise SystemExit(f"{path} not found. Run: python make_dataset.py")
     return [r for r in map(json.loads, path.read_text(encoding="utf-8").splitlines()) if r["persona"] == persona]
@@ -123,7 +124,7 @@ def train_one(persona: dict, args: argparse.Namespace, tok) -> dict:
     rng = random.Random(args.seed)
     out_dir = args.out_dir / (persona["lora_adapter"] + args.name_suffix)
 
-    raw_train, raw_eval = load_rows("train", persona["id"]), load_rows("eval", persona["id"])
+    raw_train, raw_eval = load_rows("train", persona["id"], args.data_dir), load_rows("eval", persona["id"], args.data_dir)
     train = [e for e in (encode(tok, r, args.max_len) for r in raw_train) if e]
     evals = [e for e in (encode(tok, r, args.max_len) for r in raw_eval) if e]
     dropped = (len(raw_train) - len(train)) + (len(raw_eval) - len(evals))
@@ -151,7 +152,7 @@ def train_one(persona: dict, args: argparse.Namespace, tok) -> dict:
     torch.cuda.reset_peak_memory_stats()
     log = {"persona": persona["id"], "adapter": persona["lora_adapter"], "base_model": args.model,
            "hparams": {k: str(v) if isinstance(v, Path) else v for k, v in vars(args).items() if k != "persona"},
-           "data_sha256": {s: sha256(DATA / f"{s}.jsonl") for s in ("train", "eval")},
+           "data_sha256": {s: sha256(args.data_dir / f"{s}.jsonl") for s in ("train", "eval")},
            "torch": torch.__version__,
            "trainable_params": trainable, "samples": {"train": len(train), "eval": len(evals)},
            "eval_loss": [], "train_loss": []}
