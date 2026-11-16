@@ -8,7 +8,7 @@ how the persona argues from that evidence. Full history, decisions and measured 
 ## Status (2026-11-16)
 | Done | Not done (next owner) |
 | --- | --- |
-| Real-evidence wine pool, teacher+verifier data, 4 LoRAs trained and evaluated (`eval/report.md`), vLLM serving with all 4 LoRAs (TTFT 0.05-0.07 s) | 7B **gateway** (RAG step in front of vLLM), **`webos/backend` hookup**, sharing the weights (not in git, not in a Release) |
+| Real-evidence wine pool, teacher+verifier data, 4 LoRAs trained and evaluated (`eval/report.md`), vLLM serving with all 4 LoRAs (TTFT 0.05-0.07 s), weights in GitHub Release `lora-7b-2026-11-16` | 7B **gateway** (RAG step in front of vLLM), **`webos/backend` hookup** |
 
 ## Personas (`personas.json`)
 | id | LoRA | Scale the verifier expects |
@@ -34,15 +34,21 @@ replies (`evidence7b.BANNED_NAMES`, enforced by `verify7b.py`).
 | `eval7b.py`, `serve_check7b.py` | Base vs LoRA scoring; streaming TTFT through `vllm serve` |
 | `pod/*.sh` | Pod setup, background run/wait helpers, `train_all.sh`, `serve_check.sh` |
 
-Local only (gitignored): `adapters/` (4 x 154 MB), `data/` (raw downloads in `data/raw/`, pool, train/eval sets),
-`eval/*.jsonl`, `logs/`. They live on Sungbin's PC; ask him for them (or rebuild, see below).
+**Weights:** GitHub Release [`lora-7b-2026-11-16`](https://github.com/enkhbold0519/omnicave/releases/tag/lora-7b-2026-11-16),
+`omnicave-lora-7b-r16.zip` (569 MB, SHA-256 `d3ad96804949f43420f81958a59262836ecb7cf1475d7918f567fa2a432e2c76`).
+Unzip it into `AI-7B/` to get `adapters/<name>/`. On a pod:
+`curl -L -o lora.zip https://github.com/enkhbold0519/omnicave/releases/download/lora-7b-2026-11-16/omnicave-lora-7b-r16.zip && unzip lora.zip -d /root/omnicave`.
+
+Local only (gitignored): `adapters/`, `data/` (raw downloads in `data/raw/`, pool, train/eval sets), `eval/*.jsonl`,
+`logs/`. The data is on Sungbin's PC and is not published, because it is built from research-only reviews. Rebuild it
+if needed (see below).
 
 ## Serve the LoRAs on a RunPod pod (what "Sungbin starts the pod" means)
 1. Pod: RunPod PyTorch template, container disk >= 40 GB, TCP 22 exposed. Register an SSH public key in RunPod
    first. The build ran on an A100. A 24 GB GPU (A5000, $0.27/h) should fit the bf16 7B model (~15 GB) plus 4 LoRAs,
    but that is an estimate, not tested.
-2. Copy `pod/` scripts and `adapters/` to `/root/omnicave/`, then `TEACHER=0 ./setup.sh` (installs vllm in
-   `/root/venv` and downloads only the 7B model).
+2. Copy the `pod/` scripts to `/root/omnicave/` and download the weights there (command above). Then run
+   `TEACHER=0 ./setup.sh`, which installs vllm in `/root/venv` and downloads only the 7B model.
 3. Start vLLM with the 4 LoRAs (as in `pod/serve_check.sh`):
    ```bash
    vllm serve Qwen/Qwen2.5-7B-Instruct --port 8000 --enable-lora --max-lora-rank 16 --max-loras 4 \
