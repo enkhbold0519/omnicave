@@ -16,10 +16,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -36,6 +36,7 @@ import com.example.omnicave.data.ApiException
 import com.example.omnicave.data.Session
 import com.example.omnicave.data.User
 import com.example.omnicave.ui.auth.AuthScreen
+import com.example.omnicave.ui.main.MainScreen
 import com.example.omnicave.ui.theme.OmniCaveTheme
 import kotlinx.coroutines.launch
 
@@ -70,6 +71,19 @@ fun App() {
     var startError by remember { mutableStateOf<String?>(null) }
     var attempt by remember { mutableIntStateOf(0) }
 
+    // Forget the login on this phone and show Log in.
+    val forgetLogin = {
+        session.token = null
+        Api.token = null
+        user = null
+    }
+
+    // If the server rejects the saved login on any screen, go back to Log in.
+    DisposableEffect(Unit) {
+        Api.onUnauthorized = forgetLogin
+        onDispose { Api.onUnauthorized = null }
+    }
+
     // On start (and on Retry): if a token was saved, ask the server who it belongs to.
     LaunchedEffect(attempt) {
         val saved = session.token ?: return@LaunchedEffect
@@ -79,22 +93,19 @@ fun App() {
         try {
             user = Api.get<User>("/api/me")
         } catch (e: ApiException) {
-            if (e.status == 401) {
-                // The saved login expired: forget it and show Log in.
-                session.token = null
-                Api.token = null
-            } else {
-                startError = e.message
-            }
+            // 401 = the saved login expired; that case is handled by onUnauthorized above.
+            if (e.status != 401) startError = e.message
         }
         checking = false
     }
 
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-        val content = Modifier
+        // Keeps pages clear of the status bar and the phone's navigation bar.
+        val bars = Modifier
             .padding(innerPadding)
             .consumeWindowInsets(innerPadding)
-            .imePadding()
+        // The login screens also move up when the keyboard opens.
+        val content = bars.imePadding()
         val current = user
         when {
             checking -> Centered(content) { CircularProgressIndicator() }
@@ -113,7 +124,7 @@ fun App() {
                 modifier = content,
             )
 
-            else -> HomeScreen(
+            else -> MainScreen(
                 user = current,
                 onLogout = {
                     scope.launch {
@@ -123,24 +134,12 @@ fun App() {
                         } catch (e: ApiException) {
                             // ignored on purpose
                         }
-                        session.token = null
-                        Api.token = null
-                        user = null
+                        forgetLogin()
                     }
                 },
-                modifier = content,
+                modifier = bars,
             )
         }
-    }
-}
-
-/** Placeholder until the tabs arrive in the next step. */
-@Composable
-fun HomeScreen(user: User, onLogout: () -> Unit, modifier: Modifier = Modifier) {
-    Centered(modifier) {
-        Text("Welcome, ${user.displayName ?: user.username}", style = MaterialTheme.typography.headlineSmall)
-        Text(user.email, style = MaterialTheme.typography.bodyMedium)
-        OutlinedButton(onClick = onLogout) { Text("Log out") }
     }
 }
 

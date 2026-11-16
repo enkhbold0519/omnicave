@@ -25,8 +25,23 @@ object Api {
     private val client = OkHttpClient()
     private val jsonType = "application/json".toMediaType()
 
+    /**
+     * Called when the server rejects the saved login (HTTP 401) on any request,
+     * so the app can go back to Log in. Set once by the app's root.
+     */
+    var onUnauthorized: (() -> Unit)? = null
+
     /** Sends one request and returns the response text, or throws [ApiException]. */
     suspend fun request(method: String, path: String, body: String? = null): String =
+        try {
+            send(method, path, body)
+        } catch (e: ApiException) {
+            // A wrong password at Log in is also a 401, but no token is set yet then.
+            if (e.status == 401 && token != null) onUnauthorized?.invoke()
+            throw e
+        }
+
+    private suspend fun send(method: String, path: String, body: String?): String =
         withContext(Dispatchers.IO) {
             val requestBody = body?.toRequestBody(jsonType)
                 ?: if (method == "GET") null else "".toRequestBody(jsonType)

@@ -130,7 +130,12 @@ fun PrimaryButton(
 
 /** A quiet text-only button, for secondary actions like "Create an account". */
 @Composable
-fun LinkButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun LinkButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    color: Color = AppTheme.colors.accent,
+) {
     Box(
         modifier = modifier
             .heightIn(min = 48.dp)
@@ -139,7 +144,7 @@ fun LinkButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier)
             .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text = text, style = AppType.bodyStrong, color = AppTheme.colors.accent)
+        Text(text = text, style = AppType.bodyStrong, color = color)
     }
 }
 
