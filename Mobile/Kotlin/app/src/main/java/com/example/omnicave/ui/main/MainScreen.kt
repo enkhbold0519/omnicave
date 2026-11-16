@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,7 +22,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -39,10 +39,10 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -51,7 +51,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import com.example.omnicave.data.Api
 import com.example.omnicave.data.ApiException
 import com.example.omnicave.data.Bottle
@@ -65,7 +64,6 @@ import com.example.omnicave.ui.briefing.BriefingScreen
 import com.example.omnicave.ui.cellar.CellarScreen
 import com.example.omnicave.ui.components.AppIcons
 import com.example.omnicave.ui.components.LinkButton
-import com.example.omnicave.ui.components.SectionHead
 import com.example.omnicave.ui.inventory.InventoryScreen
 import com.example.omnicave.ui.profile.PROFILE_PAGES
 import com.example.omnicave.ui.profile.ProfileScreen
@@ -168,10 +166,12 @@ fun MainScreen(user: User, onUser: (User) -> Unit, onLogout: () -> Unit, modifie
     BackHandler(enabled = detail != null) { detail = null }
     BackHandler(enabled = formOpen, onBack = closeForm)
     BackHandler(enabled = profileOpen, onBack = profileBack)
+    BackHandler(enabled = notificationsOpen) { notificationsOpen = false }
 
     Column(modifier = modifier.fillMaxSize()) {
         TopBar(
             title = when {
+                notificationsOpen -> "Notifications"
                 profileOpen -> PROFILE_PAGES[profilePage] ?: "Profile"
                 adding -> "Add bottle"
                 editing != null -> "Edit bottle"
@@ -179,20 +179,22 @@ fun MainScreen(user: User, onUser: (User) -> Unit, onLogout: () -> Unit, modifie
             },
             user = user,
             unread = notifications.unread,
-            onBell = { notificationsOpen = true },
+            onBell = { notificationsOpen = !notificationsOpen },
             profileOpen = profileOpen,
-            showBack = profileOpen || formOpen || detail != null,
+            showBack = notificationsOpen || profileOpen || formOpen || detail != null,
             cellars = cellars,
             cellarId = cellarId,
             onCellar = { cellarId = it },
             onBack = {
                 when {
+                    notificationsOpen -> notificationsOpen = false
                     profileOpen -> profileBack()
                     formOpen -> closeForm()
                     else -> detail = null
                 }
             },
             onProfile = {
+                notificationsOpen = false
                 profileOpen = !profileOpen
                 profilePage = null
             },
@@ -242,7 +244,7 @@ fun MainScreen(user: User, onUser: (User) -> Unit, onLogout: () -> Unit, modifie
                         MainTab.Sommelier -> SommelierScreen(
                             startWine = askWine,
                             onStarted = { askWine = null },
-                            backEnabled = detail == null && !formOpen,
+                            backEnabled = detail == null && !formOpen && !notificationsOpen,
                             onPick = { detail = it },
                         )
                         MainTab.Briefing -> BriefingScreen(
@@ -285,11 +287,25 @@ fun MainScreen(user: User, onUser: (User) -> Unit, onLogout: () -> Unit, modifie
                     )
                 }
             }
+            // Drawn over whatever is open, so that page (a tasting, a form) is still there after Back.
+            if (notificationsOpen) {
+                NotificationsPage(notifications.items, onReadAll = {
+                    scope.launch {
+                        try {
+                            Api.request("POST", "/api/notifications/read", "{}")
+                            notifications = Api.get<NotificationList>("/api/notifications")
+                        } catch (e: ApiException) {
+                            // the list stays as it is
+                        }
+                    }
+                })
+            }
         }
         TabBar(
             selected = if (profileOpen) null else tab,
             onSelect = {
                 tab = it
+                notificationsOpen = false
                 profileOpen = false
                 profilePage = null
                 detail = null
@@ -298,45 +314,55 @@ fun MainScreen(user: User, onUser: (User) -> Unit, onLogout: () -> Unit, modifie
             },
         )
     }
-    if (notificationsOpen) {
-        NotificationsDialog(
-            list = notifications.items,
-            onClose = { notificationsOpen = false },
-            onReadAll = {
-                scope.launch {
-                    try {
-                        Api.request("POST", "/api/notifications/read", "{}")
-                        notifications = Api.get<NotificationList>("/api/notifications")
-                    } catch (e: ApiException) {
-                        // the list stays as it is
-                    }
-                }
-            },
-        )
-    }
 }
 
-/** The newest notifications; the ones already read are dimmed. */
+/** The newest notifications as a page: what it is about, when, and the message. Read ones are quieter. */
 @Composable
-private fun NotificationsDialog(list: List<Notification>, onReadAll: () -> Unit, onClose: () -> Unit) {
+private fun NotificationsPage(list: List<Notification>, onReadAll: () -> Unit) {
     val colors = AppTheme.colors
-    Dialog(onDismissRequest = onClose) {
-        Column(modifier = Modifier.background(colors.surface, RoundedCornerShape(16.dp)).padding(16.dp).heightIn(max = 480.dp)) {
-            SectionHead("Notifications", link = if (list.any { it.read == 0 }) "Mark all read" else null, onLink = onReadAll)
-            if (list.isEmpty()) Text("Nothing yet.", style = AppType.caption, color = colors.muted)
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                items(list, key = { it.id }) { n ->
-                    Column(modifier = Modifier.alpha(if (n.read != 0) 0.55f else 1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        val level = when (n.level) {
-                            "critical" -> colors.danger
-                            "warning" -> colors.warn
-                            else -> colors.accent
+    val unread = list.count { it.read == 0 }
+    Column(
+        // the empty pointerInput keeps taps from reaching the page underneath
+        modifier = Modifier.fillMaxSize().background(colors.background).pointerInput(Unit) { detectTapGestures { } }.padding(horizontal = 20.dp),
+    ) {
+        Row(modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = if (list.isEmpty()) "Nothing yet." else if (unread == 0) "All read" else "$unread unread",
+                style = AppType.body,
+                color = colors.muted,
+                modifier = Modifier.weight(1f),
+            )
+            if (unread > 0) LinkButton("Mark all read", onClick = onReadAll)
+        }
+        LazyColumn {
+            items(list, key = { it.id }) { n ->
+                val fresh = n.read == 0
+                val level = when (n.level) {
+                    "critical" -> colors.danger
+                    "warning" -> colors.warn
+                    else -> colors.accent
+                }
+                Row(modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Box(Modifier.padding(top = 6.dp).size(8.dp).background(if (fresh) level else colors.hairline, CircleShape))
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = when (n.kind) {
+                                    "environment" -> "Climate"
+                                    "window" -> "Drinking window"
+                                    "briefing" -> "Daily briefing"
+                                    else -> n.kind.replace('_', ' ').replaceFirstChar { it.uppercase() }
+                                },
+                                style = AppType.bodyStrong,
+                                color = if (fresh) level else colors.muted,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Text(localTime(n.createdAt), style = AppType.caption, color = colors.muted)
                         }
-                        Text(n.kind.uppercase(), style = AppType.overline, color = level)
-                        Text(n.message, style = AppType.body, color = colors.fg)
-                        Text(localTime(n.createdAt), style = AppType.caption, color = colors.muted)
+                        Text(n.message, style = AppType.body, color = if (fresh) colors.fg else colors.muted)
                     }
                 }
+                Box(Modifier.fillMaxWidth().height(1.dp).background(colors.hairline))
             }
         }
     }

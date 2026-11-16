@@ -37,19 +37,23 @@ import com.example.omnicave.data.Session
 import com.example.omnicave.data.User
 import com.example.omnicave.ui.auth.AuthScreen
 import com.example.omnicave.ui.main.MainScreen
+import com.example.omnicave.ui.theme.AppTheme
+import com.example.omnicave.ui.theme.Appearance
 import com.example.omnicave.ui.theme.OmniCaveTheme
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // The app is always dark, so ask for light status-bar and navigation-bar icons.
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
-        )
+        Appearance.load(applicationContext)
         setContent {
             OmniCaveTheme {
+                // Status-bar and navigation-bar icons: light ones on a dark look, dark ones on a light look.
+                val dark = AppTheme.colors.isDark
+                LaunchedEffect(dark) {
+                    val bars = if (dark) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+                    enableEdgeToEdge(statusBarStyle = bars, navigationBarStyle = bars)
+                }
                 App()
             }
         }

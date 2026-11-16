@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.example.omnicave.BuildConfig
@@ -56,6 +58,8 @@ import com.example.omnicave.ui.components.SecondaryButton
 import com.example.omnicave.ui.components.SectionHead
 import com.example.omnicave.ui.theme.AppTheme
 import com.example.omnicave.ui.theme.AppType
+import com.example.omnicave.ui.theme.Appearance
+import com.example.omnicave.ui.theme.Palette
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -68,7 +72,7 @@ import java.util.Locale
 /** The settings pages inside Profile: (key, title in the top bar). */
 val PROFILE_PAGES = mapOf(
     "account" to "Edit profile", "cellars" to "My cellars", "climate" to "Climate & alerts",
-    "taste" to "Taste preferences", "privacy" to "Privacy & data", "about" to "About",
+    "taste" to "Taste preferences", "appearance" to "Appearance", "privacy" to "Privacy & data", "about" to "About",
 )
 
 /** Same groups and choices as the display's taste preferences. */
@@ -121,6 +125,7 @@ fun ProfileScreen(
             "cellars" -> CellarsPage(cellars, onCellarsChanged, toast)
             "climate" -> ClimateSettings(cellarId, toast)
             "taste" -> TastePage(user.preferences, patchMe)
+            "appearance" -> AppearancePage()
             "privacy" -> PrivacyPage(user, onLogout, toast)
             "about" -> AboutPage(user)
             else -> {
@@ -144,6 +149,7 @@ fun ProfileScreen(
                             patchMe(buildJsonObject { put("briefing_time", "%02d:%02d".format(Locale.US, hour, minute)) }, "Briefing time saved")
                         }, time.getOrElse(0) { 8 }, time.getOrElse(1) { 0 }, true).show()
                     }
+                    SettingRow("Appearance", "${Appearance.palette.label} · ${Appearance.mode.replaceFirstChar { it.uppercase() }}") { onPage("appearance") }
                     SettingRow("Privacy & data") { onPage("privacy") }
                     SettingRow("About") { onPage("about") }
                 }
@@ -163,7 +169,8 @@ fun SettingRow(label: String, value: String = "", onClick: (() -> Unit)? = null)
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(label, style = AppType.body, color = colors.fg, modifier = Modifier.weight(1f))
-        Text(value, style = AppType.caption, color = colors.muted, textAlign = TextAlign.End, modifier = Modifier.weight(1f, fill = false))
+        // the label takes the free width, so the value and the chevron sit at the right edge
+        Text(value, style = AppType.caption, color = colors.muted, textAlign = TextAlign.End, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 170.dp))
         if (onClick != null) Icon(AppIcons.Chevron, contentDescription = null, tint = colors.muted, modifier = Modifier.size(18.dp))
     }
     Box(Modifier.fillMaxWidth().height(1.dp).background(colors.hairline))
@@ -222,6 +229,37 @@ private fun TastePage(prefs: Preferences, patchMe: (JsonObject, String?) -> Unit
     SectionHead("Anything you avoid")
     AppTextField(avoid, { avoid = it }, label = "", placeholder = "e.g. very oaky whites")
     if (avoid != prefs.dislikes) SecondaryButton("Save", onClick = { save(prefs.copy(dislikes = avoid), "Saved") })
+}
+
+/** Light or dark, and the colour family. A choice shows at once and is kept on this phone. */
+@Composable
+private fun AppearancePage() {
+    val colors = AppTheme.colors
+    SectionHead("Mode")
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        for (mode in listOf("system", "light", "dark")) {
+            Pill(mode.replaceFirstChar { it.uppercase() }, on = Appearance.mode == mode, onClick = { Appearance.choose(mode = mode) })
+        }
+    }
+    Text("System follows the phone's own light or dark setting.", style = AppType.caption, color = colors.muted)
+    SectionHead("Palette")
+    Column {
+        for (p in Palette.entries) {
+            Row(
+                modifier = Modifier.fillMaxWidth().clickable { Appearance.choose(palette = p) }.heightIn(min = 60.dp).padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                Box(Modifier.size(28.dp).background((if (colors.isDark) p.dark else p.light).accent, CircleShape))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(p.label, style = AppType.bodyStrong, color = colors.fg)
+                    Text(p.description, style = AppType.caption, color = colors.muted)
+                }
+                if (Appearance.palette == p) Text("✓", style = AppType.heading, color = colors.accent)
+            }
+            Box(Modifier.fillMaxWidth().height(1.dp).background(colors.hairline))
+        }
+    }
 }
 
 @Composable

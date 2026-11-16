@@ -39,7 +39,7 @@ fun LineChart(
         fun y(v: Double) = pad + (1 - ((v - low) / (high - low)).toFloat()) * (size.height - 2 * pad)
 
         if (band != null) {
-            drawRect(Color.White, Offset(pad, y(band.second)), Size(size.width - 2 * pad, y(band.first) - y(band.second)), alpha = 0.06f)
+            drawRect(color, Offset(pad, y(band.second)), Size(size.width - 2 * pad, y(band.first) - y(band.second)), alpha = 0.10f)
         }
         val line = Path()
         values.forEachIndexed { i, v -> if (i == 0) line.moveTo(x(i), y(v)) else line.lineTo(x(i), y(v)) }
