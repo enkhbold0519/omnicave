@@ -41,3 +41,29 @@ data class LoginRequest(val username: String, val password: String)
 
 @Serializable
 data class RegisterRequest(val username: String, val email: String, val password: String)
+
+/** One of the user's cellars, from GET /api/cellars. */
+@Serializable
+data class CellarSummary(val id: Int, val name: String)
+
+@Serializable
+data class Wine(
+    val id: Int? = null,
+    val name: String,
+    val producer: String = "",
+    val region: String? = null,
+    /** "red", "white", "rose" or "sparkling". */
+    val color: String = "red",
+    val vintage: Int? = null,
+)
+
+/** One stored bottle, from GET /api/bottles. */
+@Serializable
+data class Bottle(
+    val id: Int,
+    @SerialName("cellar_id") val cellarId: Int,
+    @SerialName("added_at") val addedAt: String = "",
+    val wine: Wine,
+    /** "ready", "young" or "past-peak". */
+    @SerialName("window_status") val windowStatus: String = "young",
+)

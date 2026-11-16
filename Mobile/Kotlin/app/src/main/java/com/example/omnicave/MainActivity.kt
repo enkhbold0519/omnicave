@@ -100,12 +100,11 @@ fun App() {
     }
 
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-        // Keeps pages clear of the status bar and the phone's navigation bar.
-        val bars = Modifier
+        // Keeps pages clear of the status bar and navigation bar, and above the keyboard when it opens.
+        val content = Modifier
             .padding(innerPadding)
             .consumeWindowInsets(innerPadding)
-        // The login screens also move up when the keyboard opens.
-        val content = bars.imePadding()
+            .imePadding()
         val current = user
         when {
             checking -> Centered(content) { CircularProgressIndicator() }
@@ -137,7 +136,7 @@ fun App() {
                         forgetLogin()
                     }
                 },
-                modifier = bars,
+                modifier = content,
             )
         }
     }

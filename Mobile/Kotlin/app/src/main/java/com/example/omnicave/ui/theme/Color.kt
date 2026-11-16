@@ -49,3 +49,11 @@ val ForestColors = AppColors(
 )
 
 val LocalAppColors = staticCompositionLocalOf { ForestColors }
+
+/** The colour that stands for a wine style ("red", "white", "rose", "sparkling"), as on the display. */
+fun wineTint(style: String): Color = when (style) {
+    "white" -> Color(0xFFC7B57A)
+    "rose" -> Color(0xFFCE998F)
+    "sparkling" -> Color(0xFFB4A57A)
+    else -> Color(0xFF7A3340)
+}

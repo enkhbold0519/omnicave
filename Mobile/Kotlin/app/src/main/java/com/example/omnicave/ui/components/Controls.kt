@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
@@ -64,7 +65,10 @@ fun AppTextField(
     val focused by interaction.collectIsFocusedAsState()
 
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(text = label.uppercase(), style = AppType.overline, color = colors.muted)
+        // A search box passes an empty label and only shows its placeholder.
+        if (label.isNotEmpty()) {
+            Text(text = label.uppercase(), style = AppType.overline, color = colors.muted)
+        }
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
@@ -202,4 +206,45 @@ fun Logo(size: Dp, color: Color, modifier: Modifier = Modifier) {
             style = Stroke(width = 4f * u, cap = StrokeCap.Round),
         )
     }
+}
+
+/** A rounded filter chip. [on] marks it as the chosen one. */
+@Composable
+fun Pill(text: String, on: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val colors = AppTheme.colors
+    val shape = RoundedCornerShape(50)
+    Box(
+        modifier = modifier
+            .heightIn(min = 40.dp)
+            .clip(shape)
+            .background(if (on) colors.accentSoft else Color.Transparent)
+            .border(1.dp, if (on) colors.accent else colors.hairline, shape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 16.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text,
+            style = AppType.caption.copy(fontWeight = FontWeight.Medium),
+            color = if (on) colors.accent else colors.fg2,
+        )
+    }
+}
+
+/** Where a bottle is in its drinking window, in the same words as the display: Ready, Hold, Past peak. */
+@Composable
+fun WindowBadge(status: String, modifier: Modifier = Modifier) {
+    val colors = AppTheme.colors
+    val (text, color, background) = when (status) {
+        "ready" -> Triple("Ready", colors.ok, colors.ok.copy(alpha = 0.14f))
+        "past-peak" -> Triple("Past peak", colors.warn, colors.warnSoft)
+        else -> Triple("Hold", colors.muted, colors.surfaceMuted)
+    }
+    Text(
+        text = text,
+        style = AppType.caption.copy(fontWeight = FontWeight.Medium),
+        color = color,
+        maxLines = 1,
+        modifier = modifier.background(background, RoundedCornerShape(6.dp)).padding(horizontal = 8.dp, vertical = 2.dp),
+    )
 }

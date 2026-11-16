@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,6 +29,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,10 +46,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.omnicave.data.Api
 import com.example.omnicave.data.ApiException
+import com.example.omnicave.data.CellarSummary
 import com.example.omnicave.data.NotificationList
 import com.example.omnicave.data.User
 import com.example.omnicave.data.initials
 import com.example.omnicave.ui.components.AppIcons
+import com.example.omnicave.ui.components.LinkButton
+import com.example.omnicave.ui.inventory.InventoryScreen
 import com.example.omnicave.ui.profile.ProfileScreen
 import com.example.omnicave.ui.theme.AppTheme
 import com.example.omnicave.ui.theme.AppType
@@ -70,6 +76,20 @@ fun MainScreen(user: User, onLogout: () -> Unit, modifier: Modifier = Modifier) 
     var tab by rememberSaveable { mutableStateOf(MainTab.Cellar) }
     var profileOpen by rememberSaveable { mutableStateOf(false) }
     var unread by remember { mutableIntStateOf(0) }
+    var cellars by remember { mutableStateOf<List<CellarSummary>>(emptyList()) }
+    var cellarId by rememberSaveable { mutableStateOf<Int?>(null) }
+    // Remembers each page's own state (search text, filters) while another tab is open.
+    val pages = rememberSaveableStateHolder()
+
+    // Load the user's cellars once and start with the first one.
+    LaunchedEffect(Unit) {
+        try {
+            cellars = Api.get<List<CellarSummary>>("/api/cellars")
+            if (cellars.none { it.id == cellarId }) cellarId = cellars.firstOrNull()?.id
+        } catch (e: ApiException) {
+            // pages then show all bottles
+        }
+    }
 
     // Refresh the bell's number on start and whenever the user changes page.
     LaunchedEffect(tab, profileOpen) {
@@ -89,6 +109,9 @@ fun MainScreen(user: User, onLogout: () -> Unit, modifier: Modifier = Modifier) 
             user = user,
             unread = unread,
             profileOpen = profileOpen,
+            cellars = cellars,
+            cellarId = cellarId,
+            onCellar = { cellarId = it },
             onBack = { profileOpen = false },
             onProfile = { profileOpen = !profileOpen },
         )
@@ -96,7 +119,13 @@ fun MainScreen(user: User, onLogout: () -> Unit, modifier: Modifier = Modifier) 
             if (profileOpen) {
                 ProfileScreen(user = user, onLogout = onLogout)
             } else {
-                ComingSoon(tab)
+                pages.SaveableStateProvider(tab) {
+                    when (tab) {
+                        // Opening a wine comes with the Wine Details page.
+                        MainTab.Inventory -> InventoryScreen(cellarId = cellarId, onOpen = { })
+                        else -> ComingSoon(tab)
+                    }
+                }
             }
         }
         TabBar(
@@ -115,6 +144,9 @@ private fun TopBar(
     user: User,
     unread: Int,
     profileOpen: Boolean,
+    cellars: List<CellarSummary>,
+    cellarId: Int?,
+    onCellar: (Int) -> Unit,
     onBack: () -> Unit,
     onProfile: () -> Unit,
 ) {
@@ -145,6 +177,24 @@ private fun TopBar(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
+        // Choosing a cellar is only needed when there is more than one.
+        if (cellars.size > 1) {
+            var open by remember { mutableStateOf(false) }
+            Box {
+                LinkButton(text = cellars.firstOrNull { it.id == cellarId }?.name ?: "Cellar", onClick = { open = true })
+                DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+                    for (cellar in cellars) {
+                        DropdownMenuItem(
+                            text = { Text(cellar.name) },
+                            onClick = {
+                                onCellar(cellar.id)
+                                open = false
+                            },
+                        )
+                    }
+                }
+            }
+        }
         Bell(unread)
         Avatar(user = user, on = profileOpen, onClick = onProfile)
     }
