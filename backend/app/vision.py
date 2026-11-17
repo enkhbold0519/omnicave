@@ -306,6 +306,29 @@ def upload_frame(user: dict, cid: int, body: dict) -> dict:
     return res | {"provider": provider}
 
 
+def read_label(user: dict, cid: int, body: dict) -> dict:
+    """Label photo -> wine details -> pending detection (same review queue as the camera).
+    Mock reader: picks a catalog wine with simulated OCR errors. A real vision model plugs in here."""
+    if not body.get("image_b64"):
+        raise ApiError(400, "image_b64 is required")
+    rnd = random.Random()
+    with db.tx() as c:
+        cel = db.one(c, "SELECT * FROM cellars WHERE id=? AND user_id=?", (cid, user["id"]))
+        if not cel:
+            raise ApiError(404, "Cellar not found")
+        label, note, conf = _ocr(dict(rnd.choice(CATALOG)), rnd)
+        bottles = stored_bottles(c, cel["id"])
+        spot = geo.find_free_spot(racks_of(c, cel["id"]), bottles, cel["width_cm"], lambda r: True)
+        if not spot:
+            raise ApiError(409, "No free space")
+        # the bottles already stored are reported as seen, so only the new one changes
+        dets = [{"track_id": b["serial"], "position": {"x": b["x"], "y": b["y"], "z": b["z"]}} for b in bottles]
+        dets.append({"position": {k: spot[k] for k in ("x", "y", "z")}, "orientation": "lying",
+                     "confidence": round(conf, 2), "label": label, "note": note})
+        res = reconcile(c, user["id"], cel, dets, source="label-photo")
+    return {"new": res["new"], "provider": "mock"}
+
+
 def recent_scans(user: dict, cid: int) -> list[dict]:
     with db.tx() as c:
         rs = db.rows(c, "SELECT id, kind, payload, created_at FROM detections WHERE user_id=? AND cellar_id=? AND status='scan' ORDER BY id DESC LIMIT 10",
@@ -349,5 +372,5 @@ def list_detections(user: dict, status: str = "pending") -> list[dict]:
     return [r | {"payload": json.loads(r["payload"])} for r in rs]
 
 
-__all__ = ["reconcile", "simulate_scan", "upload_frame", "analyze_frame", "confirm_detection", "reject_detection",
+__all__ = ["reconcile", "simulate_scan", "read_label", "upload_frame", "analyze_frame", "confirm_detection", "reject_detection",
            "list_detections", "recent_scans", "provider_info", "BOTTLE_SQL"]

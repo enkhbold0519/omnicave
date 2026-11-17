@@ -142,6 +142,21 @@ function Main({ user, onUser, orientation, setOrientation }: { user: User; onUse
 
   const refreshAll = () => { void cellar.refresh(); void cellars.refresh(); void notifs.refresh(); void detections.refresh() }
 
+  /** Label photo -> backend reads it -> open the review card for the new detection. */
+  const fromPhoto = (file?: File) => {
+    if (!file || !cellarId) return
+    const r = new FileReader()
+    r.onload = async () => {
+      try {
+        await api('POST', `/api/cellars/${cellarId}/vision/label`, { image_b64: String(r.result).split(',')[1], content_type: file.type })
+        const list = await api<Detection[]>('GET', '/api/detections')
+        if (list[0]) setReview(list[0])
+        refreshAll()
+      } catch (e) { flash(e instanceof Error ? e.message : 'Could not read the label', 'warning') }
+    }
+    r.readAsDataURL(file)
+  }
+
   /** Find: show the bottle on the cellar map, ringed and pulsing for a few seconds. */
   const pick = (b: Bottle) => {
     if (b.cellar_id !== cellarId) setCellarId(b.cellar_id)
@@ -186,7 +201,10 @@ function Main({ user, onUser, orientation, setOrientation }: { user: User; onUse
                 <button className={viewMode === '3d' ? 'on' : ''} onClick={() => setViewMode('3d')}>3D</button>
               </div>
               {(cellars.data?.length ?? 0) > 1 && cellar.data && <span className="muted toolbar-name">{cellar.data.name}</span>}
-              <button className="btn primary add-btn" onClick={() => setForm({})}>＋ Add bottle</button>
+              <label className="btn add-btn">From photo
+                <input type="file" accept="image/*" capture="environment" hidden onChange={e => { fromPhoto(e.target.files?.[0]); e.target.value = '' }} />
+              </label>
+              <button className="btn primary" onClick={() => setForm({})}>＋ Add bottle</button>
             </div>
             {placing && (
               <div className="place-banner">

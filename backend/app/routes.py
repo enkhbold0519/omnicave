@@ -62,6 +62,7 @@ ROUTES: list[Route] = [
     # ---- Vision AI (FR2)
     Route("POST", "/api/cellars/{cid}/vision/scan", lambda c: vi.simulate_scan(c.user, _i(c.path["cid"]), c.body.get("event", "random"))),
     Route("POST", "/api/cellars/{cid}/vision/frame", lambda c: vi.upload_frame(c.user, _i(c.path["cid"]), c.body)),
+    Route("POST", "/api/cellars/{cid}/vision/label", lambda c: vi.read_label(c.user, _i(c.path["cid"]), c.body)),
     Route("GET", "/api/cellars/{cid}/vision/scans", lambda c: vi.recent_scans(c.user, _i(c.path["cid"]))),
     Route("GET", "/api/detections", lambda c: vi.list_detections(c.user, c.query.get("status", "pending"))),
     Route("POST", "/api/detections/{did}/confirm", lambda c: vi.confirm_detection(c.user, _i(c.path["did"]), c.body)),
