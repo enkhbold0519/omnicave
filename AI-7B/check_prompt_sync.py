@@ -1,7 +1,7 @@
 """Fail if the backend's debate prompt no longer matches AI-7B/prompts.py.
 
 Run this before generating data or training. If it fails, someone changed the prompt in
-webos/backend/app/services.py: update prompts.py (snippets and functions) to match, then
+backend/app/services.py: update prompts.py (snippets and functions) to match, then
 regenerate the dataset and retrain the adapters.
 
 Usage:  python check_prompt_sync.py
@@ -22,7 +22,7 @@ def main() -> int:
     personas = prompts.load_personas()
     bad = [p.get("id") for p in personas if not all(p.get(k) for k in ("id", "name", "title", "philosophy", "lora_adapter"))]
     if missing:
-        print("Prompt drift: these lines are no longer in webos/backend/app/services.py:")
+        print("Prompt drift: these lines are no longer in backend/app/services.py:")
         for s in missing:
             print("  -", s)
     if bad:

@@ -215,6 +215,16 @@ def main():
     turns = [e for e in ev if e["type"] == "turn"]
     personas = json.loads(config.PERSONAS_PATH.read_text(encoding="utf-8"))
     assert len(turns) == len(personas) and ev[0]["type"] == "meta"
+    # tasting table (what the apps use): every built-in sommelier speaks once
+    bid = call("GET", f"/api/cellars/{cid}")["bottles"][0]["id"]
+    ev = call("POST", "/api/ai/table", {"topic": {"kind": "wine", "bottle_id": bid}}, stream=True)
+    assert len([e for e in ev if e["type"] == "turn"]) == len(personas) and ev[-1]["type"] == "done"
+    # the critic LoRAs only work when these fields are word for word what they were trained on (AI-7B)
+    trained = config.BASE_DIR.parent / "AI-7B" / "personas.json"
+    if trained.exists():
+        mine = {p["id"]: p for p in personas}
+        for t in json.loads(trained.read_text(encoding="utf-8")):
+            assert all(mine[t["id"]][k] == t[k] for k in ("name", "title", "philosophy", "lora_adapter")), t["id"]
 
     # briefing + market
     br = call("GET", "/api/briefing")

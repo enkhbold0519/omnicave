@@ -7,6 +7,11 @@ conversation so far. The client keeps the conversation and sends it back; the se
 Wine topics: each turn ends with "Score: <score on its own scale>. Peak: <year>." so clients can build the verdict.
 Question topics: each sommelier picks one bottle from the cellar and names it as #<bottle id>; the server
 resolves it and sends a `pick` event.
+
+Critic LoRAs (LLM_PROVIDER=vllm): a built-in sommelier with a "lora_adapter" is one of the AI-7B critics. Those
+LoRAs only know the critic-debate prompt (services.debate_messages), so on a wine topic, as long as the owner has
+not joined in, such a sommelier gets exactly that prompt and its LoRA. Everything else (questions, follow-ups to
+the owner, the user's own sommeliers) uses the table prompt on the base model.
 """
 from __future__ import annotations
 
@@ -16,7 +21,7 @@ import zlib
 from datetime import date
 from typing import Iterator
 
-from . import db, inventory, llm
+from . import config, db, inventory, llm
 from .common import ApiError
 
 
@@ -260,6 +265,24 @@ def _mock_question(p: dict, b: dict | None, intent: str, text: str, last_user: s
     return f"{OPEN[t['tone']]}I'd open #{b['id']} — {_label(b)} — because {why}."
 
 
+VERDICT_RE = re.compile(r"\n?\s*Score:\s*[^\n]+?\.?\s*Peak:\s*\d{4}\.?\s*$", re.I)
+POINTS_RE = re.compile(r"\b(\d{2,3}(?:\s*[-–]\s*\d{2,3})?)\s+points\b", re.I)
+
+
+def _strip_verdict(text: str) -> str:
+    return VERDICT_RE.sub("", text).strip()
+
+
+def _verdict_line(p: dict, w: dict, text: str) -> str:
+    """A critic LoRA writes its score inside the sentence ("93-95 points"), not as the table's closing line.
+    When it gives 100-point scores, add that line so the clients show the badge and count it in the verdict;
+    the peak year comes from the wine's own drinking window. Other scales (FQI, crowd rank) get no badge."""
+    if VERDICT_RE.search(text):
+        return ""
+    m = POINTS_RE.search(text)
+    return f"\nScore: {m.group(1).replace(' ', '')}. Peak: {_peak(p, w)}." if m else ""
+
+
 def ai_table(user: dict, body: dict) -> Iterator[dict]:
     topic = body.get("topic") or {}
     kind = topic.get("kind")
@@ -294,10 +317,14 @@ def ai_table(user: dict, body: dict) -> Iterator[dict]:
         subject = f"{ask}\nThe owner's cellar:\n" + ("\n".join(lines) or "(empty)")
         rule = "Recommend exactly ONE bottle from the cellar and write its number as #<number>."
 
+    # the critic LoRAs were trained on debates between critics only: once the owner speaks, the base model answers
+    debate = config.LLM_PROVIDER == "vllm" and kind == "wine" and not any(h.get("speaker") == "user" for h in history)
     names = {pid: personas[pid]["name"] for pid in ids}
     convo = "\n".join(f"{'Owner' if h.get('speaker') == 'user' else names.get(h.get('speaker'), 'Sommelier')}: {str(h['text'])[:600]}" for h in history)
     yield {"type": "meta", "provider": llm.provider_info()}
     taken: set[int] = set()
+    # what the sommeliers have said so far, in the form the debate prompt expects ("<name>: <text>")
+    said = [f"{names[h['speaker']]}: {_strip_verdict(str(h['text']))}" for h in history if h.get("speaker") in names]
     for pid in speakers:
         p = personas[pid]
         turn = sum(1 for h in history if h.get("speaker") == pid)
@@ -311,10 +338,20 @@ def ai_table(user: dict, body: dict) -> Iterator[dict]:
         ]
         pick = _pick(p, bottles, intent, text, taken) if kind == "question" else None
         fallback = _mock_wine(p, w, last_user, turn) if kind == "wine" else _mock_question(p, pick, intent, text, last_user)
+        adapter = p.get("lora_adapter") if debate and p.get("built_in") else None
+        if adapter:
+            from .services import debate_label, debate_messages
+            msgs = debate_messages(p, debate_label(w), uctx, said)
         out = ""
-        for piece in llm.stream_chat(msgs, fallback, adapter=p.get("lora_adapter"), max_tokens=200):
+        for piece in llm.stream_chat(msgs, fallback, adapter=adapter, max_tokens=180 if adapter else 200):
             out += piece
             yield {"type": "delta", "text": piece, "persona": pid}
+        said.append(f"{p['name']}: {_strip_verdict(out)}")
+        if adapter:
+            line = _verdict_line(p, w, out)
+            if line:
+                out += line
+                yield {"type": "delta", "text": line, "persona": pid}
         if kind == "question":
             by_id = {b["id"]: b for b in bottles}
             ref = next((int(m) for m in re.findall(r"#(\d+)", out) if int(m) in by_id), None)

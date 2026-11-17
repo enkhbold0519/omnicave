@@ -1,15 +1,14 @@
-"""Mirror of the webOS backend's critic-debate prompt (webos/backend/app/services.py).
+"""Mirror of the backend's critic-debate prompt (backend/app/services.py).
 
 Training samples must use exactly the messages the backend sends at inference time,
-otherwise the adapter learns a prompt it never sees. We do not edit webos/ (other
-members work there), so the layout is copied here and `check_prompt_sync.py` fails
+otherwise the adapter learns a prompt it never sees. The layout is copied here and `check_prompt_sync.py` fails
 when the backend's source drifts from these snippets.
 
 Mirrors:
   services.LANG_HINT
   services._user_context()      -> owner_context()
-  label inside ai_dialogue()    -> wine_label()
-  messages inside ai_dialogue() -> critic_messages()
+  services.debate_label()       -> wine_label()
+  services.debate_messages()    -> critic_messages()
   transcript.append(...)        -> transcript_line()
 """
 from __future__ import annotations
@@ -20,7 +19,7 @@ import re
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
-BACKEND = REPO / "webos" / "backend"
+BACKEND = REPO / "backend"
 SERVICES_PY = BACKEND / "app" / "services.py"
 PERSONAS_JSON = BACKEND / "personas.json"
 
