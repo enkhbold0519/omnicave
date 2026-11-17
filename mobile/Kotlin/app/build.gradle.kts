@@ -6,7 +6,7 @@ val localProperties = Properties().apply {
     if (file.exists()) file.inputStream().use { load(it) }
 }
 val apiBase: String = localProperties.getProperty("API_BASE")?.trim()?.trimEnd('/')
-    ?: error("Add a line  API_BASE=https://your-server-address  to Mobile/Kotlin/local.properties")
+    ?: error("Add a line  API_BASE=https://your-server-address  to mobile/Kotlin/local.properties")
 
 plugins {
     alias(libs.plugins.android.application)
@@ -21,7 +21,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.omnicave"
+        applicationId = "kr.ac.hanyang.omnicave"
         minSdk = 24
         targetSdk = 37
         versionCode = 1

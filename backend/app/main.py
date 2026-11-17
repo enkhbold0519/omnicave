@@ -6,16 +6,17 @@
 
 API docs: http://localhost:8000/docs
 """
+import asyncio
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from . import config, db, simulator
+from . import config, db, live, simulator
 from .routes import ROUTES, Route, run, sse
-from .services import ApiError
+from .services import ApiError, user_from_token
 
 
 @asynccontextmanager
@@ -69,3 +70,28 @@ def _make(route: Route):
 
 for r in ROUTES:
     app.add_api_route(r.path, _make(r), methods=[r.method])
+
+
+@app.websocket("/api/ws")
+async def live_updates(sock: WebSocket):
+    """Live updates (see live.py). The client's first message is {"token": "..."}: browsers can't set headers
+    on a WebSocket, and a token in the URL would end up in access logs."""
+    await sock.accept()
+    try:
+        first = await asyncio.wait_for(sock.receive_json(), timeout=10)
+        user = await run_in_threadpool(user_from_token, first.get("token"))
+    except Exception:
+        await sock.close(code=4401)   # not logged in
+        return
+    q = live.subscribe(user["id"])
+    try:
+        while True:
+            try:
+                msg = await asyncio.wait_for(q.get(), timeout=25)
+            except asyncio.TimeoutError:
+                msg = {"type": "ping"}   # keeps proxies from closing an idle connection
+            await sock.send_json(msg)
+    except (WebSocketDisconnect, RuntimeError):
+        pass
+    finally:
+        live.unsubscribe(user["id"], q)

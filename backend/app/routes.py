@@ -1,7 +1,7 @@
-"""Framework-agnostic route table, mounted by main.py (FastAPI) and devserver.py (stdlib)."""
+"""Framework-agnostic route table, mounted by main.py (FastAPI) and devserver.py (stdlib, used by the tests)."""
 from dataclasses import dataclass
 from typing import Any, Callable
-from . import devices as dv, inventory as inv, llm, services as s, tasting as t, vision as vi
+from . import devices as dv, inventory as inv, live, llm, services as s, tasting as t, vision as vi
 
 
 @dataclass
@@ -61,9 +61,7 @@ ROUTES: list[Route] = [
     Route("POST", "/api/recommendations/storage", lambda c: inv.recommend_storage(c.user, c.body)),
     # ---- Vision AI (FR2)
     Route("POST", "/api/cellars/{cid}/vision/scan", lambda c: vi.simulate_scan(c.user, _i(c.path["cid"]), c.body.get("event", "random"))),
-    Route("POST", "/api/cellars/{cid}/vision/frame", lambda c: vi.upload_frame(c.user, _i(c.path["cid"]), c.body)),
     Route("POST", "/api/cellars/{cid}/vision/label", lambda c: vi.read_label(c.user, _i(c.path["cid"]), c.body)),
-    Route("GET", "/api/cellars/{cid}/vision/scans", lambda c: vi.recent_scans(c.user, _i(c.path["cid"]))),
     Route("GET", "/api/detections", lambda c: vi.list_detections(c.user, c.query.get("status", "pending"))),
     Route("POST", "/api/detections/{did}/confirm", lambda c: vi.confirm_detection(c.user, _i(c.path["did"]), c.body)),
     Route("POST", "/api/detections/{did}/reject", lambda c: vi.reject_detection(c.user, _i(c.path["did"]))),
@@ -103,10 +101,16 @@ ROUTES: list[Route] = [
 ]
 
 
+QUIET = {"/api/device/telemetry", "/api/auth/logout"}   # frequent or irrelevant: no live update
+
+
 def run(route: Route, token: str | None, path: dict, query: dict, body: dict):
     user = s.user_from_token(token) if route.auth == "user" else None
     device = dv.device_from_token(token) if route.auth == "device" else None
-    return route.handler(Ctx(user=user, device=device, token=token, path=path, query=query, body=body or {}))
+    result = route.handler(Ctx(user=user, device=device, token=token, path=path, query=query, body=body or {}))
+    if route.method != "GET" and route.path not in QUIET:
+        live.publish(user["id"] if user else device["user_id"] if device else None, route.path)
+    return result
 
 
 def sse(gen):

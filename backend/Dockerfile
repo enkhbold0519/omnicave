@@ -1,4 +1,4 @@
-# CellarOS API image (FastAPI + Uvicorn). Built by deploy/docker-compose.yml.
+# OmniCave API image (FastAPI + Uvicorn). Built by deploy/docker-compose.yml.
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1

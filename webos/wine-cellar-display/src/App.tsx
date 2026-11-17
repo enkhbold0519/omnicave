@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
-import { api, getToken, OfflineError, safeGet, safeSet, setToken, setUnauthorizedHandler } from './api'
+import { api, apiBase, getToken, OfflineError, safeGet, safeSet, setToken, setUnauthorizedHandler } from './api'
 import { useDraft, usePoll } from './hooks'
 import type { Bottle, Cellar, CellarSummary, Detection, EnvZone, Notification, User } from './types'
 import Header from './components/Header'
@@ -156,6 +156,25 @@ function Main({ user, onUser, orientation, setOrientation }: { user: User; onUse
     }
     r.readAsDataURL(file)
   }
+
+  // Live updates: the server says "changed" and we refetch at once. Polling stays as the fallback.
+  const refreshRef = useRef(refreshAll)
+  refreshRef.current = refreshAll
+  useEffect(() => {
+    let ws: WebSocket | null = null, timer = 0, retry = 0, stopped = false
+    const connect = () => {
+      ws = new WebSocket((apiBase() || location.origin).replace(/^http/, 'ws') + '/api/ws')
+      ws.onopen = () => { retry = 0; ws?.send(JSON.stringify({ token: getToken() })) }
+      ws.onmessage = e => {
+        if (JSON.parse(e.data).type !== 'changed') return
+        clearTimeout(timer)
+        timer = window.setTimeout(() => refreshRef.current(), 200)   // one refetch for a burst of changes
+      }
+      ws.onclose = e => { if (!stopped && e.code !== 4401) setTimeout(connect, Math.min(30_000, 2_000 * 2 ** retry++)) }
+    }
+    connect()
+    return () => { stopped = true; clearTimeout(timer); ws?.close() }
+  }, [])
 
   /** Find: show the bottle on the cellar map, ringed and pulsing for a few seconds. */
   const pick = (b: Bottle) => {

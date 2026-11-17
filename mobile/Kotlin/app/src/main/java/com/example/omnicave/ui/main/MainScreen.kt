@@ -71,6 +71,7 @@ import com.example.omnicave.ui.sommelier.SommelierScreen
 import com.example.omnicave.ui.theme.AppTheme
 import com.example.omnicave.ui.value.ValueScreen
 import com.example.omnicave.ui.wine.BottleFormScreen
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -153,8 +154,23 @@ fun MainScreen(user: User, onUser: (User) -> Unit, onLogout: () -> Unit, modifie
         }
     }
 
-    // Refresh the bell's number on start and whenever the user changes page.
-    LaunchedEffect(tab, profileOpen) {
+    // Live updates: a change made anywhere (door display, another phone, the cellar) reloads the pages at once.
+    // The connection is reopened after 5 seconds if it drops; the pages' own refresh timers cover the gap.
+    LaunchedEffect(Unit) {
+        while (true) {
+            val closed = CompletableDeferred<Unit>()
+            val socket = Api.listen(onChange = { changes++ }, onClosed = { closed.complete(Unit) })
+            try {
+                closed.await()
+            } finally {
+                socket.cancel()
+            }
+            delay(5_000)
+        }
+    }
+
+    // Refresh the bell's number on start, whenever the user changes page, and after a live update.
+    LaunchedEffect(tab, profileOpen, changes) {
         try {
             notifications = Api.get<NotificationList>("/api/notifications")
         } catch (e: ApiException) {

@@ -1,7 +1,7 @@
 """Helpers shared by all service modules."""
 from datetime import datetime, timedelta, timezone
 
-from . import db
+from . import db, live
 
 
 class ApiError(Exception):
@@ -28,4 +28,5 @@ def notify(c, uid: int, kind: str, level: str, message: str, dedupe_key: str | N
         "INSERT INTO notifications(user_id,kind,level,message,dedupe_key,push,created_at) VALUES(?,?,?,?,?,?,?)",
         (uid, kind, level, message, dedupe_key, 1 if push else 0, utc()),
     )
+    live.publish(uid, "notifications")
     return True

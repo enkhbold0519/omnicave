@@ -44,6 +44,6 @@ export default defineConfig({
     // Vite blocks unknown Host headers; allow tunnel domains for external access
     allowedHosts: ['.trycloudflare.com', '.ngrok-free.app'],
     // browser dev: /api goes to the FastAPI backend, so one tunnel URL serves both
-    proxy: { '/api': { target: 'http://localhost:8000', changeOrigin: true } },
+    proxy: { '/api': { target: 'http://localhost:8000', changeOrigin: true, ws: true } },
   },
 })

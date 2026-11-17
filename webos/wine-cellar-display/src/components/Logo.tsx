@@ -1,4 +1,4 @@
-/** CellarOS mark. Drawn in `currentColor`. The chosen design is LOGO; the others stay until we decide (see /logo-options.html). */
+/** OmniCave mark. Drawn in `currentColor`. The chosen design is LOGO; the others stay until we decide (see /logo-options.html). */
 const MARKS = {
   /* A · Bottle end: the glass bottle end seen through the door, as on the cellar map */
   a: <>

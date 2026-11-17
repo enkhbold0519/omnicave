@@ -220,7 +220,7 @@ function PrivacyPage({ user, onDeleted }: { user: User; onDeleted: () => void })
   const exportData = async () => {
     const data = await api('GET', '/api/me/export')
     const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }))
-    const a = document.createElement('a'); a.href = url; a.download = `cellaros-export-${user.username}.json`; a.click()
+    const a = document.createElement('a'); a.href = url; a.download = `omnicave-export-${user.username}.json`; a.click()
     URL.revokeObjectURL(url)
   }
   const del = async () => { await api('DELETE', '/api/me'); onDeleted() }
@@ -254,7 +254,7 @@ function AboutPage({ user }: { user: User }) {
         <Info label="Signed in as" value={user.username} />
         <Info label="AI sommeliers" value={!llm ? '—' : llm.provider === 'mock' ? 'Offline demo' : `${llm.model}`} />
         <Info label="Camera recognition" value={health.data ? (health.data.vision.provider === 'mock' ? 'Offline demo' : health.data.vision.provider) : '—'} />
-        <Info label="Version" value="CellarOS display 0.3" />
+        <Info label="Version" value="OmniCave display 0.3" />
       </div>
       <details className="advanced">
         <summary>Advanced</summary>

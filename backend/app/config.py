@@ -24,8 +24,6 @@ def env(key: str, default: str = "") -> str:
 
 
 LLM_PROVIDER = env("LLM_PROVIDER", "mock").lower()
-HF_TOKEN = env("HF_TOKEN")
-HF_MODEL = env("HF_MODEL", "Qwen/Qwen2.5-7B-Instruct")
 OPENAI_API_KEY = env("OPENAI_API_KEY")
 OPENAI_MODEL = env("OPENAI_MODEL", "gpt-4o-mini")
 VLLM_BASE_URL = env("VLLM_BASE_URL", "http://localhost:8001/v1")

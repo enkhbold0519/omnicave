@@ -1,4 +1,4 @@
-# CellarOS production stack:  cd deploy && docker compose up -d --build
+# OmniCave production stack:  cd deploy && docker compose up -d --build
 #   caddy : HTTPS (automatic Let's Encrypt certificate) -> api
 #   api   : FastAPI backend (../backend)
 # The database is NOT here: it is an AWS RDS PostgreSQL instance, reached through DATABASE_URL.

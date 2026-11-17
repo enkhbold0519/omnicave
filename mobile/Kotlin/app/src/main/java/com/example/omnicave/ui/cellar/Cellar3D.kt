@@ -73,6 +73,18 @@ private fun pathOf(points: List<Offset>) = Path().apply {
 @Composable
 fun Cellar3D(cellar: Cellar, highlightId: Int?, onOpen: (Bottle) -> Unit, modifier: Modifier = Modifier) {
     val colors = AppTheme.colors
+    // The display's cabinet is dark smoked glass (made for a black screen). On the light theme the same cabinet
+    // is drawn in the palette's light tones, so it reads as an object on the page instead of dark patches.
+    val dark = colors.isDark
+    val wallBack = if (dark) Color(0xFF17181A) else colors.surfaceMuted
+    val wallSide = if (dark) Color(0xFF101113) else lerp(colors.surfaceMuted, colors.hairline, 0.7f)
+    val wallFloor = if (dark) Color(0xFF15171A) else colors.hairline
+    val wallTop = if (dark) Color(0xFF1B1C1E) else colors.surface
+    val rail = if (dark) Color.White else colors.fg2
+    val farTone = if (dark) Color.Black else colors.surfaceMuted   // far bottles fade towards this
+    val shadowAlpha = if (dark) 0.4f else 0.14f
+    val frame = if (dark) colors.hairline else lerp(colors.hairline, colors.muted, 0.45f)
+    val outline = if (dark) 0.55f else 0.25f            // bottle edge strength
     val scope = rememberCoroutineScope()
     val open by rememberUpdatedState(onOpen)
     val yaw = remember { Animatable(-0.55f) }     // turn left/right, in radians
@@ -136,28 +148,31 @@ fun Cellar3D(cellar: Cellar, highlightId: Int?, onOpen: (Bottle) -> Unit, modifi
 
             // ---- walls: a wall is drawn only when its inner side faces the camera ----
             val faces = listOf(
-                Face(Color(0xFF17181A), V(0f, 0f, -1f), V(0f, 0f, deep), V(w, 0f, deep), V(w, h, deep), V(0f, h, deep)),
-                Face(Color(0xFF101113), V(1f, 0f, 0f), V(0f, 0f, 0f), V(0f, 0f, deep), V(0f, h, deep), V(0f, h, 0f)),
-                Face(Color(0xFF101113), V(-1f, 0f, 0f), V(w, 0f, 0f), V(w, 0f, deep), V(w, h, deep), V(w, h, 0f)),
-                Face(Color(0xFF15171A), V(0f, 1f, 0f), V(0f, 0f, 0f), V(w, 0f, 0f), V(w, 0f, deep), V(0f, 0f, deep)),
-                Face(Color(0xFF1B1C1E), V(0f, -1f, 0f), V(0f, h, 0f), V(w, h, 0f), V(w, h, deep), V(0f, h, deep)),
+                Face(wallBack, V(0f, 0f, -1f), V(0f, 0f, deep), V(w, 0f, deep), V(w, h, deep), V(0f, h, deep)),
+                Face(wallSide, V(1f, 0f, 0f), V(0f, 0f, 0f), V(0f, 0f, deep), V(0f, h, deep), V(0f, h, 0f)),
+                Face(wallSide, V(-1f, 0f, 0f), V(w, 0f, 0f), V(w, 0f, deep), V(w, h, deep), V(w, h, 0f)),
+                Face(wallFloor, V(0f, 1f, 0f), V(0f, 0f, 0f), V(w, 0f, 0f), V(w, 0f, deep), V(0f, 0f, deep)),
+                Face(wallTop, V(0f, -1f, 0f), V(0f, h, 0f), V(w, h, 0f), V(w, h, deep), V(0f, h, deep)),
             )
             for (face in faces) {
                 val a = face.corners[0]
                 val c = face.corners[2]
                 val centre = rot((a.x + c.x) / 2 - w / 2, (a.y + c.y) / 2 - h / 2, (a.z + c.z) / 2 - deep / 2)
                 val n = rot(face.n.x, face.n.y, face.n.z)
-                if (n.x * -centre.x + n.y * -centre.y + n.z * (-dist - centre.z) > 0) drawPath(poly(*face.corners), face.color)
+                if (n.x * -centre.x + n.y * -centre.y + n.z * (-dist - centre.z) > 0) {
+                    drawPath(poly(*face.corners), face.color)
+                    if (!dark) drawPath(poly(*face.corners), colors.hairline, style = Stroke(1.dp.toPx()))
+                }
             }
 
             // ---- racks: a faint plane with a lit front rail ----
             for (rack in cellar.racks) {
                 if (rack.kind == "floor") continue
                 val y = rack.yCm
-                drawPath(poly(V(0f, y, 2f), V(w, y, 2f), V(w, y, rack.depthCm), V(0f, y, rack.depthCm)), Color.White, alpha = 0.03f)
+                drawPath(poly(V(0f, y, 2f), V(w, y, 2f), V(w, y, rack.depthCm), V(0f, y, rack.depthCm)), rail, alpha = if (dark) 0.03f else 0.05f)
                 val a = proj(0f, y, 2f)
                 val b = proj(w, y, 2f)
-                drawLine(Color.White, Offset(a.x, a.y), Offset(b.x, b.y), strokeWidth = 2.dp.toPx(), cap = StrokeCap.Round, alpha = 0.28f)
+                drawLine(rail, Offset(a.x, a.y), Offset(b.x, b.y), strokeWidth = 2.dp.toPx(), cap = StrokeCap.Round, alpha = if (dark) 0.28f else 0.45f)
             }
 
             // ---- bottles, far ones first ----
@@ -170,7 +185,7 @@ fun Cellar3D(cellar: Cellar, highlightId: Int?, onOpen: (Bottle) -> Unit, modifi
                 val z0 = max(1f, b.z)
                 val ys = b.y - BD / 2 + 0.3f
                 val half = BD * 0.55f
-                drawPath(poly(V(b.x - half, ys, z0), V(b.x + half, ys, z0), V(b.x + half, ys, z0 + BL * 0.9f), V(b.x - half, ys, z0 + BL * 0.9f)), Color.Black, alpha = 0.4f)
+                drawPath(poly(V(b.x - half, ys, z0), V(b.x + half, ys, z0), V(b.x + half, ys, z0 + BL * 0.9f), V(b.x - half, ys, z0 + BL * 0.9f)), Color.Black, alpha = shadowAlpha)
             }
             drawn.clear()
             for ((b, depth) in sorted) {
@@ -199,9 +214,9 @@ fun Cellar3D(cellar: Cellar, highlightId: Int?, onOpen: (Bottle) -> Unit, modifi
                     val c = side(lit * to)
                     return pathOf(listOf(a[0], a[1], c[1], c[0]))
                 }
-                // Far bottles are a little darker.
-                val fade = 1f - 0.4f * (if (far > near) (depth - near) / (far - near) else 0f)
-                val tint = lerp(Color.Black, wineTint(b.wine.color), fade)
+                // Far bottles fade a little (towards black on the dark theme, towards the page on the light one).
+                val fade = 1f - (if (dark) 0.4f else 0.3f) * (if (far > near) (depth - near) / (far - near) else 0f)
+                val tint = lerp(farTone, wineTint(b.wine.color), fade)
                 // The bottle end: a circle that flattens to an ellipse as the bottle turns away.
                 val r = profile[0].second
                 val ratio = min(1f, length / max(0.01f, BL * 0.6f * f / (dist + base.z)))
@@ -216,7 +231,7 @@ fun Cellar3D(cellar: Cellar, highlightId: Int?, onOpen: (Bottle) -> Unit, modifi
                 }
                 if (!endFacesUs) end()
                 drawPath(body, tint)
-                drawPath(body, Color.Black, alpha = 0.55f, style = Stroke(1.dp.toPx()))
+                drawPath(body, Color.Black, alpha = outline, style = Stroke(1.dp.toPx()))
                 drawPath(band(0.2f, 0.5f), Color.White, alpha = 0.16f)
                 drawPath(band(-0.55f, -1f), Color.Black, alpha = 0.38f)
                 if (endFacesUs) end()
@@ -228,7 +243,7 @@ fun Cellar3D(cellar: Cellar, highlightId: Int?, onOpen: (Bottle) -> Unit, modifi
             val door = poly(V(0f, 0f, 0f), V(w, 0f, 0f), V(w, h, 0f), V(0f, h, 0f))
             drawPath(door, Color(0xFFB4C8DC), alpha = 0.03f)
             drawPath(poly(V(w * 0.52f, h, 0f), V(w * 0.64f, h, 0f), V(w * 0.3f, 0f, 0f), V(w * 0.18f, 0f, 0f)), Color.White, alpha = 0.035f)
-            drawPath(door, colors.hairline, style = Stroke(3.dp.toPx()))
+            drawPath(door, frame, style = Stroke(3.dp.toPx()))
         }
 
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {

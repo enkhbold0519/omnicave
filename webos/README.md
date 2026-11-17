@@ -1,45 +1,39 @@
-# OmniCave — webOS display prototype
+# OmniCave cellar-door display
 
-Portrait (1080×1920) cellar-door UI for **webOS OSE 2.28**, plus the shared FastAPI backend ([`../backend`](../backend/README.md)), a simulated
-Vision AI pipeline, and an edge agent for the cellar hardware. Full feature list and requirement
-coverage: [`docs/DETAILS.md`](docs/DETAILS.md).
+The app on the cellar's transparent OLED door, written in React, TypeScript and Vite and packaged for webOS (the OSE
+emulator or an LG TV in Developer Mode). It shows the cellar, inventory, sommelier, briefing and value pages, and
+talks to the shared backend (`/api`).
 
 ## Requirements
-Windows 10/11 x64. `setup.cmd` installs everything else: Node.js LTS, webOS CLI (`ares-*`) on a portable Node 16,
-VirtualBox 7 + the webOS OSE emulator image, and Python 3.12 + FastAPI.
+- Node.js 20.19 or later
+- A running OmniCave backend (see [`../backend`](../backend/README.md))
+- For webOS only: the webOS CLI (`npm install -g @webos-tools/cli`)
 
-## Run
-```bat
-cd webos
-setup.cmd            :: once (re-running skips finished steps)
-run-backend.cmd      :: API on http://localhost:8000  (docs: /docs)
-run-display.cmd      :: UI  on http://localhost:5173  → create an account (a demo cellar is seeded)
-```
+## Setup
+1. Install and start in the browser:
+   ```bash
+   cd wine-cellar-display
+   npm install
+   npm run dev          # http://localhost:5173, /api goes to a local backend on :8000
+   ```
+   To use the AWS server instead, start with `VITE_API_BASE=https://your-server-address npm run dev`.
+2. Create an account; a demo cellar is added automatically.
+3. To run it on webOS, build, package and install in one step:
+   ```bash
+   VITE_API_BASE=https://your-server-address npm run webos:deploy
+   ```
+   Set `WEBOS_DEVICE=tv` for an LG TV (default: the emulator).
 
-Deploy to the webOS emulator (start VM `webos-image` in VirtualBox first):
-```bat
-cd webos\wine-cellar-display
-npm run webos:deploy     :: build → .ipk → install → launch
-```
-The packaged app talks to the backend at `http://10.0.2.2:8000` (the host PC as seen from VirtualBox).
+## Structure
+| Path | What |
+|---|---|
+| `wine-cellar-display/src/views/` | One file per page: cellar, inventory, sommelier, briefing, value, profile, wine details |
+| `wine-cellar-display/src/components/` | Shared parts: door map, 3D view, charts, dialogs |
+| `wine-cellar-display/src/api.ts` | Backend client with offline cache |
+| `wine-cellar-display/scripts/webos.mjs` | Packages, installs and launches the app with the webOS CLI |
+| `edge/edge_agent.py` | Simulates the cellar appliance: run it, then enter its 6-digit code under Profile → My cellars |
 
-## Configuration (`../backend/.env`, created from `.env.example`)
-| Key | Default | Notes |
-|---|---|---|
-| `LLM_PROVIDER` | `mock` | `hf` (Hugging Face, needs `HF_TOKEN` + paid credits) · `openai` · `vllm` (own server, LoRA per persona) |
-| `VISION_PROVIDER` | `mock` | `http` → your model server at `VISION_ENDPOINT` (see `edge/vision_server_example.py`) |
-
-## Pretend to be a cellar appliance
-```bat
-python edge\edge_agent.py --server http://localhost:8000
-```
-It prints a 6-digit code. Enter it in the display under **Settings → Linked cellars**.
-
-## Tests
-```bat
-cd ..\backend && python -m tests.test_api
-```
-
-## Production
-Docker + PostgreSQL + HTTPS on AWS EC2: [`../deploy/README.md`](../deploy/README.md).
-Build the display against it with `VITE_API_BASE=https://<host>` (or set *Server address* in Profile → About).
+## Notes
+- **Portrait and transparent:** the UI is a fixed 1080×1920 canvas. Black pixels are see-through, so backgrounds stay `#000`.
+- **webOS loads apps from `file://`:** keep `base: './'` in `vite.config.ts` and don't add code splitting.
+- **Type check:** `npx tsc --noEmit` in `wine-cellar-display`.

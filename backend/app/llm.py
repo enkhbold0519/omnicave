@@ -2,11 +2,10 @@
 
 Providers
   mock   : no network; streams the caller-supplied fallback text
-  hf     : Hugging Face Inference Providers  https://router.huggingface.co/v1
   openai : OpenAI                             https://api.openai.com/v1
   vllm   : self-hosted (vLLM --enable-lora, behind AI-7B/gateway.py). The persona's LoRA adapter name
            is sent as `model`, so the server hot-swaps adapters per persona.
-On any provider error we fall back to the mock text so the UI never breaks. hf/openai show the error
+On any provider error we fall back to the mock text so the UI never breaks. openai shows the error
 in the answer. The vllm server is a rented GPU that is switched off most of the time, so there the
 fallback is silent: the reason goes to the log and to /api/health (llm.last_error), and the server
 is not tried again for VLLM_RETRY_AFTER seconds.
@@ -24,10 +23,9 @@ _vllm = {"down_until": 0.0, "last_error": None}
 
 def provider_info() -> dict:
     p = config.LLM_PROVIDER
-    model = {"hf": config.HF_MODEL, "openai": config.OPENAI_MODEL, "vllm": config.VLLM_BASE_MODEL}.get(p, "mock")
+    model = {"openai": config.OPENAI_MODEL, "vllm": config.VLLM_BASE_MODEL}.get(p, "mock")
     configured = {
         "mock": True,
-        "hf": bool(config.HF_TOKEN),
         "openai": bool(config.OPENAI_API_KEY),
         "vllm": True,
     }.get(p, False)
@@ -39,8 +37,6 @@ def provider_info() -> dict:
 
 def _endpoint(adapter: str | None) -> tuple[str, str, str]:
     p = config.LLM_PROVIDER
-    if p == "hf":
-        return "https://router.huggingface.co/v1", config.HF_TOKEN, config.HF_MODEL
     if p == "openai":
         return "https://api.openai.com/v1", config.OPENAI_API_KEY, config.OPENAI_MODEL
     if p == "vllm":

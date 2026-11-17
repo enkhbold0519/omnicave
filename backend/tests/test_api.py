@@ -135,11 +135,10 @@ def main():
     assert len(sc["moved"]) == 1 and not sc["new"], sc
     sc = call("POST", f"/api/cellars/{cid}/vision/scan", {"event": "remove"})
     assert len(sc["removed"]) == 1, sc
-    fr = call("POST", f"/api/cellars/{cid}/vision/frame", {"image_b64": "aGVsbG8="})
-    assert fr["provider"] == "mock"
+    lb = call("POST", f"/api/cellars/{cid}/vision/label", {"image_b64": "aGVsbG8="})
+    assert len(lb["new"]) == 1 and lb["new"][0]["wine"].get("name"), lb
     for p_ in call("GET", "/api/detections"):
         call("POST", f"/api/detections/{p_['id']}/reject")
-    assert call("GET", f"/api/cellars/{cid}/vision/scans")
 
     # linking a second physical cellar (pairing code flow) + device telemetry / detections
     reg = call("POST", "/api/devices/register", {"uid": "WC-TEST-0001", "model": "Test cellar"})

@@ -1,281 +1,85 @@
-# 🍷 OmniCave
+# OmniCave
 
-> **An AI-driven wine cellar management system with Vision AI, cloud-powered multi-agent intelligence, and transparent display integration.**
+**An AI-driven wine cellar with a transparent display door**
 
-OmniCave is an intelligent wine cellar management system designed to transform traditional wine storage into an actively managed and personalized digital ecosystem.
+> 26-2 Hanyang University Software Engineering Project
 
-The system combines **computer vision**, **cloud-based artificial intelligence**, **environmental monitoring**, **wine inventory management**, and an **interactive transparent display** to provide a seamless connection between physical wine storage and digital management.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="documents/images/hero-dark.png">
+  <img src="documents/images/hero-light.png" alt="OmniCave" width="100%">
+</picture>
 
----
+## Overview
 
-## ✨ Key Features
+Premium wine cellars today are passive appliances: they hold temperature and humidity, but the owner still tracks
+every bottle by hand, in a notebook or a separate app that never matches what is physically inside. OmniCave turns
+the cellar into an actively managed collection. The glass door becomes a transparent OLED display that shows exactly
+what is stored and where, and the cellar keeps its own inventory up to date.
 
-### 👁️ Vision AI & Automatic Inventory Management
+The system rests on three ideas:
 
-OmniCave uses computer vision to reduce the need for manual inventory management.
+- **The cellar knows its contents.** A vision pipeline reads labels and maps each bottle to a position in
+  centimetres, including bottles stacked freely without fixed slots. The owner only confirms what was recognised.
+- **Expert opinion on every bottle.** Several fictional wine critics, each with its own scoring philosophy, debate a
+  wine live on the door. They share one base language model with a separate LoRA adapter per critic, swapped on the server.
+- **A thin appliance, a smart cloud.** All AI runs in the cloud, so the cellar's own computer stays small, cool and
+  cheap, and every feature is shared with the companion app.
 
-- Automatic wine bottle detection
-- AI-powered wine label recognition
-- Extraction of wine information such as:
-  - Wine name
-  - Winery
-  - Region
-  - Vintage
-  - Grape variety
-- Automatic bottle registration
-- Physical bottle location mapping
-- Bottle movement detection
-- Stacked bottle detection
-- Automatic bottle removal detection
-- Unique identification for individual physical bottles
+## Architecture
 
-Users can review and correct AI-extracted information before confirming a wine's registration.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="documents/images/architecture-dark.png">
+  <img src="documents/images/architecture-light.png" alt="OmniCave architecture" width="100%">
+</picture>
 
----
+## Key Features
 
-### 🗺️ Visual Cellar Mapping
+- **Automatic inventory:** bottles are detected, their labels read and their positions mapped, then confirmed by the owner.
+- **Transparent door display:** a to-scale door map and a 3D view of the cellar on a see-through OLED panel.
+- **Climate monitoring:** temperature and humidity per zone, with history and alerts when conditions drift.
+- **AI sommelier table:** fictional critics taste and debate a bottle, streamed word by word.
+- **Daily briefing and collection value:** personalised wine news, bottles ready to drink, and market value over time.
+- **Multi-device, multi-cellar:** the door display and the Android app stay in sync live over WebSocket, across several cellars, with offline caching.
 
-OmniCave connects each physical bottle to its corresponding digital location.
+## Demo Video
 
-Users can:
+<!-- TODO: YouTube thumbnail linking to the demo video -->
+*Coming soon.*
 
-- View a visual representation of their wine cellar
-- Search for wines by name, winery, region, vintage, or grape variety
-- Locate the exact physical position of a selected bottle
-- Track bottle movements within the cellar
-- Search across multiple connected wine cellars
+## Tech Stack
 
----
+| Layer | Technologies |
+|---|---|
+| Door display | React 19, TypeScript, Vite, webOS |
+| Mobile | Kotlin, Jetpack Compose (Android); SwiftUI (iOS) |
+| Backend | Python 3.12, FastAPI, WebSocket (live sync), Server-Sent Events (streamed AI answers) |
+| Database | PostgreSQL 17 on AWS RDS; SQLite for development |
+| AI | Qwen2.5-7B-Instruct with per-critic LoRA adapters, served by vLLM |
+| Infrastructure | AWS EC2, Docker Compose, Caddy (HTTPS), Vercel |
 
-### 🌡️ Environmental Monitoring
+## Repository
 
-The system continuously monitors the storage environment of the wine cellar.
+| Folder | Contents |
+|---|---|
+| [`webos/`](webos/README.md) | Cellar-door display app and the appliance simulator |
+| [`backend/`](backend/README.md) | Cloud API shared by all clients |
+| [`mobile/Kotlin/`](mobile/Kotlin/README.md) | Android companion app |
+| [`mobile/ios/`](mobile/ios) | iOS companion app |
+| [`AI-7B/`](AI-7B/CLAUDE.md) | Critic LoRA training and serving |
+| [`deploy/`](deploy/README.md) | Production deployment on AWS |
+| [`documents/`](documents) | Paper and requirement coverage |
 
-Features include:
+## Links
 
-- Real-time temperature monitoring
-- Real-time humidity monitoring
-- Historical environmental data
-- Bottle-specific environmental information
-- Temperature and humidity alerts
-- Sensor disconnection notifications
+- Paper: *PDF coming soon* · [LaTeX source](documents/wine_cellar.tex)
+- Presentation slides: *coming soon*
+- Live demo: *coming soon*
 
-Environmental data can be associated with specific storage locations, allowing users to better understand the conditions surrounding individual bottles.
+## Team
 
----
-
-### 🤖 Cloud-Powered AI Recommendations
-
-OmniCave integrates cloud-based AI services to provide personalized wine recommendations.
-
-The AI system can assist users with:
-
-- 🍽️ Meal-based wine recommendations
-- 🍷 Food pairing recommendations for specific wines
-- 🕰️ Optimal drinking window recommendations
-- 🔔 Drinking window notifications
-- 📊 Personalized recommendations based on consumption history
-- 📝 Customized wine lists based on budget, flavor preferences, or events
-- 🗣️ Natural-language wine recommendations
-
-Recommendations can use both the user's existing inventory and external wine data sources.
-
----
-
-### 🧠 Multi-Agent Wine Critic Dialogue
-
-One of OmniCave's key AI features is a **cloud-powered multi-agent LLM dialogue system**.
-
-Multiple AI personas can simulate different wine critics and provide diverse perspectives on a selected wine.
-
-The system can generate interactive discussions covering:
-
-- Wine evaluation
-- Tasting notes
-- Food pairing
-- Aging potential
-- Drinking windows
-
-The dialogue is streamed to the integrated display in real time, creating a more interactive and engaging wine experience.
-
-The architecture is designed around a centralized cloud-based LLM, allowing computationally intensive AI processing to remain outside the wine cellar hardware.
-
----
-
-### 📰 Personalized Daily Wine Briefing
-
-OmniCave can aggregate wine-related information from external sources and personalize it according to the user's collection.
-
-The Daily Wine Briefing may include:
-
-- Global wine news
-- Vintage reports
-- Wine market trends
-- Collection-specific insights
-- Wines approaching their optimal drinking windows
-- Relevant environmental information
-
-A summarized briefing can also be delivered to the user's companion mobile application.
-
----
-
-### 💰 Real-Time Wine Collection Value
-
-OmniCave treats a wine collection not only as an inventory but also as a managed asset.
-
-The system can integrate external wine market data to provide:
-
-- Current market prices for stored wines
-- Estimated total collection value
-- Individual bottle value
-- Historical market price trends
-- Value appreciation visualization
-
----
-
-### 📱 Multi-Device Integration
-
-OmniCave provides a synchronized ecosystem across multiple devices.
-
-The system is designed to support:
-
-- Integrated transparent display
-- Android application
-- iOS application
-- Multiple wine cellar units
-
-Users can remotely:
-
-- Browse their wine inventory
-- Search for bottles
-- View environmental conditions
-- Receive notifications
-- Manage inventory
-- Access AI recommendations
-- Control supported cellar settings
-
----
-
-## 🏗️ System Architecture
-
----
-
-## 🛠️ Technology Stack
-
-### Backend
-
-- **Python 3.12**
-- **FastAPI**
-- **SQLAlchemy**
-- **PostgreSQL**
-- **Docker**
-- **Docker Compose**
-
-### Integrated Display
-
-- **React**
-- **TypeScript**
-- **Vite**
-
-The display is designed to support integration with **webOS**-based smart appliances.
-
-### Mobile Applications
-
-#### Android
-
-- **Kotlin**
-- **Jetpack Compose**
-
-#### iOS
-
-- **Swift**
-- **SwiftUI**
-
-### AI & Cloud Services
-
-- Cloud-hosted Large Language Models
-- Multi-agent AI architecture
-- External AI inference services for development and testing
-- Server-side AI processing
-- Wine recommendation and critic-persona dialogue generation
-
-### Infrastructure
-
-- **AWS EC2**
-- **Vercel**
-- **Docker**
-- **GitHub**
-
----
-
-## 📂 Project Structure
-
-```text
-omnicave/
-│
-├── backend/                # FastAPI backend services
-├── frontend/               # Integrated transparent display
-├── android/                # Android application
-├── ios/                    # iOS application
-├── ai/                     # AI integration and processing
-├── docs/                   # Project documentation
-│
-├── docker-compose.yml
-└── README.md
-```
-
-> The project structure may evolve as development progresses.
-
----
-
-## 🎯 Project Goals
-
-OmniCave aims to solve the gap between physical wine storage and digital wine management.
-
-Our primary goals are to:
-
-- Reduce manual wine inventory management
-- Automatically synchronize physical and digital wine information
-- Provide intelligent and personalized wine recommendations
-- Monitor wine storage conditions
-- Create an intuitive interaction experience through a transparent display
-- Support multi-device and multi-cellar synchronization
-- Transform a traditional wine cellar into an intelligent wine management ecosystem
-
----
-
-## 👥 Team
-
-| Member | Role | Responsibilities |
+| Name | Organization | Email |
 |---|---|---|
-| **Naomi K. Fossaberg** | Backend & Cloud Developer | Develops the FastAPI backend, authentication system, PostgreSQL database, inventory and environmental monitoring APIs, Docker configuration, AWS deployment, and API documentation. |
-| **Enkhbold Myagmarjav** | Integrated Display Developer | Designs and implements the React/TypeScript integrated display, including the inventory dashboard, cellar map, bottle details, environmental monitoring, and AI dialogue screens. |
-| **Chiang Jun Han** | Mobile Application Developer | Develops the Android and iOS companion applications, including authentication, inventory management, cellar monitoring, notifications, and cross-device synchronization. |
-| **Sungbin Bae** | AI Integration Developer | Implements wine recognition and bottle-localization processing, integrates external language-model services, coordinates critic-persona dialogues, develops recommendation prompts, and evaluates AI outputs. |
-
----
-
-## 🚧 Project Status
-
-**Currently under development.**
-
-OmniCave is being developed as a software engineering project, and the system architecture, implementation, and supported features may evolve throughout the development process.
-
----
-
-## 📄 License
-
-This project is currently developed for educational and research purposes.
-
-License information will be added in the future.
-
-## webOS Display Prototype
-
-A runnable prototype of the integrated transparent display (webOS OSE) with a dev backend lives in [`webos/`](webos/README.md).
-
-```bat
-cd webos
-setup.cmd          :: one-time install (Windows)
-run-backend.cmd    :: http://localhost:8000
-run-display.cmd    :: http://localhost:5173
-```
+| Naomi K. Fossaberg | Department of Computer Science, IT University of Copenhagen | nafo@itu.dk |
+| Enkhbold Myagmarjav | Department of Information Systems, Hanyang University | enkheeboldu@hanyang.ac.kr |
+| Chiang Jun Han | Department of Electrical and Electronic Engineering, Nanyang Technological University | jchiang009@e.ntu.edu.sg |
+| Sungbin Bae | Department of Mathematics, Hanyang University | charliepro@hanyang.ac.kr |

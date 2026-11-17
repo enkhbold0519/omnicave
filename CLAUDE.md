@@ -1,7 +1,7 @@
 # CLAUDE.md — OmniCave
 
 AI-driven wine cellar management system with a transparent-display door (Hanyang Univ. Software Engineering
-team project, aimed at an LG SIGNATURE demo). The paper / spec is `Documents/wine_cellar.tex`. Treat it as the
+team project, aimed at an LG SIGNATURE demo). The paper / spec is `documents/wine_cellar.tex`. Treat it as the
 source of truth for requirements (FR1–FR10, NFRs). When proposing something the paper doesn't say, label it as a
 proposal.
 
@@ -15,7 +15,7 @@ Each component is independent. Each has its own backend/data model, and the API 
 | `webos/` | webOS OSE 2.28 cellar-door display + dev backend + edge agent | Sungbin | see below |
 | `AI-7B/` | Critic-debate AI: 4 persona LoRAs on Qwen2.5-7B + RAG evidence, trained on RunPod | Sungbin | see `AI-7B/CLAUDE.md` |
 | `AI-1.5B-Legacy/` | Earlier 1.5B PoC, kept for the LoRA rank study (r=4 vs r=16) and its Critic Lab web demo | Sungbin | `AI-1.5B-Legacy/lora/README.md` |
-| `Documents/` | LaTeX paper | all | — |
+| `documents/` | LaTeX paper | all | — |
 
 Before changing a folder you don't own, check its README / CLAUDE.md first and keep the change scoped.
 

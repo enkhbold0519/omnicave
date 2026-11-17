@@ -15,6 +15,11 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
+import okhttp3.WebSocket
+import okhttp3.WebSocketListener
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
@@ -33,6 +38,25 @@ object Api {
 
     private val client = OkHttpClient()
     private val jsonType = "application/json".toMediaType()
+
+    /**
+     * Live updates: opens the server's WebSocket and calls [onChange] whenever something in this account changes,
+     * so screens reload at once instead of on their next refresh. [onClosed] runs when the connection ends.
+     */
+    fun listen(onChange: () -> Unit, onClosed: () -> Unit): WebSocket {
+        val url = BuildConfig.API_BASE.replaceFirst("http", "ws") + "/api/ws"
+        val socketClient = client.newBuilder().readTimeout(0, TimeUnit.SECONDS).build()
+        return socketClient.newWebSocket(Request.Builder().url(url).build(), object : WebSocketListener() {
+            override fun onOpen(webSocket: WebSocket, response: Response) {
+                webSocket.send(buildJsonObject { put("token", token) }.toString())
+            }
+            override fun onMessage(webSocket: WebSocket, text: String) {
+                if (json.parseToJsonElement(text).jsonObject.text("type") == "changed") onChange()
+            }
+            override fun onClosed(webSocket: WebSocket, code: Int, reason: String) = onClosed()
+            override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) = onClosed()
+        })
+    }
 
     /**
      * Called when the server rejects the saved login (HTTP 401) on any request,

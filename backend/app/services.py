@@ -459,7 +459,7 @@ def ai_ask(user: dict, body: dict) -> Iterator[dict]:
         ctx = _inventory_context(c, user["id"])
         uctx = _user_context(c, user)
     fb = (f"(offline answer) For “{q}”, start with a bottle that is inside its drinking window — "
-          "check the Ready-to-drink list. Set LLM_PROVIDER=hf and HF_TOKEN in backend/.env for real AI answers.")
+          "check the Ready-to-drink list. Set LLM_PROVIDER=openai or vllm in backend/.env for real AI answers.")
     msgs = [
         {"role": "system", "content": f"You are the AI sommelier inside a smart wine cellar. Prefer bottles from the inventory and cite location; "
                                       f"if suggesting purchases, say so. {LANG_HINT}"},

@@ -1,4 +1,4 @@
-/* CellarOS display — portrait 1080x1920 canvas for a transparent OLED door.
+/* OmniCave display — portrait 1080x1920 canvas for a transparent OLED door.
    Visual language follows the Android companion app (mobile/android/src/theme/tokens.ts):
    quiet luxury, hairline structure, one accent used sparingly for meaning, Montserrat with weight contrast.
    Display-specific rule: pure black pixels are see-through on a transparent OLED, so the page background

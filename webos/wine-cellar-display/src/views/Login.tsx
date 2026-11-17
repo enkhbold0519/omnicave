@@ -31,7 +31,7 @@ function Brand({ title }: { title: string }) {
   return (
     <div className="auth-brand">
       <div className="auth-logo"><Logo size={88} /></div>
-      <span className="t-overline">CellarOS</span>
+      <span className="t-overline">OmniCave</span>
       <h1>{title}</h1>
     </div>
   )

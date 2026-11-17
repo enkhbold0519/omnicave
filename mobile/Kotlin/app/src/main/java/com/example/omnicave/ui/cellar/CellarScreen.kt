@@ -47,8 +47,10 @@ import com.example.omnicave.data.Cellar
 import com.example.omnicave.data.EnvZone
 import com.example.omnicave.data.Environment
 import com.example.omnicave.ui.components.LineChart
+import com.example.omnicave.data.text
 import com.example.omnicave.ui.components.LinkButton
 import com.example.omnicave.ui.components.Pill
+import com.example.omnicave.ui.components.PrimaryButton
 import com.example.omnicave.ui.components.SecondaryButton
 import com.example.omnicave.ui.theme.AppColors
 import com.example.omnicave.ui.theme.AppTheme
@@ -56,8 +58,16 @@ import com.example.omnicave.ui.theme.AppType
 import com.example.omnicave.ui.theme.wineTint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import android.graphics.Bitmap
+import android.util.Base64
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
+import java.io.ByteArrayOutputStream
 import java.util.Calendar
 import kotlin.math.hypot
 import kotlin.math.min
@@ -108,6 +118,22 @@ fun CellarScreen(
     var zoneOpen by remember { mutableStateOf<EnvZone?>(null) }
     var backRow by remember(moving) { mutableStateOf(moving?.layer == "back") }
     var show3d by rememberSaveable { mutableStateOf(false) }
+
+    // Label photo: the camera app takes a picture, the server reads the label, the owner confirms it.
+    var found by remember { mutableStateOf<JsonObject?>(null) }
+    val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { photo ->
+        if (photo == null || cellarId == null) return@rememberLauncherForActivityResult
+        val jpeg = ByteArrayOutputStream().also { photo.compress(Bitmap.CompressFormat.JPEG, 85, it) }.toByteArray()
+        val body = buildJsonObject { put("image_b64", Base64.encodeToString(jpeg, Base64.NO_WRAP)) }
+        scope.launch {
+            try {
+                val res = Api.json.parseToJsonElement(Api.request("POST", "/api/cellars/$cellarId/vision/label", body.toString()))
+                found = res.jsonObject["new"]?.jsonArray?.firstOrNull()?.jsonObject
+            } catch (e: ApiException) {
+                error = e.message
+            }
+        }
+    }
 
     // Load now, after a change, and again every 15 seconds so the climate stays current.
     LaunchedEffect(cellarId, reloadKey) {
@@ -190,7 +216,35 @@ fun CellarScreen(
                 Pill(text = "Door", on = !show3d, onClick = { show3d = false })
                 Pill(text = "3D", on = show3d, onClick = { show3d = true })
                 Spacer(Modifier.weight(1f))
+                LinkButton(text = "From photo", onClick = { camera.launch(null) })
                 LinkButton(text = "＋ Add bottle", onClick = onAdd)
+            }
+        }
+        found?.let { d ->
+            val wine = d["wine"]?.jsonObject
+            fun field(k: String) = wine?.text(k)?.takeIf { it != "null" }.orEmpty()
+            fun finish(action: String) = scope.launch {
+                try {
+                    Api.request("POST", "/api/detections/${d.text("detection_id")}/$action", "{}")
+                    cellar = Api.get<Cellar>("/api/cellars/$cellarId")
+                } catch (e: ApiException) {
+                    error = e.message
+                }
+                found = null
+            }
+            Dialog(onDismissRequest = { found = null }) {
+                Column(
+                    modifier = Modifier.background(colors.surface, RoundedCornerShape(16.dp)).padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    Text("New bottle", style = AppType.title, color = colors.fg)
+                    Text(listOf(field("producer"), field("name"), field("vintage")).filter { it.isNotEmpty() }.joinToString(" "), style = AppType.body, color = colors.fg2)
+                    d.text("note").takeIf { it.isNotEmpty() && it != "null" }?.let { Text(it, style = AppType.caption, color = colors.warn) }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SecondaryButton("Discard", onClick = { finish("reject") })
+                        PrimaryButton("Add to cellar", onClick = { finish("confirm") })
+                    }
+                }
             }
         }
         error?.let { Text(it, style = AppType.caption, color = colors.danger) }

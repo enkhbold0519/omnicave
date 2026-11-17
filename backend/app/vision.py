@@ -295,17 +295,6 @@ def simulate_scan(user: dict, cid: int, event: str) -> dict:
     return res | {"simulated": info}
 
 
-def upload_frame(user: dict, cid: int, body: dict) -> dict:
-    """Same pipeline as a cellar camera, triggered from the display (e.g. a photo upload)."""
-    with db.tx() as c:
-        cel = db.one(c, "SELECT * FROM cellars WHERE id=? AND user_id=?", (cid, user["id"]))
-        if not cel:
-            raise ApiError(404, "Cellar not found")
-        dets, provider = analyze_frame(c, cel, body.get("image_b64", ""), body.get("content_type", "image/jpeg"))
-        res = reconcile(c, user["id"], cel, dets, source=f"frame:{provider}")
-    return res | {"provider": provider}
-
-
 def read_label(user: dict, cid: int, body: dict) -> dict:
     """Label photo -> wine details -> pending detection (same review queue as the camera).
     Mock reader: picks a catalog wine with simulated OCR errors. A real vision model plugs in here."""
@@ -327,13 +316,6 @@ def read_label(user: dict, cid: int, body: dict) -> dict:
                      "confidence": round(conf, 2), "label": label, "note": note})
         res = reconcile(c, user["id"], cel, dets, source="label-photo")
     return {"new": res["new"], "provider": "mock"}
-
-
-def recent_scans(user: dict, cid: int) -> list[dict]:
-    with db.tx() as c:
-        rs = db.rows(c, "SELECT id, kind, payload, created_at FROM detections WHERE user_id=? AND cellar_id=? AND status='scan' ORDER BY id DESC LIMIT 10",
-                     (user["id"], cid))
-    return [r | {"payload": json.loads(r["payload"])} for r in rs]
 
 
 def confirm_detection(user: dict, did: int, body: dict) -> dict:
@@ -372,5 +354,5 @@ def list_detections(user: dict, status: str = "pending") -> list[dict]:
     return [r | {"payload": json.loads(r["payload"])} for r in rs]
 
 
-__all__ = ["reconcile", "simulate_scan", "read_label", "upload_frame", "analyze_frame", "confirm_detection", "reject_detection",
-           "list_detections", "recent_scans", "provider_info", "BOTTLE_SQL"]
+__all__ = ["reconcile", "simulate_scan", "read_label", "analyze_frame", "confirm_detection", "reject_detection",
+           "list_detections", "provider_info", "BOTTLE_SQL"]
