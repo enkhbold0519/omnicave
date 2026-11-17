@@ -1,6 +1,6 @@
 # OmniCave — webOS display prototype
 
-Portrait (1080×1920) cellar-door UI for **webOS OSE 2.28**, plus a FastAPI dev backend, a simulated
+Portrait (1080×1920) cellar-door UI for **webOS OSE 2.28**, plus the shared FastAPI backend ([`../backend`](../backend/README.md)), a simulated
 Vision AI pipeline, and an edge agent for the cellar hardware. Full feature list and requirement
 coverage: [`docs/DETAILS.md`](docs/DETAILS.md).
 
@@ -23,7 +23,7 @@ npm run webos:deploy     :: build → .ipk → install → launch
 ```
 The packaged app talks to the backend at `http://10.0.2.2:8000` (the host PC as seen from VirtualBox).
 
-## Configuration (`backend/.env`, created from `.env.example`)
+## Configuration (`../backend/.env`, created from `.env.example`)
 | Key | Default | Notes |
 |---|---|---|
 | `LLM_PROVIDER` | `mock` | `hf` (Hugging Face, needs `HF_TOKEN` + paid credits) · `openai` · `vllm` (own server, LoRA per persona) |
@@ -37,5 +37,9 @@ It prints a 6-digit code. Enter it in the display under **Settings → Linked ce
 
 ## Tests
 ```bat
-cd backend && python -m tests.test_api
+cd ..\backend && python -m tests.test_api
 ```
+
+## Production
+Docker + PostgreSQL + HTTPS on AWS EC2: [`../deploy/README.md`](../deploy/README.md).
+Build the display against it with `VITE_API_BASE=https://<host>` (or set *Server address* in Profile → About).

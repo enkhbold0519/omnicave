@@ -16,6 +16,7 @@
 .env
 .env.*
 !.env.example
+!.env.production.example
 node_modules/
 .DS_Store
 
@@ -27,11 +28,27 @@ __pycache__/
 .venv/
 .pytest_cache/
 
+# shared backend (backend/) and production backups
+backend/.venv/
+backend/data/
+deploy/backups/
+
 # webOS prototype (webos/)
 webos/tools/
-webos/backend/.venv/
-webos/backend/data/
 webos/wine-cellar-display/dist/
 webos/wine-cellar-display/out/
 *.ipk
 edge_state.json
+
+# AI-1.5B-Legacy (1.5B PoC, rank study): weights, adapters and generated data stay local
+AI-1.5B-Legacy/lora/adapters/
+AI-1.5B-Legacy/lora/data/
+AI-1.5B-Legacy/lora/runs/
+AI-1.5B-Legacy/lora/eval/*.jsonl
+AI-1.5B-Legacy/data/
+# AI-7B: LoRA weights, raw downloads (data/raw), generated datasets (built from research-only reviews) and logs stay local
+AI-7B/adapters/
+AI-7B/data/
+AI-7B/eval/*.jsonl
+AI-7B/logs/
+*.safetensors

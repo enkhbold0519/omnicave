@@ -22,7 +22,7 @@ export function Modal({ title, onClose, children, wide }: { title: string; onClo
 }
 
 export function WindowBadge({ s }: { s: Bottle['window_status'] }) {
-  const t = { ready: 'At peak', young: 'Too young', 'past-peak': 'Past peak' }[s]
+  const t = { ready: 'Ready', young: 'Hold', 'past-peak': 'Past peak' }[s]  // same words as the Android app
   return <span className={`badge win-${s}`}>{t}</span>
 }
 

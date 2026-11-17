@@ -1,0 +1,33 @@
+# CellarOS production stack:  cd deploy && docker compose up -d --build
+#   caddy : HTTPS (automatic Let's Encrypt certificate) -> api
+#   api   : FastAPI backend (../backend)
+# The database is NOT here: it is an AWS RDS PostgreSQL instance, reached through DATABASE_URL.
+# This server keeps no data of its own (only Caddy's certificates), so it can be rebuilt freely.
+# Settings come from deploy/.env (copy .env.production.example).
+name: cellaros
+
+services:
+  api:
+    build: ../backend
+    restart: unless-stopped
+    env_file: .env          # DATABASE_URL (RDS), AI keys, ...
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?set SITE_ADDRESS in deploy/.env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data        # certificates - keep this volume
+      - caddy_config:/config
+    depends_on:
+      - api
+
+volumes:
+  caddy_data:
+  caddy_config:

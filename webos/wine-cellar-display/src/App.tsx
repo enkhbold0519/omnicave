@@ -1,20 +1,24 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { api, getToken, OfflineError, safeGet, safeSet, setToken, setUnauthorizedHandler } from './api'
 import { useDraft, usePoll } from './hooks'
-import type { Bottle, Cellar, CellarSummary, Detection, EnvZone, LlmInfo, Notification, ScanResult, User } from './types'
+import type { Bottle, Cellar, CellarSummary, Detection, EnvZone, Notification, User } from './types'
 import Header from './components/Header'
-import EnvStrip from './components/EnvStrip'
+import Icon, { type IconName } from './components/Icon'
+import { StatusCard, Welcome } from './components/CellarStatus'
+import ClimateHistory from './components/ClimateHistory'
+import ScreenSaver from './components/ScreenSaver'
+import { saverTimeoutMs } from './saver'
 import CellarView, { type PlacePoint, type ViewMode } from './components/CellarView'
-import BottleSheet from './components/BottleSheet'
 import BottleForm from './components/BottleForm'
 import ReviewDetection from './components/ReviewDetection'
 import Notifications from './components/Notifications'
 import Login from './views/Login'
-import Search from './views/Search'
+import Inventory from './views/Inventory'
+import WineDetails from './views/WineDetails'
 import Sommelier from './views/Sommelier'
 import Briefing from './views/Briefing'
 import Value from './views/Value'
-import Settings, { type Orientation } from './views/Settings'
+import Profile, { type Orientation } from './views/Profile'
 
 const W = 1080, H = 1920
 const isWebOS = location.protocol === 'file:' || 'PalmSystem' in window || /Web0S|webOS/i.test(navigator.userAgent)
@@ -39,11 +43,14 @@ function Stage({ orientation, children }: { orientation: Orientation; children: 
   return <div className="stage" style={{ width: W, height: H, transform }}>{children}</div>
 }
 
-type Tab = 'cellar' | 'search' | 'ai' | 'briefing' | 'value' | 'settings'
-const TABS: [Tab, string, string][] = [
-  ['cellar', '▦', 'Cellar'], ['search', '⌕', 'Search'], ['ai', '✦', 'Sommelier'],
-  ['briefing', '☀', 'Briefing'], ['value', '$', 'Value'], ['settings', '⚙', 'Settings'],
+/** Five main pages, same as the mobile apps. Profile (with settings) opens from the avatar, not from the tab bar. */
+type Tab = 'cellar' | 'inventory' | 'sommelier' | 'briefing' | 'value'
+type Page = Tab | 'profile'
+const TABS: [Tab, IconName, string][] = [
+  ['cellar', 'cellar', 'Cellar'], ['inventory', 'inventory', 'Inventory'], ['sommelier', 'sommelier', 'Sommelier'],
+  ['briefing', 'briefing', 'Briefing'], ['value', 'value', 'Value'],
 ]
+const PAGES: Page[] = [...TABS.map(t => t[0]), 'profile']
 
 export default function App() {
   const [orientation, setOrientationState] = useState<Orientation>(() => (safeGet('wc.orientation') as Orientation) || 'auto')
@@ -73,21 +80,35 @@ export default function App() {
 }
 
 function Main({ user, onUser, orientation, setOrientation }: { user: User; onUser: (u: User | null) => void; orientation: Orientation; setOrientation: (o: Orientation) => void }) {
-  const [tab, setTab] = useDraft<Tab>('tab', 'cellar')
+  const [savedPage, setTab] = useDraft<Page>('page', 'cellar')
+  const tab: Page = PAGES.includes(savedPage) ? savedPage : 'cellar'
+  const [lastTab, setLastTab] = useState<Tab>(tab === 'profile' ? 'cellar' : tab)
+  const go = (p: Page) => { if (p !== 'profile') setLastTab(p); setTab(p); setDetail(null) }
   const [cellarId, setCellarId] = useDraft<number | null>('cellar', null)
   const cellars = usePoll<CellarSummary[]>('/api/cellars', 10_000)
   const cellar = usePoll<Cellar>(cellarId ? `/api/cellars/${cellarId}` : null, 5_000)
   const env = usePoll<{ zones: EnvZone[] }>(cellarId ? `/api/cellars/${cellarId}/environment` : null, 5_000)
   const notifs = usePoll<{ items: Notification[]; unread: number }>('/api/notifications', 5_000)
   const detections = usePoll<Detection[]>('/api/detections', 5_000)
-  const health = usePoll<{ llm: LlmInfo; vision: { provider: string } }>('/api/health', 30_000)
 
   const [selected, setSelected] = useState<Bottle | null>(null)
+  const [detail, setDetail] = useState<Bottle | null>(null)
+  const [climateZone, setClimateZone] = useState<EnvZone | null>(null)
+  const [askWine, setAskWine] = useState<Bottle | null>(null)
+  const [saver, setSaver] = useState(false)
+
+  // screen saver after a while without touch (Profile → Appearance; ?saver=10 for a 10-second test)
+  useEffect(() => {
+    let last = Date.now()
+    const poke = () => { last = Date.now() }
+    const evs = ['pointerdown', 'keydown', 'wheel'] as const
+    evs.forEach(e => window.addEventListener(e, poke, true))
+    const t = setInterval(() => { const ms = saverTimeoutMs(); if (ms > 0 && Date.now() - last > ms) setSaver(true) }, 1000)
+    return () => { evs.forEach(e => window.removeEventListener(e, poke, true)); clearInterval(t) }
+  }, [])
   const [highlight, setHighlight] = useState<Set<number>>(new Set())
   const [viewMode, setViewMode] = useDraft<ViewMode>('viewmode', 'door')
   const [placing, setPlacing] = useState<null | { bottleId: number; layer: 'front' | 'back' }>(null)
-  const [scanEvent, setScanEvent] = useState('random')
-  const fileRef = useRef<HTMLInputElement>(null)
   const [form, setForm] = useState<null | { bottle?: Bottle }>(null)
   const [review, setReview] = useState<Detection | null>(null)
   const [showNotifs, setShowNotifs] = useState(false)
@@ -121,45 +142,22 @@ function Main({ user, onUser, orientation, setOrientation }: { user: User; onUse
 
   const refreshAll = () => { void cellar.refresh(); void cellars.refresh(); void notifs.refresh(); void detections.refresh() }
 
-  const pick = (b: Bottle, highlightSet?: Bottle[]) => {
+  /** Find: show the bottle on the cellar map, ringed and pulsing for a few seconds. */
+  const pick = (b: Bottle) => {
     if (b.cellar_id !== cellarId) setCellarId(b.cellar_id)
+    go('cellar')
     setSelected(b)
-    setTab('cellar')
-    const hl = new Set((highlightSet ?? [b]).filter(x => x.cellar_id === b.cellar_id).map(x => x.id))
-    setHighlight(hl)
+    setHighlight(new Set([b.id]))
     setTimeout(() => setHighlight(new Set()), 8000)
   }
-  const pickById = async (id: number) => { try { pick(await api<Bottle>('GET', `/api/bottles/${id}`)) } catch (e) { flash((e as Error).message, 'warning') } }
+  /** Open Wine Details over the current page (tab bar stays). */
+  const openWine = (b: Bottle) => setDetail(b)
+  const openById = async (id: number) => { try { openWine(await api<Bottle>('GET', `/api/bottles/${id}`)) } catch (e) { flash((e as Error).message, 'warning') } }
+  const startMove = (b: Bottle) => {
+    if (b.cellar_id !== cellarId) setCellarId(b.cellar_id)
+    go('cellar'); setSelected(b); setPlacing({ bottleId: b.id, layer: b.layer })
+  }
 
-  const afterScan = (r: ScanResult, label: string) => {
-    const parts = [`${r.unchanged} unchanged`]
-    if (r.occluded) parts.push(`${r.occluded} hidden behind others`)
-    if (r.moved.length) parts.push(`moved: ${r.moved.map(m => m.label).join(', ')}`)
-    if (r.removed.length) parts.push(`taken out: ${r.removed.map(m => m.label).join(', ')}`)
-    if (r.missing.length) parts.push(`${r.missing.length} not seen (removed after the next scan)`)
-    if (r.new.length) parts.push(`${r.new.length} new — review`)
-    flash(`📷 ${label}: ${parts.join(' · ')}`)
-    refreshAll()
-    if (r.new.length) {
-      const n = r.new[0]
-      setReview({ id: n.detection_id, kind: n.stacked ? 'stack' : 'insert', status: 'pending', cellar_id: cellarId!, payload: n })
-    }
-  }
-  const scan = async () => {
-    if (!cellarId) return
-    try { afterScan(await api<ScanResult>('POST', `/api/cellars/${cellarId}/vision/scan`, { event: scanEvent }), 'Simulated camera scan') }
-    catch (e) { flash((e as Error).message, 'warning') }
-  }
-  const uploadPhoto = async (f: File) => {
-    if (!cellarId) return
-    const b64 = await new Promise<string>((res, rej) => {
-      const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1] ?? ''); r.onerror = rej; r.readAsDataURL(f)
-    })
-    try {
-      const r = await api<ScanResult>('POST', `/api/cellars/${cellarId}/vision/frame`, { image_b64: b64, content_type: f.type || 'image/jpeg' })
-      afterScan(r, `Vision AI (${r.provider})`)
-    } catch (e) { flash((e as Error).message, 'warning') }
-  }
   const place = async (pt: PlacePoint) => {
     if (!placing) return
     try {
@@ -174,25 +172,21 @@ function Main({ user, onUser, orientation, setOrientation }: { user: User; onUse
   return (
     <div className="app">
       <Header user={user} cellars={cellars.data ?? []} cellarId={cellarId} onCellar={id => { setCellarId(id); setSelected(null) }}
-              unread={notifs.data?.unread ?? 0} onBell={() => setShowNotifs(true)} llm={health.data?.llm ?? null} />
+              unread={notifs.data?.unread ?? 0} onBell={() => setShowNotifs(true)}
+              onProfile={() => go(tab === 'profile' ? lastTab : 'profile')} profileOpen={tab === 'profile'} />
 
       <main className="content">
         {tab === 'cellar' && (
           <div className="view cellar-view">
-            <EnvStrip zones={env.data?.zones} stale={env.stale} />
+            <Welcome name={(user.display_name || user.username).split(' ')[0]} zones={env.data?.zones} bottles={cellar.data?.bottles.length ?? 0} offline={env.stale} />
+            <StatusCard zones={env.data?.zones} bottles={cellar.data?.bottles.length ?? 0} onBottles={() => go('inventory')} onZone={setClimateZone} />
             <div className="toolbar">
-              <div className="seg mini">
+              <div className="seg mini" role="tablist" aria-label="Map view">
                 <button className={viewMode === 'door' ? 'on' : ''} onClick={() => setViewMode('door')}>Door</button>
                 <button className={viewMode === '3d' ? 'on' : ''} onClick={() => setViewMode('3d')}>3D</button>
               </div>
-              <button className="btn" onClick={() => setForm({})}>＋ Add</button>
-              <select className="scan-select" value={scanEvent} onChange={e => setScanEvent(e.target.value)} aria-label="Simulated change">
-                <option value="random">Random change</option><option value="insert">New bottle</option><option value="stack">Stacked bottle</option>
-                <option value="move">Bottle moved</option><option value="remove">Bottle taken out</option><option value="none">No change</option>
-              </select>
-              <button className="btn" onClick={scan}>📷 Scan</button>
-              <button className="btn" onClick={() => fileRef.current?.click()}>⬆ Photo</button>
-              <input ref={fileRef} type="file" accept="image/*" hidden onChange={e => { const f = e.target.files?.[0]; if (f) void uploadPhoto(f); e.target.value = '' }} />
+              {(cellars.data?.length ?? 0) > 1 && cellar.data && <span className="muted toolbar-name">{cellar.data.name}</span>}
+              <button className="btn primary add-btn" onClick={() => setForm({})}>＋ Add bottle</button>
             </div>
             {placing && (
               <div className="place-banner">
@@ -206,37 +200,39 @@ function Main({ user, onUser, orientation, setOrientation }: { user: User; onUse
             )}
             {pending.length > 0 && !placing && (
               <button className="detect-banner" onClick={() => setReview(pending[0])}>
-                📷 {pending.length} detected bottle(s) waiting for your review — tap to confirm
+                {pending.length === 1 ? '1 new bottle' : `${pending.length} new bottles`} to review — tap to confirm
               </button>
             )}
             {cellar.data
               ? <MapArea>{(w, h) => (
                   <CellarView cellar={cellar.data!} mode={viewMode} width={w} height={h} selectedId={selected?.id ?? null}
-                              highlight={highlight} ghosts={pending} onSelect={b => pick(b)}
+                              highlight={highlight} ghosts={pending} onSelect={b => { setSelected(b); openWine(b) }}
                               placing={placing ? { layer: placing.layer } : null} onPlace={place} onGhost={d => setReview(d)} />
                 )}</MapArea>
               : <div className="muted">{cellar.error ?? 'Loading cellar…'}</div>}
-            {cellar.stale && <div className="offline-note">Offline — showing last synced inventory. Climate changes are queued.</div>}
-            {selected && !placing && <BottleSheet bottle={cellar.data?.bottles.find(b => b.id === selected.id) ?? selected} onClose={() => setSelected(null)} onEdit={() => setForm({ bottle: selected })}
-                                          onMove={() => setPlacing({ bottleId: selected.id, layer: selected.layer })} onChanged={refreshAll} />}
+            {cellar.stale && <div className="offline-note">Offline — showing the last saved inventory. Changes are sent when the connection is back.</div>}
           </div>
         )}
-        {tab === 'search' && <Search cellarId={cellarId} onPick={pick} />}
-        {tab === 'ai' && <Sommelier onPick={b => pick(b)} />}
-        {tab === 'briefing' && <Briefing />}
-        {tab === 'value' && <Value onPick={pickById} />}
-        {tab === 'settings' && (
-          <Settings user={user} onUser={onUser} cellar={cellar.data} cellars={cellars.data ?? []} envZones={env.data?.zones}
+        {tab === 'inventory' && <Inventory cellarId={cellarId} multiCellar={(cellars.data?.length ?? 0) > 1} onOpen={openWine} />}
+        {tab === 'sommelier' && <Sommelier onPick={openWine} startWine={askWine} onStarted={() => setAskWine(null)} />}
+        {tab === 'briefing' && <Briefing cellarId={cellarId} onOpen={openWine} onValue={() => go('value')} />}
+        {tab === 'value' && <Value onPick={openById} />}
+        {detail && (
+          <WineDetails bottle={detail} onClose={() => setDetail(null)} onFind={pick} onMove={startMove}
+                       onEdit={b => setForm({ bottle: b })} onChanged={refreshAll} onAsk={b => { setAskWine(b); go('sommelier') }} />
+        )}
+        {tab === 'profile' && (
+          <Profile onBack={() => go(lastTab)} user={user} onUser={onUser} cellar={cellar.data} cellars={cellars.data ?? []} envZones={env.data?.zones}
                     onCellarsChanged={id => { void cellars.refresh(); void cellar.refresh(); if (id) setCellarId(id) }}
                     onCellarChanged={() => { void cellar.refresh(); void cellars.refresh() }}
-                    orientation={orientation} onOrientation={setOrientation} />
+                    orientation={orientation} onOrientation={setOrientation} onPreviewSaver={() => setSaver(true)} />
         )}
       </main>
 
       <nav className="nav">
         {TABS.map(([k, icon, l]) => (
-          <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>
-            <span className="nav-icon">{icon}</span><span>{l}</span>
+          <button key={k} className={tab === k ? 'on' : ''} onClick={() => go(k)} aria-current={tab === k ? 'page' : undefined}>
+            <Icon name={icon} size={36} /><span>{l}</span>
           </button>
         ))}
       </nav>
@@ -244,12 +240,14 @@ function Main({ user, onUser, orientation, setOrientation }: { user: User; onUse
       {toast && <div className={`toast-float lvl-${toast.level}`} onClick={() => setToast(null)}>{toast.text}</div>}
       {form && cellar.data && (
         <BottleForm cellar={cellar.data} bottle={form.bottle} onClose={() => setForm(null)}
-                    onSaved={b => { setForm(null); refreshAll(); pick(b) }} />
+                    onSaved={b => { setForm(null); refreshAll(); openWine(b) }} />
       )}
       {review && (
         <ReviewDetection d={review} onClose={() => { setReview(null); refreshAll() }}
-                         onConfirmed={b => { setReview(null); refreshAll(); pick(b); flash('Registered — critics are discussing it now') }} />
+                         onConfirmed={b => { setReview(null); refreshAll(); openWine(b); flash('Added — the sommeliers are tasting it now') }} />
       )}
+      {saver && <ScreenSaver cellar={cellar.data} zones={env.data?.zones} onWake={() => setSaver(false)} />}
+      {climateZone && cellarId && <ClimateHistory cellarId={cellarId} zone={climateZone} onClose={() => setClimateZone(null)} />}
       {showNotifs && <Notifications items={notifs.data?.items ?? []} onClose={() => setShowNotifs(false)} onChanged={() => notifs.refresh()} />}
     </div>
   )
