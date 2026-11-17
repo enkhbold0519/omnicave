@@ -32,7 +32,7 @@ ROOT = HERE.parent
 RAW = HERE / "data" / "raw"
 OUT = HERE / "data" / "xwines_evidence.json"
 MAP = HERE / "sources" / "xwines_catalog_map.json"
-CATALOG_PY = ROOT / "webos" / "backend" / "app" / "catalog.py"
+CATALOG_PY = ROOT / "backend" / "app" / "catalog.py"
 MIN_RATINGS = 30
 MIN_PEERS = 5
 

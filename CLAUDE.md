@@ -52,9 +52,9 @@ python edge\edge_agent.py --server http://localhost:8000   :: fake cellar applia
 - **Windows scripts.** Keep `.ps1` files ASCII-only (Windows PowerShell 5.1 encoding) and `.cmd`/`.ps1` line endings CRLF.
 
 ## AI-7B — before you touch the critic AI
-- Read `AI-7B/CLAUDE.md` first. It lists what is done, what is left (gateway + `webos/backend` hookup) and the exact
-  steps.
-- The LoRAs were trained on the backend's debate prompt (`webos/backend/app/services.py`, mirrored in
+- Read `AI-7B/CLAUDE.md` first. It lists what is done, what is left (first live session on a pod) and how the
+  apps reach the LoRAs (backend -> `AI-7B/gateway.py` -> vLLM).
+- The LoRAs were trained on the backend's debate prompt (`backend/app/services.py`, mirrored in
   `AI-7B/prompts.py`). Changing that prompt breaks the LoRAs until they are retrained. Run
   `python AI-7B/check_prompt_sync.py` after any edit to it.
 - Weights (`AI-7B/adapters/`), generated data and logs are not in git. GPU work runs on a rented RunPod pod.

@@ -1,14 +1,15 @@
 # CLAUDE.md — AI-7B (critic-debate LoRAs on Qwen2.5-7B)
 
-Four fictional critic personas debate a bottle on the cellar-door display. Each persona is one LoRA on
+Four fictional critic personas debate a bottle in the apps' Sommelier table (display and Android). Each persona is one LoRA on
 `Qwen/Qwen2.5-7B-Instruct`. Facts (scores, prices, drink windows, tasting notes, crowd ranks) come from
 retrieved evidence (RAG), which is appended to the backend's prompt. The LoRA supplies the voice and
 how the persona argues from that evidence. Full history, decisions and measured numbers: `PLAN.md`.
 
-## Status (2026-11-16)
-| Done | Not done (next owner) |
+## Status (2026-11-17)
+| Done | Not done |
 | --- | --- |
-| Real-evidence wine pool, teacher+verifier data, 4 LoRAs trained and evaluated (`eval/report.md`), vLLM serving with all 4 LoRAs (TTFT 0.05-0.07 s), weights in GitHub Release `lora-7b-2026-11-16` | 7B **gateway** (RAG step in front of vLLM), **`webos/backend` hookup** |
+| Real-evidence wine pool, teacher+verifier data, 4 LoRAs trained and evaluated (`eval/report.md`), vLLM serving with all 4 LoRAs (TTFT 0.05-0.07 s), weights in GitHub Release `lora-7b-2026-11-16` | **First live session**: `gateway.py` and `pod/serve.sh` have only run against a fake vLLM and a one-wine pool, never on a pod |
+| Backend hookup (`backend/`): debate prompt shared by `/api/ai/dialogue` and the Sommelier table, 4 personas word for word, API key, silent fallback when the pod is off | `gateway.py --check` against the real `data/eval.jsonl`; streaming through the RunPod proxy |
 
 ## Personas (`personas.json`)
 | id | LoRA | Scale the verifier expects |
@@ -24,7 +25,7 @@ replies (`evidence7b.BANNED_NAMES`, enforced by `verify7b.py`).
 ## Files
 | File | Role |
 | --- | --- |
-| `prompts.py` | Mirror of the backend debate prompt (`webos/backend/app/services.py`). `OMNICAVE_PERSONAS` picks the persona file |
+| `prompts.py` | Mirror of the backend debate prompt (`backend/app/services.py`: `debate_label`, `debate_messages`). `OMNICAVE_PERSONAS` picks the persona file |
 | `check_prompt_sync.py` | Fails if `services.py` drifted from `prompts.py`. **A prompt change means re-generating data and retraining** |
 | `evidence7b.py` | Evidence blocks: `block_for(persona_id, pool_row)`, `format_critic`, `format_crowd` |
 | `build_xwines.py`, `sources/xwines_catalog_map.json` | X-Wines crowd evidence for the 20 catalog wines |
@@ -32,7 +33,8 @@ replies (`evidence7b.BANNED_NAMES`, enforced by `verify7b.py`).
 | `generate.py` + `verify7b.py` | Teacher (Qwen2.5-32B-AWQ) writes candidates; only verified replies are kept |
 | `train.py` | PEFT LoRA trainer (r=16, alpha 32, unmerged) |
 | `eval7b.py`, `serve_check7b.py` | Base vs LoRA scoring; streaming TTFT through `vllm serve` |
-| `pod/*.sh` | Pod setup, background run/wait helpers, `train_all.sh`, `serve_check.sh` |
+| `gateway.py` | RAG step in front of vLLM (standard library only): adds the evidence block to debate prompts, passes everything else through. `--check` compares served prompts with `data/eval.jsonl` |
+| `pod/*.sh` | Pod setup, background run/wait helpers, `train_all.sh`, `serve_check.sh`, `serve.sh` (vLLM + gateway for a test or demo session) |
 
 **Weights:** GitHub Release [`lora-7b-2026-11-16`](https://github.com/enkhbold0519/omnicave/releases/tag/lora-7b-2026-11-16),
 `omnicave-lora-7b-r16.zip` (569 MB, SHA-256 `d3ad96804949f43420f81958a59262836ecb7cf1475d7918f567fa2a432e2c76`).
@@ -49,37 +51,40 @@ if needed (see below).
    but that is an estimate, not tested.
 2. Copy the `pod/` scripts to `/root/omnicave/` and download the weights there (command above). Then run
    `TEACHER=0 ./setup.sh`, which installs vllm in `/root/venv` and downloads only the 7B model.
-3. Start vLLM with the 4 LoRAs (as in `pod/serve_check.sh`):
+3. Copy `gateway.py`, `prompts.py`, `evidence7b.py`, `personas.json` and `data/pool.jsonl` to `/root/omnicave/` too, expose
+   **HTTP port 8001** on the pod, then start vLLM (local only, port 8000) and the gateway (port 8001):
    ```bash
-   vllm serve Qwen/Qwen2.5-7B-Instruct --port 8000 --enable-lora --max-lora-rank 16 --max-loras 4 \
-     --max-model-len 4096 --lora-modules persona-power-critic=/root/omnicave/adapters/persona-power-critic ...
+   GATEWAY_API_KEY=<secret> ./serve.sh        # ./serve.sh stop  ends both
    ```
+   Give the backend owner the address `https://<pod-id>-8001.proxy.runpod.net/v1` and the secret.
 4. **Only Terminate stops all billing.** A stopped pod still bills its disk, and Stop wipes the container disk,
    so copy anything you need first, then Stop and Terminate.
 
-## Hooking it up to webOS (the remaining work)
-1. **Gateway (RAG step).** vLLM only switches LoRAs; it does not add evidence. Put a small OpenAI-compatible
-   proxy in front of it, on the pod:
-   - Find the wine label: `prompts.parse_label(messages)`. Find the persona: `prompts.parse_persona(messages)`.
-     The persona file must be `AI-7B/personas.json`.
-   - Look up the pool row whose `label` equals the parsed label (`data/pool.jsonl`). Append
-     `evidence7b.block_for(persona_id, row)` with `prompts.add_evidence`. Unknown wine: use `row = {}`, which
-     gives the "no evidence" blocks.
-   - Forward to vLLM and stream back. `AI-1.5B-Legacy/lora/serve.py` (`with_evidence`) is a working model of this
-     step for the 1.5B PoC.
-   - The appended prompt must be byte-identical to training (`messages[:2]` in `data/eval.jsonl`). Check it the
-     way the PoC did (served prompt == training prompt for every eval row).
-2. **`webos/backend`** (edit with the webos owner):
-   - `personas.json` <- `AI-7B/personas.json`. Persona names must match, because the gateway reads them from the
-     system prompt.
-   - `app/services.py` `_mock_turn`: add `value-critic` and `crowd-taste` branches (mock mode prints the
-     classicist's text for unknown ids).
-   - `app/llm.py`: send a `VLLM_API_KEY` bearer token (today it sends `"EMPTY"`).
-   - `.env`: `LLM_PROVIDER=vllm`, `VLLM_BASE_URL=<gateway>/v1`, `VLLM_BASE_MODEL=Qwen/Qwen2.5-7B-Instruct`.
-   - Run `python -m tests.test_api` (it counts personas from `personas.json`).
-3. **Reachability.** From the backend, use RunPod's HTTP proxy (`https://<pod-id>-<port>.proxy.runpod.net`) or a
-   direct TCP port. Check that SSE streaming is not buffered. Keep the API key in the backend only, never in the
-   display.
+## How the apps reach the LoRAs
+```
+apps -> backend (EC2) -> gateway.py (pod :8001) -> vLLM + 4 LoRAs (pod :8000)
+```
+1. **Backend** (`backend/`), with `LLM_PROVIDER=vllm`, `VLLM_BASE_URL=<gateway>/v1`, `VLLM_API_KEY=<secret>`,
+   `VLLM_BASE_MODEL=Qwen/Qwen2.5-7B-Instruct` in `deploy/.env` (then `docker compose up -d`):
+   - `/api/ai/dialogue` sends the debate prompt for every persona in `backend/personas.json`.
+   - `/api/ai/table` (what the apps use) sends the same debate prompt for a built-in persona that has a
+     `lora_adapter`, on a wine topic, **until the owner writes something**. From then on, and for questions
+     ("what to open tonight") and the user's own sommeliers, it sends the table prompt to the base model: the LoRAs
+     were trained on debates only and ignore questions.
+   - When a LoRA turn states "NN points", the backend adds the table's closing line (`Score: … Peak: …`) so the
+     apps show the badge. FQI and crowd ranks get no badge.
+   - Pod off or unreachable: the mock answer is shown without an error text and the server is skipped for 60 s.
+     `GET /api/health` -> `llm.last_error` tells whether the last request reached the pod.
+   - `backend/personas.json` holds the four personas word for word (name, title, philosophy, `lora_adapter`), each with
+     the table's `traits` block added. `backend/tests/test_api.py` fails if they drift from `personas.json` here.
+2. **Gateway** (`gateway.py`, on the pod): finds the wine (`prompts.parse_label`) and the persona
+   (`prompts.parse_persona`, from `AI-7B/personas.json`), looks up the pool row whose `label` equals the parsed
+   label and appends `evidence7b.block_for(persona_id, row)`. Unknown wine or missing `pool.jsonl`: `row = {}`, the
+   "no evidence" blocks. Before the first session run `python gateway.py --check`: the served prompt must be
+   byte-identical to training for every row of `data/eval.jsonl`.
+3. **Reachability.** RunPod's HTTP proxy (`https://<pod-id>-8001.proxy.runpod.net`). Check on the first session that
+   SSE streaming is not buffered (answers must arrive word by word). Keep the API key in the backend only, never
+   in the apps. The pod address changes with every new pod, so `VLLM_BASE_URL` has to be set again each time.
 
 ## Rebuild from scratch (measured: about 2 h on an A100, $4.45)
 ```bash

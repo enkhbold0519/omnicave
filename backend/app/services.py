@@ -486,8 +486,32 @@ def _mock_turn(p: dict, w: dict, i: int) -> str:
         return (f"I disagree on the emphasis — what matters is fruit quality versus structure. "
                 f"The fruit here is ripe and clean; at {year - (w['vintage'] or year)} years it is "
                 f"{'already giving pleasure' if w['drink_from'] <= year else 'still a little tight'}.")
+    if p["id"] == "value-critic":
+        return (f"Quality against price is my question. I give it 91 points and a value grade B+; "
+                f"drink it between {w['drink_from']} and {w['drink_to']}.")
+    if p["id"] == "crowd-taste":
+        return (f"I have no community ratings to rank this {w['region']} {w['grape']} against its peers, "
+                f"so I won't guess. In plain words: open it with friends and food around {w['drink_from']}.")
     return (f"Balance first: the acidity carries it. On my 20-point scale, 17.5. "
             f"Best window {w['drink_from']}–{w['drink_to']}; serve with food rather than alone.")
+
+
+# The persona LoRAs (AI-7B) were trained on exactly this label and these messages; AI-7B/prompts.py mirrors
+# them and the gateway recognises them by their wording. Changing a character here means retraining:
+# run `python AI-7B/check_prompt_sync.py` after any edit.
+def debate_label(w: dict) -> str:
+    label = f"{w['producer']} {w['name']} {w['vintage'] or 'NV'} ({w['region']}, {w['grape']}, {w['color']})"
+    return label
+
+
+def debate_messages(p: dict, label: str, uctx: str, transcript: list[str]) -> list[dict]:
+    return [
+        {"role": "system", "content": f"You are {p['name']}, a fictional wine critic ({p['title']}). Philosophy: {p['philosophy']} "
+                                      f"Stay in character. 2-3 sentences. Give tasting notes and an aging prediction. "
+                                      f"React to the previous critics if any. {LANG_HINT}"},
+        {"role": "user", "content": f"Wine on the table: {label}. Owner context: {uctx}\n"
+                                    f"Debate so far:\n" + ("\n".join(transcript) or "(you speak first)")},
+    ]
 
 
 def ai_dialogue(user: dict, body: dict) -> Iterator[dict]:
@@ -498,19 +522,13 @@ def ai_dialogue(user: dict, body: dict) -> Iterator[dict]:
     personas = load_personas()
     with db.tx() as c:
         uctx = _user_context(c, user)
-    label = f"{w['producer']} {w['name']} {w['vintage'] or 'NV'} ({w['region']}, {w['grape']}, {w['color']})"
+    label = debate_label(w)
     transcript: list[str] = []
     yield {"type": "meta", "bottle": b, "personas": personas, "provider": llm.provider_info()}
     for i, p in enumerate(personas):
         yield {"type": "turn", "persona": p["id"], "name": p["name"], "title": p["title"], "color": p["color"],
                "adapter": p.get("lora_adapter")}
-        msgs = [
-            {"role": "system", "content": f"You are {p['name']}, a fictional wine critic ({p['title']}). Philosophy: {p['philosophy']} "
-                                          f"Stay in character. 2-3 sentences. Give tasting notes and an aging prediction. "
-                                          f"React to the previous critics if any. {LANG_HINT}"},
-            {"role": "user", "content": f"Wine on the table: {label}. Owner context: {uctx}\n"
-                                        f"Debate so far:\n" + ("\n".join(transcript) or "(you speak first)")},
-        ]
+        msgs = debate_messages(p, label, uctx, transcript)
         text = ""
         for ev in _stream_text(msgs, _mock_turn(p, w, i), adapter=p.get("lora_adapter"), max_tokens=180):
             text += ev["text"]

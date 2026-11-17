@@ -30,6 +30,7 @@ OPENAI_API_KEY = env("OPENAI_API_KEY")
 OPENAI_MODEL = env("OPENAI_MODEL", "gpt-4o-mini")
 VLLM_BASE_URL = env("VLLM_BASE_URL", "http://localhost:8001/v1")
 VLLM_BASE_MODEL = env("VLLM_BASE_MODEL", "Qwen/Qwen2.5-7B-Instruct")
+VLLM_API_KEY = env("VLLM_API_KEY")   # bearer token of the LoRA server / gateway; empty -> "EMPTY" (no auth)
 WINE_SEARCHER_API_KEY = env("WINE_SEARCHER_API_KEY")
 NEWS_FEEDS = [u.strip() for u in env("NEWS_FEEDS", "").split(",") if u.strip()]
 SENSOR_INTERVAL = float(env("SENSOR_INTERVAL", "5"))

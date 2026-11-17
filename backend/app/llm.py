@@ -4,9 +4,12 @@ Providers
   mock   : no network; streams the caller-supplied fallback text
   hf     : Hugging Face Inference Providers  https://router.huggingface.co/v1
   openai : OpenAI                             https://api.openai.com/v1
-  vllm   : self-hosted (vLLM --enable-lora). The persona's LoRA adapter name is
-           sent as `model`, so the server hot-swaps adapters per persona.
-On any provider error we fall back to the mock text so the UI never breaks.
+  vllm   : self-hosted (vLLM --enable-lora, behind AI-7B/gateway.py). The persona's LoRA adapter name
+           is sent as `model`, so the server hot-swaps adapters per persona.
+On any provider error we fall back to the mock text so the UI never breaks. hf/openai show the error
+in the answer. The vllm server is a rented GPU that is switched off most of the time, so there the
+fallback is silent: the reason goes to the log and to /api/health (llm.last_error), and the server
+is not tried again for VLLM_RETRY_AFTER seconds.
 """
 import json
 import time
@@ -14,6 +17,9 @@ import urllib.error
 import urllib.request
 from typing import Iterator
 from . import config
+
+VLLM_RETRY_AFTER = 60   # seconds to skip the vllm server after it could not be reached
+_vllm = {"down_until": 0.0, "last_error": None}
 
 
 def provider_info() -> dict:
@@ -25,7 +31,10 @@ def provider_info() -> dict:
         "openai": bool(config.OPENAI_API_KEY),
         "vllm": True,
     }.get(p, False)
-    return {"provider": p, "model": model, "configured": configured, "lora_swapping": p == "vllm"}
+    info = {"provider": p, "model": model, "configured": configured, "lora_swapping": p == "vllm"}
+    if p == "vllm":
+        info["last_error"] = _vllm["last_error"]   # None -> the last request reached the server
+    return info
 
 
 def _endpoint(adapter: str | None) -> tuple[str, str, str]:
@@ -35,7 +44,7 @@ def _endpoint(adapter: str | None) -> tuple[str, str, str]:
     if p == "openai":
         return "https://api.openai.com/v1", config.OPENAI_API_KEY, config.OPENAI_MODEL
     if p == "vllm":
-        return config.VLLM_BASE_URL.rstrip("/"), "EMPTY", adapter or config.VLLM_BASE_MODEL
+        return config.VLLM_BASE_URL.rstrip("/"), config.VLLM_API_KEY or "EMPTY", adapter or config.VLLM_BASE_MODEL
     raise RuntimeError(f"unknown provider {p}")
 
 
@@ -56,6 +65,11 @@ def stream_chat(
     if config.LLM_PROVIDER == "mock":
         yield from _mock_stream(fallback)
         return
+    vllm = config.LLM_PROVIDER == "vllm"
+    if vllm and time.time() < _vllm["down_until"]:
+        yield from _mock_stream(fallback)
+        return
+    got_any = False
     try:
         base, key, model = _endpoint(adapter)
         if not key:
@@ -73,8 +87,7 @@ def stream_chat(
             headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
             method="POST",
         )
-        got_any = False
-        with urllib.request.urlopen(req, timeout=60) as resp:
+        with urllib.request.urlopen(req, timeout=20 if vllm else 60) as resp:
             for raw in resp:
                 line = raw.decode("utf-8", "ignore").strip()
                 if not line.startswith("data:"):
@@ -95,10 +108,20 @@ def stream_chat(
                     yield piece
         if not got_any:
             raise RuntimeError("empty response")
-    except urllib.error.HTTPError as e:
-        detail = e.read().decode("utf-8", "ignore")[:200]
-        yield f"[LLM error {e.code}: {detail}] — showing offline answer. "
-        yield from _mock_stream(fallback)
-    except Exception as e:  # network down, bad key, etc.
-        yield f"[LLM unavailable: {e}] — showing offline answer. "
+        if vllm:
+            _vllm["last_error"] = None
+    except Exception as e:  # network down, bad key, unknown model, etc.
+        if isinstance(e, urllib.error.HTTPError):
+            reason = f"LLM error {e.code}: {e.read().decode('utf-8', 'ignore')[:200]}"
+        else:
+            reason = f"LLM unavailable: {e}"
+        if vllm:
+            print(f"[llm] vllm model={adapter or config.VLLM_BASE_MODEL}: {reason}", flush=True)
+            _vllm["last_error"] = reason
+            if not isinstance(e, urllib.error.HTTPError):   # server unreachable: don't make every turn wait
+                _vllm["down_until"] = time.time() + VLLM_RETRY_AFTER
+        if got_any:      # the answer broke off midway: keep what was said, don't append the offline text
+            return
+        if not vllm:
+            yield f"[{reason}] — showing offline answer. "
         yield from _mock_stream(fallback)
