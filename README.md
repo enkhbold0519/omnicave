@@ -5,7 +5,7 @@
 > 26-2 Hanyang University Software Engineering Project
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="documents/images/hero-dark.png">
+  <source media="(prefers-color-scheme: dark)" srcset="documents/images/hero-light.png">
   <img src="documents/images/hero-light.png" alt="OmniCave" width="100%">
 </picture>
 
@@ -28,7 +28,7 @@ The system rests on three ideas:
 ## Architecture
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="documents/images/architecture-dark.png">
+  <source media="(prefers-color-scheme: dark)" srcset="documents/images/architecture-light.png">
   <img src="documents/images/architecture-light.png" alt="OmniCave architecture" width="100%">
 </picture>
 
