@@ -44,3 +44,12 @@ DATABASE_URL = env("DATABASE_URL")
 CORS_ORIGINS = [o.strip() for o in env("CORS_ORIGINS", "*").split(",")]
 PERSONAS_PATH = BASE_DIR / "personas.json"
 TOKEN_TTL_HOURS = 24 * 7
+# Email codes (see mailer.py). Until SES is connected: provider "log" and verification not required.
+EMAIL_PROVIDER = env("EMAIL_PROVIDER", "log").lower()   # log | ses
+EMAIL_VERIFICATION_REQUIRED = env("EMAIL_VERIFICATION_REQUIRED", "0") not in ("0", "false", "no", "off")
+EMAIL_FROM = env("EMAIL_FROM", "OmniCave <no-reply@example.com>")
+SMTP_HOST = env("SMTP_HOST")
+SMTP_PORT = int(env("SMTP_PORT", "587"))
+SMTP_USER = env("SMTP_USER")
+SMTP_PASSWORD = env("SMTP_PASSWORD")
+MIN_AGE = 19   # Korean legal drinking age (Youth Protection Act)

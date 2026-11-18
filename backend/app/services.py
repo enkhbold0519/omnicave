@@ -9,7 +9,7 @@ import statistics
 from datetime import date, datetime, timedelta, timezone
 from typing import Iterator
 
-from . import config, db, geometry as geo, inventory, llm, market, news, security
+from . import accounts, config, db, geometry as geo, inventory, llm, market, news, security
 from .catalog import CATALOG
 from .common import ApiError, notify, utc
 from .inventory import WINE_FIELDS, COLORS, BOTTLE_SQL  # noqa: F401  (re-exported)
@@ -27,26 +27,40 @@ EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 # =====================================================================
 # Users & auth
 # =====================================================================
-def register(username: str, email: str, password: str, seed_demo: bool = True) -> dict:
-    username = (username or "").strip()
-    email = (email or "").strip().lower()
+def register(body: dict) -> dict:
+    """Sign-up: {username, email, password, birth_date: "YYYY-MM-DD", consents: {terms, privacy, overseas, marketing},
+    seed_demo?}. When email verification is required, the answer is {verification_required: true, email} and the
+    user logs in through /api/auth/verify-email; otherwise the user is logged in straight away."""
+    username = str(body.get("username") or "").strip()
+    email = str(body.get("email") or "").strip().lower()
+    password = str(body.get("password") or "")
     if not re.fullmatch(r"[A-Za-z0-9_.-]{3,32}", username):
         raise ApiError(400, "Username must be 3-32 chars (letters, digits, _ . -)")
     if not EMAIL_RE.match(email):
         raise ApiError(400, "Invalid email")
-    if len(password or "") < 8:
+    if len(password) < 8:
         raise ApiError(400, "Password must be at least 8 characters")
+    birth_date = accounts.check_birth_date(body.get("birth_date"))
+    decisions = accounts.check_consents(body.get("consents"))
+    verified = not config.EMAIL_VERIFICATION_REQUIRED
+    code = None
     with db.tx() as c:
         if db.one(c, "SELECT 1 FROM users WHERE username=? OR email=?", (username, email)):
             raise ApiError(409, "Username or email already registered")
         cur = c.execute(
-            "INSERT INTO users(username,email,pw_hash,display_name) VALUES(?,?,?,?)",
-            (username, email, security.hash_password(password), username),
+            "INSERT INTO users(username,email,pw_hash,display_name,birth_date,email_verified) VALUES(?,?,?,?,?,?)",
+            (username, email, security.hash_password(password), username, birth_date, int(verified)),
         )
         uid = cur.lastrowid
+        accounts.record_consents(c, uid, decisions)
         cid = inventory.create_cellar_row(c, uid, "Main Cellar", "tall")
-        if seed_demo:
+        if body.get("seed_demo", True):
             inventory.seed_demo(c, uid, cid)
+        if not verified:
+            code = accounts.issue_code(c, uid, "verify")
+    if not verified:
+        accounts.send_code(email, "verify", code)
+        return {"verification_required": True, "email": email}
     return login(username, password)
 
 
@@ -55,13 +69,28 @@ def login(username: str, password: str) -> dict:
         u = db.one(c, "SELECT * FROM users WHERE username=? OR email=?", (username, (username or "").lower()))
         if not u or not security.verify_password(password or "", u["pw_hash"]):
             raise ApiError(401, "Invalid username or password")
-        token = security.new_token()
+    if config.EMAIL_VERIFICATION_REQUIRED and not u["email_verified"]:
+        # 403, not 401: the apps treat 401 as "session expired". They show the code screen for this one.
+        raise ApiError(403, f"Please verify your email first. Enter the code we sent to {u['email']}.")
+    return _session(u["id"])
+
+
+def _session(uid: int) -> dict:
+    """A new login token for this user."""
+    token = security.new_token()
+    with db.tx() as c:
         c.execute(
             "INSERT INTO tokens(token_hash,user_id,expires_at) VALUES(?,?,?)",
-            (security.token_hash(token), u["id"], utc(config.TOKEN_TTL_HOURS * 3600)),
+            (security.token_hash(token), uid, utc(config.TOKEN_TTL_HOURS * 3600)),
         )
         c.execute("DELETE FROM tokens WHERE expires_at < ?", (utc(),))
-    return {"access_token": token, "token_type": "bearer", "user": _public_user(u)}
+        u = db.one(c, "SELECT * FROM users WHERE id=?", (uid,))
+    return {"access_token": token, "token_type": "bearer", "verification_required": False, "user": _public_user(u)}
+
+
+def verify_email(body: dict) -> dict:
+    """Sign-up code -> verified and logged in."""
+    return _session(accounts.verify_email(body))
 
 
 def logout(token: str) -> dict:
@@ -85,6 +114,8 @@ def user_from_token(token: str | None) -> dict:
 
 
 def _public_user(u: dict) -> dict:
+    with db.tx() as c:
+        consents = accounts.current_consents(c, u["id"])
     return {
         "id": u["id"],
         "username": u["username"],
@@ -92,6 +123,10 @@ def _public_user(u: dict) -> dict:
         "display_name": u["display_name"],
         "preferences": json.loads(u["preferences"] or "{}"),
         "briefing_time": u["briefing_time"],
+        "birth_date": u["birth_date"],
+        "email_verified": bool(u["email_verified"]),
+        "pending_email": u["pending_email"],                # set while a new address waits for its code
+        "consents": {k: v["granted"] for k, v in consents.items()},
     }
 
 
@@ -99,33 +134,58 @@ def get_me(user: dict) -> dict:
     return _public_user(user)
 
 
-def update_me(user: dict, body: dict) -> dict:
+def update_me(user: dict, body: dict, token: str | None = None) -> dict:
+    """Profile changes. Changing the email or the password needs current_password. With email verification
+    required, a new email is kept in pending_email until confirmed with POST /api/me/email/verify."""
     sets, params = [], []
     if "display_name" in body:
         sets.append("display_name=?"); params.append(str(body["display_name"])[:64])
-    if "email" in body:
-        email = str(body["email"]).strip().lower()
-        if not EMAIL_RE.match(email):
-            raise ApiError(400, "Invalid email")
-        sets.append("email=?"); params.append(email)
     if "preferences" in body and isinstance(body["preferences"], dict):
         sets.append("preferences=?"); params.append(db.dumps(body["preferences"]))
     if "briefing_time" in body:
         if not re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", str(body["briefing_time"])):
             raise ApiError(400, "briefing_time must be HH:MM")
         sets.append("briefing_time=?"); params.append(body["briefing_time"])
+
+    email = str(body["email"]).strip().lower() if "email" in body else None
+    if email == user["email"]:
+        email = None
+    if email is not None or "password" in body:
+        # 403, not 401: the apps treat 401 as "session expired" and would log the user out
+        if not security.verify_password(str(body.get("current_password") or ""), user["pw_hash"]):
+            raise ApiError(403, "Your current password is wrong")
+    if email is not None and not EMAIL_RE.match(email):
+        raise ApiError(400, "Invalid email")
     if "password" in body:
-        if len(body["password"]) < 8:
+        if len(str(body["password"])) < 8:
             raise ApiError(400, "Password must be at least 8 characters")
-        sets.append("pw_hash=?"); params.append(security.hash_password(body["password"]))
-    if sets:
-        with db.tx() as c:
-            try:
-                c.execute(f"UPDATE users SET {', '.join(sets)} WHERE id=?", (*params, user["id"]))
-            except Exception:
+        sets.append("pw_hash=?"); params.append(security.hash_password(str(body["password"])))
+    code = None
+    with db.tx() as c:
+        if email is not None:
+            if db.one(c, "SELECT 1 FROM users WHERE email=? AND id<>?", (email, user["id"])):
                 raise ApiError(409, "Email already in use")
-            user = db.one(c, "SELECT * FROM users WHERE id=?", (user["id"],))
+            if config.EMAIL_VERIFICATION_REQUIRED:
+                sets.append("pending_email=?"); params.append(email)
+                code = accounts.issue_code(c, user["id"], "email_change")
+            else:
+                sets.append("email=?"); params.append(email)
+        if sets:
+            c.execute(f"UPDATE users SET {', '.join(sets)} WHERE id=?", (*params, user["id"]))
+        if "password" in body:   # log out every other session
+            c.execute("DELETE FROM tokens WHERE user_id=? AND token_hash<>?", (user["id"], security.token_hash(token or "")))
+        if "consents" in body:
+            accounts.update_optional_consents(c, user["id"], body["consents"])
+        user = db.one(c, "SELECT * FROM users WHERE id=?", (user["id"],))
+    accounts.send_code(email, "email_change", code)
     return _public_user(user)
+
+
+def confirm_email_change(user: dict, body: dict) -> dict:
+    accounts.confirm_email_change(user, body)
+    with db.tx() as c:
+        u = db.one(c, "SELECT * FROM users WHERE id=?", (user["id"],))
+    return _public_user(u)
 
 
 def export_me(user: dict) -> dict:
@@ -144,6 +204,7 @@ def export_me(user: dict) -> dict:
             "notifications": db.rows(c, "SELECT * FROM notifications WHERE user_id=?", (uid,)),
             "sommeliers": db.rows(c, "SELECT * FROM user_personas WHERE user_id=?", (uid,)),
             "sommelier_memory": db.rows(c, "SELECT * FROM persona_memory WHERE user_id=?", (uid,)),
+            "consents": db.rows(c, "SELECT key, granted, version, created_at FROM consents WHERE user_id=? ORDER BY id", (uid,)),
         }
 
 

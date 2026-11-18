@@ -1,7 +1,7 @@
 """Framework-agnostic route table, mounted by main.py (FastAPI) and devserver.py (stdlib, used by the tests)."""
 from dataclasses import dataclass
 from typing import Any, Callable
-from . import devices as dv, inventory as inv, live, llm, services as s, tasting as t, vision as vi
+from . import accounts as acc, devices as dv, inventory as inv, legal, live, llm, mailer, services as s, tasting as t, vision as vi
 
 
 @dataclass
@@ -28,13 +28,19 @@ def _i(x) -> int:
 
 
 ROUTES: list[Route] = [
-    Route("GET", "/api/health", lambda c: {"status": "ok", "llm": llm.provider_info(), "vision": vi.provider_info()}, auth="none"),
+    Route("GET", "/api/health", lambda c: {"status": "ok", "llm": llm.provider_info(), "vision": vi.provider_info(), "email": mailer.provider_info()}, auth="none"),
     # ---- auth / user (FR1)
-    Route("POST", "/api/auth/register", lambda c: s.register(c.body.get("username"), c.body.get("email"), c.body.get("password"), c.body.get("seed_demo", True)), auth="none"),
+    Route("GET", "/api/legal", lambda c: legal.info(), auth="none"),   # consent list + policy texts for sign-up
+    Route("POST", "/api/auth/register", lambda c: s.register(c.body), auth="none"),
     Route("POST", "/api/auth/login", lambda c: s.login(c.body.get("username"), c.body.get("password")), auth="none"),
+    Route("POST", "/api/auth/verify-email", lambda c: s.verify_email(c.body), auth="none"),
+    Route("POST", "/api/auth/resend-code", lambda c: acc.resend_verification(c.body), auth="none"),
+    Route("POST", "/api/auth/forgot-password", lambda c: acc.forgot_password(c.body), auth="none"),
+    Route("POST", "/api/auth/reset-password", lambda c: acc.reset_password(c.body), auth="none"),
     Route("POST", "/api/auth/logout", lambda c: s.logout(c.token)),
     Route("GET", "/api/me", lambda c: s.get_me(c.user)),
-    Route("PATCH", "/api/me", lambda c: s.update_me(c.user, c.body)),
+    Route("PATCH", "/api/me", lambda c: s.update_me(c.user, c.body, c.token)),
+    Route("POST", "/api/me/email/verify", lambda c: s.confirm_email_change(c.user, c.body)),
     Route("GET", "/api/me/export", lambda c: s.export_me(c.user)),
     Route("DELETE", "/api/me", lambda c: s.delete_me(c.user)),
     # ---- cellars, racks (free 3D mapping), zones (FR3, FR4, FR8)

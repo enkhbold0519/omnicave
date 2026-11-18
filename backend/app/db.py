@@ -26,6 +26,28 @@ CREATE TABLE IF NOT EXISTS users (
   preferences TEXT DEFAULT '{}',
   briefing_time TEXT DEFAULT '08:00',
   last_briefing_push TEXT,
+  birth_date TEXT,                              -- YYYY-MM-DD, checked against MIN_AGE at sign-up
+  email_verified INTEGER NOT NULL DEFAULT 0,
+  pending_email TEXT,                           -- new address waiting for its code (email change)
+  created_at TEXT DEFAULT (datetime('now'))
+);
+-- consent history (PIPA): one row per decision, never updated, so it shows what was agreed and when
+CREATE TABLE IF NOT EXISTS consents (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  key TEXT NOT NULL,                            -- terms | privacy | overseas | marketing | legacy
+  granted INTEGER NOT NULL,
+  version TEXT NOT NULL,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+-- 6-digit email codes; only a hash is stored
+CREATE TABLE IF NOT EXISTS email_codes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  purpose TEXT NOT NULL,                        -- verify | reset | email_change
+  code_hash TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  attempts INTEGER NOT NULL DEFAULT 0,
   created_at TEXT DEFAULT (datetime('now'))
 );
 CREATE TABLE IF NOT EXISTS tokens (
@@ -247,11 +269,33 @@ def tx():
             conn.close()
 
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 # PostgreSQL holds real data, so schema changes are migrations, never a reset:
 # MIGRATIONS[n] upgrades version n-1 -> n. Add an entry here and bump SCHEMA_VERSION.
-MIGRATIONS: dict[int, str] = {}
+MIGRATIONS: dict[int, str] = {
+    # v3: age gate, consents, email verification. Existing accounts count as verified and get a 'legacy' consent.
+    3: _pg_schema("""
+ALTER TABLE users ADD COLUMN birth_date TEXT;
+ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE users ALTER COLUMN email_verified SET DEFAULT 0;
+ALTER TABLE users ADD COLUMN pending_email TEXT;
+CREATE TABLE IF NOT EXISTS consents (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  key TEXT NOT NULL, granted INTEGER NOT NULL, version TEXT NOT NULL,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS email_codes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  purpose TEXT NOT NULL, code_hash TEXT NOT NULL, expires_at TEXT NOT NULL,
+  attempts INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+INSERT INTO consents(user_id, key, granted, version) SELECT id, 'legacy', 1, 'legacy' FROM users;
+"""),
+}
 
 
 def init() -> None:
