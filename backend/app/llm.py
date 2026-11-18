@@ -80,7 +80,13 @@ def stream_chat(
         req = urllib.request.Request(
             f"{base}/chat/completions",
             data=json.dumps(body).encode(),
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
+            # Explicit User-Agent: RunPod's proxy sits behind Cloudflare, which rejects urllib's
+            # default "Python-urllib/x.y" with 403 "error code: 1010".
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {key}",
+                "User-Agent": "cellaros-backend/1.0",
+            },
             method="POST",
         )
         with urllib.request.urlopen(req, timeout=20 if vllm else 60) as resp:
