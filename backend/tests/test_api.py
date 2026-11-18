@@ -14,15 +14,19 @@ import urllib.request
 os.environ["DB_PATH"] = os.path.join(tempfile.mkdtemp(), "test.db")
 os.environ["SENSOR_INTERVAL"] = "0.5"
 os.environ["LLM_PROVIDER"] = "mock"
+os.environ["EMAIL_PROVIDER"] = "log"
+os.environ["EMAIL_VERIFICATION_REQUIRED"] = "0"
 # only an explicit TEST_DATABASE_URL selects PostgreSQL; a DATABASE_URL from .env is ignored
 os.environ["DATABASE_URL"] = os.environ.get("TEST_DATABASE_URL", "")
 
-from app import config, db, simulator  # noqa: E402
+from app import config, db, mailer, simulator  # noqa: E402
 from app.devserver import Handler  # noqa: E402
 from http.server import ThreadingHTTPServer  # noqa: E402
 
 BASE = ""
 TOKEN = ""
+# what every sign-up must send besides username/email/password: an adult birth date and the required consents
+ADULT = {"birth_date": "1990-05-01", "consents": {"terms": True, "privacy": True, "overseas": True}}
 
 
 def call(method, path, body=None, stream=False, expect=200):
@@ -55,9 +59,9 @@ def main():
 
     assert call("GET", "/api/health")["status"] == "ok"
     call("POST", "/api/auth/register", {"username": "x", "email": "bad", "password": "1"}, expect=400)
-    r = call("POST", "/api/auth/register", {"username": "charlie", "email": "c@example.com", "password": "password123"})
+    r = call("POST", "/api/auth/register", {"username": "charlie", "email": "c@example.com", "password": "password123", **ADULT})
     TOKEN = r["access_token"]
-    call("POST", "/api/auth/register", {"username": "charlie", "email": "c@example.com", "password": "password123"}, expect=409)
+    call("POST", "/api/auth/register", {"username": "charlie", "email": "c@example.com", "password": "password123", **ADULT}, expect=409)
     assert call("PATCH", "/api/me", {"display_name": "Charlie", "briefing_time": "07:30"})["briefing_time"] == "07:30"
 
     cellars = call("GET", "/api/cellars")
@@ -239,7 +243,7 @@ def main():
     res = call("GET", "/api/bottles?q=")
     assert {cid, c2["id"], c3} <= {r["cellar_id"] for r in res}
     tok1 = TOKEN
-    TOKEN = call("POST", "/api/auth/register", {"username": "mallory", "email": "m@example.com", "password": "password123", "seed_demo": False})["access_token"]
+    TOKEN = call("POST", "/api/auth/register", {"username": "mallory", "email": "m@example.com", "password": "password123", "seed_demo": False, **ADULT})["access_token"]
     call("GET", f"/api/cellars/{cid}", expect=404)
     assert call("GET", "/api/bottles?q=") == []
     TOKEN = tok1
@@ -252,7 +256,94 @@ def main():
     TOKEN = call("POST", "/api/auth/login", {"username": "charlie", "password": "password123"})["access_token"]
     call("DELETE", "/api/me")
     call("POST", "/api/auth/login", {"username": "charlie", "password": "password123"}, expect=401)
+    account_tests()
     print("ALL TESTS PASSED")
+
+
+def last_code(to: str) -> str:
+    """The newest code mailed to this address (EMAIL_PROVIDER=log keeps the messages in mailer.SENT)."""
+    msg = next(m for m in reversed(mailer.SENT) if m["to"] == to)
+    return next(w for w in msg["text"].split() if w.isdigit() and len(w) == 6)
+
+
+def account_tests():
+    """Age gate, consents, password change, email verification, email change and password reset."""
+    global TOKEN
+    from datetime import date
+    TOKEN = ""
+    base = {"username": "dora", "email": "d@example.com", "password": "password123", "seed_demo": False}
+    legal = call("GET", "/api/legal")
+    assert {c["key"] for c in legal["consents"] if c["required"]} == {"terms", "privacy", "overseas"}
+    assert "Privacy Policy" in legal["documents"]["privacy"]
+
+    # age gate: only the birth year counts (Youth Protection Act)
+    call("POST", "/api/auth/register", base | ADULT | {"birth_date": f"{date.today().year - 18}-01-01"}, expect=403)
+    call("POST", "/api/auth/register", base | ADULT | {"birth_date": "not a date"}, expect=400)
+    # consents: every required one must be true
+    call("POST", "/api/auth/register", base | ADULT | {"consents": {"terms": True, "privacy": True}}, expect=400)
+    r = call("POST", "/api/auth/register", base | ADULT | {"birth_date": f"{date.today().year - 19}-12-31",
+                                                            "consents": ADULT["consents"] | {"marketing": True}})
+    TOKEN = r["access_token"]
+    me = r["user"]
+    assert me["email_verified"] and me["consents"] == {"terms": True, "privacy": True, "overseas": True, "marketing": True}
+
+    # optional consent can be withdrawn, required ones cannot
+    assert call("PATCH", "/api/me", {"consents": {"marketing": False}})["consents"]["marketing"] is False
+    call("PATCH", "/api/me", {"consents": {"privacy": False}}, expect=400)
+    assert [x["key"] for x in call("GET", "/api/me/export")["consents"]].count("marketing") == 2, "consent history kept"
+
+    # password change needs the current password and logs out the other sessions
+    other = call("POST", "/api/auth/login", {"username": "dora", "password": "password123"})["access_token"]
+    call("PATCH", "/api/me", {"password": "newpassword1"}, expect=403)
+    call("PATCH", "/api/me", {"password": "newpassword1", "current_password": "wrong"}, expect=403)
+    call("PATCH", "/api/me", {"password": "newpassword1", "current_password": "password123"})
+    call("GET", "/api/me")                                   # this session stays
+    TOKEN, mine = other, TOKEN
+    call("GET", "/api/me", expect=401)                       # the other one was logged out
+    TOKEN = mine
+
+    # with verification required: sign-up gives no token until the emailed code is entered
+    config.EMAIL_VERIFICATION_REQUIRED = True
+    try:
+        TOKEN = ""
+        r = call("POST", "/api/auth/register", {"username": "erin", "email": "e@example.com", "password": "password123", **ADULT})
+        assert r == {"verification_required": True, "email": "e@example.com"}
+        call("POST", "/api/auth/login", {"username": "erin", "password": "password123"}, expect=403)
+        call("POST", "/api/auth/resend-code", {"email": "e@example.com"}, expect=200)   # within a minute: quietly ignored
+        call("POST", "/api/auth/verify-email", {"email": "e@example.com", "code": "000000"}, expect=400)
+        r = call("POST", "/api/auth/verify-email", {"email": "e@example.com", "code": last_code("e@example.com")})
+        assert r["access_token"] and r["user"]["email_verified"]
+        call("POST", "/api/auth/verify-email", {"email": "e@example.com", "code": "000000"}, expect=400)   # no session without a code
+        call("POST", "/api/auth/login", {"username": "erin", "password": "password123"})
+
+        # email change: the new address waits for its code
+        TOKEN = r["access_token"]
+        call("PATCH", "/api/me", {"email": "e2@example.com"}, expect=403)
+        me = call("PATCH", "/api/me", {"email": "e2@example.com", "current_password": "password123"})
+        assert me["email"] == "e@example.com" and me["pending_email"] == "e2@example.com"
+        me = call("POST", "/api/me/email/verify", {"code": last_code("e2@example.com")})
+        assert me["email"] == "e2@example.com" and me["pending_email"] is None
+
+        # too many wrong codes use the code up
+        TOKEN = ""
+        call("POST", "/api/auth/register", {"username": "fay", "email": "f@example.com", "password": "password123", **ADULT})
+        for _ in range(5):
+            call("POST", "/api/auth/verify-email", {"email": "f@example.com", "code": "999999"}, expect=400)
+        call("POST", "/api/auth/verify-email", {"email": "f@example.com", "code": last_code("f@example.com")}, expect=400)
+    finally:
+        config.EMAIL_VERIFICATION_REQUIRED = False
+
+    # forgot password: unknown emails get the same answer; the code sets a new password and ends all sessions
+    TOKEN = ""
+    assert call("POST", "/api/auth/forgot-password", {"email": "nobody@example.com"}) == {"ok": True}
+    call("POST", "/api/auth/forgot-password", {"email": "d@example.com"})
+    call("POST", "/api/auth/reset-password", {"email": "d@example.com", "code": "123456", "password": "resetpass1"}, expect=400)
+    call("POST", "/api/auth/reset-password", {"email": "d@example.com", "code": last_code("d@example.com"), "password": "resetpass1"})
+    TOKEN = mine
+    call("GET", "/api/me", expect=401)
+    TOKEN = ""
+    call("POST", "/api/auth/login", {"username": "dora", "password": "newpassword1"}, expect=401)
+    call("POST", "/api/auth/login", {"username": "d@example.com", "password": "resetpass1"})
 
 
 if __name__ == "__main__":
