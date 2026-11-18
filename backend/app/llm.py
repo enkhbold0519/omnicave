@@ -80,7 +80,9 @@ def stream_chat(
         req = urllib.request.Request(
             f"{base}/chat/completions",
             data=json.dumps(body).encode(),
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
+            # RunPod's HTTP proxy answers 403 to the default "Python-urllib/x.y" User-Agent.
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}",
+                     "User-Agent": "omnicave-backend/1.0"},
             method="POST",
         )
         with urllib.request.urlopen(req, timeout=20 if vllm else 60) as resp:

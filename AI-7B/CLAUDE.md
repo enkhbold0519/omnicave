@@ -5,11 +5,12 @@ Four fictional critic personas debate a bottle in the apps' Sommelier table (dis
 retrieved evidence (RAG), which is appended to the backend's prompt. The LoRA supplies the voice and
 how the persona argues from that evidence. Full history, decisions and measured numbers: `PLAN.md`.
 
-## Status (2026-11-17)
+## Status (2026-11-18)
 | Done | Not done |
 | --- | --- |
-| Real-evidence wine pool, teacher+verifier data, 4 LoRAs trained and evaluated (`eval/report.md`), vLLM serving with all 4 LoRAs (TTFT 0.05-0.07 s), weights in GitHub Release `lora-7b-2026-11-16` | **First live session**: `gateway.py` and `pod/serve.sh` have only run against a fake vLLM and a one-wine pool, never on a pod |
-| Backend hookup (`backend/`): debate prompt shared by `/api/ai/dialogue` and the Sommelier table, 4 personas word for word, API key, silent fallback when the pod is off | `gateway.py --check` against the real `data/eval.jsonl`; streaming through the RunPod proxy |
+| Real-evidence wine pool, teacher+verifier data, 4 LoRAs trained and evaluated (`eval/report.md`), vLLM serving with all 4 LoRAs (TTFT 0.05-0.07 s), weights in GitHub Release `lora-7b-2026-11-16` | Apps end to end against a live pod (only the backend's `llm.py` was checked) |
+| Backend hookup (`backend/`): debate prompt shared by `/api/ai/dialogue` and the Sommelier table, 4 personas word for word, API key, silent fallback when the pod is off | |
+| First live session (A40, vLLM 0.34.0): `gateway.py --check` 235/235, key enforced, all 4 personas stream with evidence through the RunPod proxy (first token 1.0-1.2 s) | |
 
 ## Personas (`personas.json`)
 | id | LoRA | Scale the verifier expects |
@@ -102,6 +103,10 @@ python build_xwines.py && python build_pool.py          # local, needs data/raw 
   prompt (evidence + earlier turns). Style words (rich, polished, ...) are opinion and are allowed.
 - **Crowd numbers.** Compare only within the same region and grape; never use raw rating averages. The relation
   words ("above its peers") are written by retrieval, not decided by the model.
+- **RunPod template nginx.** The PyTorch template's nginx listens on 8001 and forwards to :8000 without a key.
+  `serve.sh` moves it to `127.0.0.1:18001` before starting; without that, vLLM is public and the gateway cannot bind.
+- **RunPod proxy and User-Agent.** The proxy answers 403 to `Python-urllib/*`. Clients must send their own
+  User-Agent (`backend/app/llm.py` sends `omnicave-backend/1.0`).
 - **Pod shell.** Ubuntu 24.04 blocks system pip (PEP 668), so use `/root/venv`. vLLM needs `ninja` on `PATH`.
   `pgrep -f name` also matches your own SSH command, so use `pgrep -f "python name"`.
 - **From Windows.** Shell scripts must be LF without BOM (`.gitattributes` handles checkout). `scp` with a
