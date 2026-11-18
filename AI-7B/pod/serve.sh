@@ -12,6 +12,16 @@ if [ "$1" = "stop" ]; then
   echo "stopped"
   exit 0
 fi
+[ -n "$GATEWAY_API_KEY" ] || { echo "GATEWAY_API_KEY is empty: the gateway would be open to anyone"; exit 1; }
+# The RunPod PyTorch template's nginx listens on 8001 and forwards it to :8000 without a key, which would expose
+# vLLM and block the gateway. Move that nginx server to an address reachable only inside the pod.
+if grep -qE '^\s*listen 8001;' /etc/nginx/nginx.conf 2>/dev/null; then
+  cp -n /etc/nginx/nginx.conf /etc/nginx/nginx.conf.bak
+  sed -i -E 's/^(\s*)listen 8001;/\1listen 127.0.0.1:18001;  # moved: port 8001 is the OmniCave gateway/' /etc/nginx/nginx.conf
+  nginx -s reload && sleep 1
+  echo "moved the template nginx from 8001 to 127.0.0.1:18001 (backup: /etc/nginx/nginx.conf.bak)"
+fi
+if ss -ltn | grep -qE ':8001\b'; then echo "port 8001 is taken:"; ss -ltnp | grep -E ':8001\b'; exit 1; fi
 mods=""
 for d in adapters/persona-*; do mods="$mods $(basename "$d")=$PWD/$d"; done
 setsid nohup vllm serve Qwen/Qwen2.5-7B-Instruct --host 127.0.0.1 --port 8000 --enable-lora --max-lora-rank 16 \
