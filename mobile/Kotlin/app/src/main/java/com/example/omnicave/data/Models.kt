@@ -16,6 +16,11 @@ data class User(
     val preferences: Preferences = Preferences(),
     /** When the daily briefing is sent, as "HH:MM". */
     @SerialName("briefing_time") val briefingTime: String = "08:00",
+    @SerialName("email_verified") val emailVerified: Boolean = true,
+    /** A new address waiting for its emailed code (email change). */
+    @SerialName("pending_email") val pendingEmail: String? = null,
+    /** Latest decision per consent: terms, privacy, overseas, marketing ("legacy" for old accounts). */
+    val consents: Map<String, Boolean> = emptyMap(),
 )
 
 /** What the user likes to drink. The sommeliers use it when they recommend wines. */
@@ -66,7 +71,29 @@ data class AuthResult(
 data class LoginRequest(val username: String, val password: String)
 
 @Serializable
-data class RegisterRequest(val username: String, val email: String, val password: String)
+data class RegisterRequest(
+    val username: String,
+    val email: String,
+    val password: String,
+    @SerialName("birth_date") val birthDate: String,
+    val consents: Map<String, Boolean>,
+)
+
+/** Answer of sign-up: either a login ([user] set), or "enter the code we emailed to [email]". */
+@Serializable
+data class SignUpResult(
+    @SerialName("verification_required") val verificationRequired: Boolean = false,
+    val email: String = "",
+    val user: User? = null,
+)
+
+/** One consent on the sign-up page (PIPA). [document] is "terms", "privacy" or null. */
+@Serializable
+data class Consent(val key: String, val required: Boolean, val title: String, val summary: String = "", val document: String? = null)
+
+/** Answer of GET /api/legal: the consents and the full policy texts (Markdown). */
+@Serializable
+data class LegalInfo(val version: String = "", val consents: List<Consent> = emptyList(), val documents: Map<String, String> = emptyMap())
 
 /** One of the user's cellars, from GET /api/cellars. */
 @Serializable
