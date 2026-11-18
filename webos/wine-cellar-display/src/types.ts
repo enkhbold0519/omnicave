@@ -131,7 +131,17 @@ export interface User {
   display_name: string
   preferences: { styles?: string[]; regions?: string[]; grapes?: string[]; likes?: string; dislikes?: string }
   briefing_time: string
+  birth_date?: string | null
+  email_verified?: boolean
+  /** a new address waiting for its emailed code */
+  pending_email?: string | null
+  /** latest decision per consent key (terms, privacy, overseas, marketing; 'legacy' for old accounts) */
+  consents?: Record<string, boolean>
 }
+
+/** GET /api/legal: what the sign-up screen asks the user to agree to, and the full texts. */
+export interface Consent { key: string; required: boolean; title: string; summary: string; document: 'terms' | 'privacy' | null }
+export interface LegalInfo { version: string; consents: Consent[]; documents: { terms: string; privacy: string } }
 
 export interface Notification {
   id: number

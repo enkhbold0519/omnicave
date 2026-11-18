@@ -3,6 +3,7 @@ import { api, apiBase, setApiBase, setToken } from '../api'
 import { usePoll } from '../hooks'
 import type { Cellar, CellarSummary, EnvZone, LlmInfo, User } from '../types'
 import { Field, Modal } from '../components/ui'
+import { PolicyText, useLegal } from '../components/Consents'
 import { initials } from '../components/Header'
 import CellarsSettings from '../components/CellarsSettings'
 import ClimateSettings from '../components/ClimateSettings'
@@ -70,11 +71,11 @@ export default function Profile(p: Props) {
     </>
   )
 
-  if (sub === 'account') return page('Edit profile', <><p className="muted">Your name and sign-in details.</p><AccountForm user={user} onSave={patchMe} /></>)
+  if (sub === 'account') return page('Edit profile', <><p className="muted">Your name and sign-in details.</p><AccountForm user={user} onSave={patchMe} onUser={onUser} flash={flash} /></>)
   if (sub === 'cellars') return <><CellarsSettings cellars={cellars} onBack={back} onChanged={id => { p.onCellarsChanged(id); p.onCellarChanged() }} flash={flash} />{toast}</>
   if (sub === 'climate') return <><ClimateSettings cellarName={cellar?.name} zones={envZones} onBack={back} flash={flash} />{toast}</>
   if (sub === 'taste') return page('Taste preferences', <TasteForm user={user} onSave={patchMe} />)
-  if (sub === 'privacy') return page('Privacy & data', <><p className="muted">Your data belongs to you. Take a copy or delete it.</p><PrivacyPage user={user} onDeleted={() => { setToken(null); onUser(null) }} /></>)
+  if (sub === 'privacy') return page('Privacy & data', <><p className="muted">Your data belongs to you. Take a copy or delete it.</p><PrivacyPage user={user} onSave={patchMe} onDeleted={() => { setToken(null); onUser(null) }} /></>)
   if (sub === 'about') return page('About', <AboutPage user={user} />)
   if (sub === 'appearance') return page('Appearance', <>
     <p className="muted">How this display looks.</p>
@@ -162,25 +163,45 @@ export default function Profile(p: Props) {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-function AccountForm({ user, onSave }: { user: User; onSave: (b: Record<string, unknown>, ok?: string) => Promise<boolean> }) {
-  const [f, setF] = useState({ display_name: user.display_name, email: user.email, password: '', confirm: '' })
+function AccountForm({ user, onSave, onUser, flash }: {
+  user: User; onSave: (b: Record<string, unknown>, ok?: string) => Promise<boolean>; onUser: (u: User) => void; flash: (m: string) => void
+}) {
+  const [f, setF] = useState({ display_name: user.display_name, email: user.email, password: '', confirm: '', current: '' })
+  const [code, setCode] = useState('')
   const emailOk = EMAIL_RE.test(f.email.trim())
   const pwOk = !f.password || (f.password.length >= 8 && f.password === f.confirm)
+  // changing the email or the password needs the current password (checked by the server)
+  const sensitive = f.email.trim().toLowerCase() !== user.email || !!f.password
   const save = async () => {
     const body: Record<string, unknown> = { display_name: f.display_name.trim(), email: f.email.trim() }
     if (f.password) body.password = f.password
-    if (await onSave(body, 'Changes saved')) setF({ ...f, password: '', confirm: '' })
+    if (sensitive) body.current_password = f.current
+    if (await onSave(body, 'Changes saved')) setF({ ...f, password: '', confirm: '', current: '' })
+  }
+  const confirmEmail = async () => {
+    try { onUser(await api<User>('POST', '/api/me/email/verify', { code })); setCode(''); flash('Email address changed') }
+    catch (e) { flash((e as Error).message) }
   }
   return (
     <div className="form-col">
+      {user.pending_email && (
+        <div className="ask-box">
+          <span className="t-heading">Confirm your new email</span>
+          <span>Enter the 6-digit code we sent to {user.pending_email}. Until then you keep using {user.email}.</span>
+          <input className="code-input" value={code} inputMode="numeric" maxLength={6} placeholder="000000"
+                 onChange={e => setCode(e.target.value.replace(/\D/g, ''))} />
+          <div className="row-btns"><button className="btn primary" disabled={!/^\d{6}$/.test(code)} onClick={confirmEmail}>Confirm</button></div>
+        </div>
+      )}
       <Field label="Name"><input value={f.display_name} onChange={e => setF({ ...f, display_name: e.target.value })} /></Field>
       <Field label="Email"><input type="email" value={f.email} onChange={e => setF({ ...f, email: e.target.value })} /></Field>
       {!emailOk && f.email && <span className="error small">Enter a valid email address</span>}
       <Field label="New password"><input type="password" value={f.password} placeholder="Leave empty to keep it" onChange={e => setF({ ...f, password: e.target.value })} /></Field>
       {f.password && <Field label="Repeat new password"><input type="password" value={f.confirm} onChange={e => setF({ ...f, confirm: e.target.value })} /></Field>}
       {f.password && !pwOk && <span className="error small">{f.password.length < 8 ? 'At least 8 characters' : 'Passwords do not match'}</span>}
+      {sensitive && <Field label="Current password"><input type="password" value={f.current} autoComplete="current-password" placeholder="Needed to change your email or password" onChange={e => setF({ ...f, current: e.target.value })} /></Field>}
       <p className="muted small">Username: {user.username} (cannot be changed)</p>
-      <button className="btn primary big" disabled={!emailOk || !pwOk} onClick={save}>Save Changes</button>
+      <button className="btn primary big" disabled={!emailOk || !pwOk || (sensitive && !f.current)} onClick={save}>Save Changes</button>
     </div>
   )
 }
@@ -215,8 +236,11 @@ function TasteForm({ user, onSave }: { user: User; onSave: (b: Record<string, un
   )
 }
 
-function PrivacyPage({ user, onDeleted }: { user: User; onDeleted: () => void }) {
+function PrivacyPage({ user, onDeleted, onSave }: { user: User; onDeleted: () => void; onSave: (b: Record<string, unknown>, ok?: string) => Promise<boolean> }) {
   const [confirm, setConfirm] = useState(false)
+  const [doc, setDoc] = useState<'terms' | 'privacy' | null>(null)
+  const { legal } = useLegal()
+  const marketing = !!user.consents?.marketing
   const exportData = async () => {
     const data = await api('GET', '/api/me/export')
     const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }))
@@ -230,6 +254,20 @@ function PrivacyPage({ user, onDeleted }: { user: User; onDeleted: () => void })
         <Row label="Export my data" value="JSON file" onClick={exportData} />
         <Row label="Delete account" onClick={() => setConfirm(true)} />
       </div>
+      <section>
+        <h3>Consents</h3>
+        <div className="rows">
+          <button className={`pick-row ${marketing ? 'on' : ''}`} role="checkbox" aria-checked={marketing}
+                  onClick={() => void onSave({ consents: { marketing: !marketing } }, marketing ? 'News emails turned off' : 'News emails turned on')}>
+            <span className="br-main"><span className="br-title">News and product emails</span><span className="br-sub">Optional · you can change this any time</span></span>
+            <span className="pick-check">{marketing ? '✓' : ''}</span>
+          </button>
+          {legal && <Row label="Terms of Service" onClick={() => setDoc('terms')} />}
+          {legal && <Row label="Privacy Policy" onClick={() => setDoc('privacy')} />}
+        </div>
+        <p className="muted small">The required consents (terms, personal data, processing outside Korea) can only be withdrawn by deleting the account.</p>
+      </section>
+      {legal && doc && <PolicyText legal={legal} doc={doc} onClose={() => setDoc(null)} />}
       {confirm && (
         <div className="ask-box danger">
           <span className="t-heading">Delete your account?</span>

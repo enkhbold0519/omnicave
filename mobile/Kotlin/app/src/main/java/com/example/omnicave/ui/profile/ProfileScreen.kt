@@ -51,6 +51,9 @@ import com.example.omnicave.data.initials
 import com.example.omnicave.data.shownName
 import com.example.omnicave.ui.components.AppIcons
 import com.example.omnicave.ui.components.AppTextField
+import com.example.omnicave.ui.components.CheckCircle
+import com.example.omnicave.ui.components.PolicyDialog
+import com.example.omnicave.ui.components.rememberLegal
 import com.example.omnicave.ui.components.LinkButton
 import com.example.omnicave.ui.components.Pill
 import com.example.omnicave.ui.components.PrimaryButton
@@ -121,12 +124,12 @@ fun ProfileScreen(
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         when (page) {
-            "account" -> AccountPage(user, patchMe)
+            "account" -> AccountPage(user, patchMe, onUser, toast)
             "cellars" -> CellarsPage(cellars, onCellarsChanged, toast)
             "climate" -> ClimateSettings(cellarId, toast)
             "taste" -> TastePage(user.preferences, patchMe)
             "appearance" -> AppearancePage()
-            "privacy" -> PrivacyPage(user, onLogout, toast)
+            "privacy" -> PrivacyPage(user, onLogout, toast, patchMe)
             "about" -> AboutPage(user)
             else -> {
                 Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -177,13 +180,16 @@ fun SettingRow(label: String, value: String = "", onClick: (() -> Unit)? = null)
 }
 
 @Composable
-private fun AccountPage(user: User, patchMe: (JsonObject, String?) -> Unit) {
+private fun AccountPage(user: User, patchMe: (JsonObject, String?) -> Unit, onUser: (User) -> Unit, toast: (String?) -> Unit) {
     val colors = AppTheme.colors
+    val scope = rememberCoroutineScope()
     // remember(user): after a save the fields start again from the saved values, with the password boxes empty
     var name by remember(user) { mutableStateOf(user.displayName.orEmpty()) }
     var email by remember(user) { mutableStateOf(user.email) }
     var password by remember(user) { mutableStateOf("") }
     var repeat by remember(user) { mutableStateOf("") }
+    var current by remember(user) { mutableStateOf("") }
+    var code by remember(user) { mutableStateOf("") }
     val emailOk = EMAIL.matches(email.trim())
     val passwordError = when {
         password.isEmpty() -> null
@@ -191,18 +197,41 @@ private fun AccountPage(user: User, patchMe: (JsonObject, String?) -> Unit) {
         password != repeat -> "Passwords do not match"
         else -> null
     }
+    // changing the email or the password needs the current password (checked by the server)
+    val sensitive = email.trim().lowercase() != user.email || password.isNotEmpty()
+
+    user.pendingEmail?.let { pending ->
+        Column(modifier = Modifier.background(colors.warnSoft, RoundedCornerShape(12.dp)).padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Confirm your new email", style = AppType.heading, color = colors.fg)
+            Text("Enter the 6-digit code we sent to $pending. Until then you keep using ${user.email}.", style = AppType.caption, color = colors.fg2)
+            AppTextField(code, { code = it.filter(Char::isDigit).take(6) }, label = "6-digit code", placeholder = "000000",
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword))
+            SecondaryButton("Confirm", onClick = {
+                if (code.length == 6) scope.launch {
+                    try {
+                        onUser(Api.decode<User>(Api.request("POST", "/api/me/email/verify", buildJsonObject { put("code", code) }.toString())))
+                        toast("Email address changed")
+                    } catch (e: ApiException) {
+                        toast(e.message)
+                    }
+                }
+            })
+        }
+    }
     AppTextField(name, { name = it }, label = "Name")
     AppTextField(email, { email = it }, label = "Email", keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email))
     if (!emailOk && email.isNotEmpty()) Text("Enter a valid email address", style = AppType.caption, color = colors.danger)
     AppTextField(password, { password = it }, label = "New password", placeholder = "Leave empty to keep it", isPassword = true)
     if (password.isNotEmpty()) AppTextField(repeat, { repeat = it }, label = "Repeat new password", placeholder = "", isPassword = true)
     passwordError?.let { Text(it, style = AppType.caption, color = colors.danger) }
+    if (sensitive) AppTextField(current, { current = it }, label = "Current password", placeholder = "Needed to change your email or password", isPassword = true)
     Text("Username: ${user.username} (cannot be changed)", style = AppType.caption, color = colors.muted)
-    PrimaryButton("Save Changes", enabled = emailOk && passwordError == null, onClick = {
+    PrimaryButton("Save Changes", enabled = emailOk && passwordError == null && (!sensitive || current.isNotEmpty()), onClick = {
         patchMe(buildJsonObject {
             put("display_name", name.trim())
             put("email", email.trim())
             if (password.isNotEmpty()) put("password", password)
+            if (sensitive) put("current_password", current)
         }, "Changes saved")
     })
 }
@@ -263,8 +292,11 @@ private fun AppearancePage() {
 }
 
 @Composable
-private fun PrivacyPage(user: User, onDeleted: () -> Unit, toast: (String?) -> Unit) {
+private fun PrivacyPage(user: User, onDeleted: () -> Unit, toast: (String?) -> Unit, patchMe: (JsonObject, String?) -> Unit) {
     val colors = AppTheme.colors
+    val (legal, _) = rememberLegal()
+    var doc by remember { mutableStateOf<String?>(null) }
+    val marketing = user.consents["marketing"] == true
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var confirm by remember { mutableStateOf(false) }
@@ -289,6 +321,34 @@ private fun PrivacyPage(user: User, onDeleted: () -> Unit, toast: (String?) -> U
             }
         }
         SettingRow("Delete account") { confirm = true }
+    }
+    SectionHead("Consents")
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth().clickable {
+                patchMe(buildJsonObject { put("consents", buildJsonObject { put("marketing", !marketing) }) },
+                    if (marketing) "News emails turned off" else "News emails turned on")
+            }.heightIn(min = 52.dp).padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("News and product emails", style = AppType.body, color = colors.fg)
+                Text("Optional · you can change this any time", style = AppType.caption, color = colors.muted)
+            }
+            CheckCircle(marketing)
+        }
+        Box(Modifier.fillMaxWidth().height(1.dp).background(colors.hairline))
+        if (legal != null) {
+            SettingRow("Terms of Service") { doc = "terms" }
+            SettingRow("Privacy Policy") { doc = "privacy" }
+        }
+    }
+    Text("The required consents (terms, personal data, processing outside Korea) can only be withdrawn by deleting the account.",
+        style = AppType.caption, color = colors.muted)
+    val shown = doc
+    if (legal != null && shown != null) {
+        PolicyDialog(if (shown == "terms") "Terms of Service" else "Privacy Policy", legal.documents[shown].orEmpty()) { doc = null }
     }
     if (confirm) {
         Column(modifier = Modifier.background(colors.surface, RoundedCornerShape(12.dp)).padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
