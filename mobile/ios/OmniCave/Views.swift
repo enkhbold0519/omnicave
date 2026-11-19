@@ -316,11 +316,11 @@ struct MainView: View {
     @State private var selectedTab = "cellar"
     var body: some View {
         TabView(selection: $selectedTab) {
-            CellarView().modifier(NotificationsToolbar()).tabItem { Label("Cellar", systemImage: "square.grid.2x2") }.tag("cellar")
-            InventoryView(selectedTab: $selectedTab).modifier(NotificationsToolbar()).tabItem { Label("Inventory", systemImage: "wineglass") }.tag("inventory")
-            AIView().modifier(NotificationsToolbar()).tabItem { Label("Sommelier", systemImage: "sparkle") }.tag("sommelier")
-            BriefingView(selectedTab: $selectedTab).modifier(NotificationsToolbar()).tabItem { Label("Briefing", systemImage: "newspaper") }.tag("briefing")
-            ValueView().modifier(NotificationsToolbar()).tabItem { Label("Value", systemImage: "chart.line.uptrend.xyaxis") }.tag("value")
+            CellarView().tabItem { Label("Cellar", systemImage: "square.grid.2x2") }.tag("cellar")
+            InventoryView(selectedTab: $selectedTab).tabItem { Label("Inventory", systemImage: "wineglass") }.tag("inventory")
+            AIView().tabItem { Label("Sommelier", systemImage: "sparkle") }.tag("sommelier")
+            BriefingView(selectedTab: $selectedTab).tabItem { Label("Briefing", systemImage: "newspaper") }.tag("briefing")
+            ValueView().tabItem { Label("Value", systemImage: "chart.line.uptrend.xyaxis") }.tag("value")
         }.tint(.forestAccent)
             .task { await model.loadNotifications() }
     }
@@ -472,6 +472,7 @@ struct CellarView: View {
             .task { await model.loadInventoryCellars(); await model.loadBackendCellar() }
             .onChange(of: model.selectedBottleCellarID) { _, _ in Task { await model.loadBackendCellar() } }
             .refreshable { await model.loadInventoryCellars(); await model.loadBackendCellar() }
+            .modifier(NotificationsToolbar())
         }
     }
 
@@ -651,6 +652,7 @@ struct InventoryView: View {
                     await model.loadBottles()
                 }
                 .refreshable { await model.loadBottles() }
+                .modifier(NotificationsToolbar())
         }
     }
 
@@ -1057,8 +1059,10 @@ struct AIView: View {
                     }.background { Color.forestBackground.ignoresSafeArea() }
                 }
             }
-            .toolbar(.hidden, for: .navigationBar)
+            .navigationTitle(tasting != nil ? "Tasting" : composingKind == nil ? "Sommelier" : "New tasting")
+            .navigationBarTitleDisplayMode(.inline)
             .task { await model.loadPersonas(); await model.loadSommelierBottles() }
+            .modifier(NotificationsToolbar())
         }
     }
 
@@ -1294,6 +1298,7 @@ struct BriefingView: View {
             .refreshable { await model.loadBriefing(); await model.loadMarketSummary() }
             .sheet(item: $selectedBottle) { bottle in WineDetail(bottle: bottle) }
             .sheet(isPresented: $showingProfile) { ProfileView(selectedTab: $selectedTab) }
+            .modifier(NotificationsToolbar())
         }
     }
 
@@ -1399,6 +1404,7 @@ struct ValueView: View {
             .task { await model.loadMarketSummary(); await model.loadSommelierBottles() }
             .refreshable { await model.loadMarketSummary(); await model.loadSommelierBottles() }
             .sheet(item: $selectedBottle) { bottle in WineDetail(bottle: bottle) }
+            .modifier(NotificationsToolbar())
         }
     }
 
