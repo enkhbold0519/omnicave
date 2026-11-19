@@ -513,6 +513,19 @@ private struct CellarMapView: View {
     let openBottle: (BackendModels.Bottle) -> Void
     private var width: Double { max(cellar.widthCm ?? 120, 1) }
     private var height: Double { max(cellar.heightCm ?? 200, 1) }
+    private var positionedBottles: [PositionedBottle] {
+        let bottles = cellar.bottles ?? []
+        let shelfYs = (cellar.racks ?? []).filter { $0.kind == "shelf" }
+            .compactMap(\.yCm).sorted()
+        let columns = max(Int(width / 14), 1)
+        return bottles.enumerated().map { index, bottle in
+            let shelfY = shelfYs.isEmpty
+                ? height * Double(index % max(bottles.count, 1) + 1) / Double(max(bottles.count, 1) + 1)
+                : shelfYs[index % shelfYs.count]
+            let fallbackX = 12 + Double((index / max(shelfYs.count, 1)) % columns) * 14
+            return PositionedBottle(bottle: bottle, x: bottle.x ?? fallbackX, y: bottle.y ?? shelfY + 5)
+        }
+    }
 
     var body: some View {
         GeometryReader { proxy in
@@ -523,15 +536,13 @@ private struct CellarMapView: View {
                     let y = size.height * (1 - min(max((rack.yCm ?? 0) / height, 0), 1))
                     Rectangle().fill(Color.forestCabinetRail).frame(height: 3).position(x: size.width / 2, y: y)
                 }
-                ForEach(cellar.bottles ?? []) { bottle in
-                    if let x = bottle.x, let y = bottle.y {
-                        Button { openBottle(bottle) } label: {
-                            Circle().fill(wineColor(bottle.wine.color)).overlay(Circle().fill(.black.opacity(0.22)).padding(5))
-                                .overlay(Circle().stroke(.white.opacity(0.3), lineWidth: 1))
-                                .frame(width: 28, height: 28)
-                        }.buttonStyle(.plain).accessibilityLabel(bottle.wine.name)
-                            .position(x: size.width * min(max(x / width, 0), 1), y: size.height * (1 - min(max(y / height, 0), 1)))
-                    }
+                ForEach(positionedBottles) { positioned in
+                    Button { openBottle(positioned.bottle) } label: {
+                        Circle().fill(wineColor(positioned.bottle.wine.color)).overlay(Circle().fill(.black.opacity(0.22)).padding(5))
+                            .overlay(Circle().stroke(.white.opacity(0.45), lineWidth: 1.5))
+                            .frame(width: 28, height: 28)
+                    }.buttonStyle(.plain).accessibilityLabel(positioned.bottle.wine.name)
+                        .position(x: size.width * min(max(positioned.x / width, 0), 1), y: size.height * (1 - min(max(positioned.y / height, 0), 1)))
                 }
             }
         }.aspectRatio(width / height, contentMode: .fit)
@@ -545,6 +556,13 @@ private struct CellarMapView: View {
         default: .forestDanger
         }
     }
+}
+
+private struct PositionedBottle: Identifiable {
+    let bottle: BackendModels.Bottle
+    let x: Double
+    let y: Double
+    var id: Int { bottle.id }
 }
 
 struct InventoryView: View {

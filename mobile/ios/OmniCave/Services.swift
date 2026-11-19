@@ -132,7 +132,9 @@ final class MockService: AppService {
         let summary = cellars.first(where: { $0.id == id })
         let bottles = try await self.bottles(query: "", cellarID: id)
         return BackendModels.Cellar(id: id, name: summary?.name, widthCm: 120, heightCm: 200, depthCm: 60,
-                                    racks: [BackendModels.Rack(id: 1, name: "Shelf", kind: "shelf", yCm: 60), BackendModels.Rack(id: 2, name: "Shelf", kind: "shelf", yCm: 120), BackendModels.Rack(id: 3, name: "Shelf", kind: "shelf", yCm: 170)], bottles: bottles)
+                                    racks: [36.0, 72.0, 108.0, 144.0, 180.0].enumerated().map { index, y in
+                                        BackendModels.Rack(id: index + 1, name: "Rack \(index + 1)", kind: "shelf", yCm: y)
+                                    }, bottles: bottles)
     }
 
     func createCellar(name: String) async throws -> BackendModels.Cellar {
@@ -405,9 +407,9 @@ final class MockService: AppService {
         Wine(name: "Riesling Kabinett", winery: "Dr. Loosen", region: "Mosel", vintage: 2021, grape: "Riesling", location: "C1 · Shelf 3", cellarID: sampleCellarID, value: 28)
     ]
     private static let sampleBottles = [
-        BackendModels.Bottle(id: 101, cellarId: 1, cellarName: "Home cellar", wine: BackendModels.WineInfo(name: "Barolo", producer: "G.D. Vajra", region: "Piedmont", country: "Italy", color: "red", vintage: 2019, grape: "Nebbiolo", drinkFrom: 2024, drinkTo: 2034, basePrice: 62), location: "Rack 3 · 12 cm from left · front", windowStatus: "ready"),
-        BackendModels.Bottle(id: 102, cellarId: 1, cellarName: "Home cellar", wine: BackendModels.WineInfo(name: "Château Margaux", producer: "Château Margaux", region: "Bordeaux", country: "France", color: "red", vintage: 2018, grape: "Cabernet Sauvignon", drinkFrom: 2027, drinkTo: 2045, basePrice: 820), location: "Rack 5 · 20 cm from left · front", windowStatus: "young"),
-        BackendModels.Bottle(id: 103, cellarId: 2, cellarName: "Summer house", wine: BackendModels.WineInfo(name: "Riesling Kabinett", producer: "Dr. Loosen", region: "Mosel", country: "Germany", color: "white", vintage: 2021, grape: "Riesling", drinkFrom: 2023, drinkTo: 2031, basePrice: 28), location: "Rack 2 · 9 cm from left · front", windowStatus: "ready")
+        BackendModels.Bottle(id: 101, cellarId: 1, cellarName: "Home cellar", wine: BackendModels.WineInfo(name: "Barolo", producer: "G.D. Vajra", region: "Piedmont", country: "Italy", color: "red", vintage: 2019, grape: "Nebbiolo", drinkFrom: 2024, drinkTo: 2034, basePrice: 62), location: "Rack 3 · 12 cm from left · front", x: 12, y: 113, z: 6, orientation: "lying", windowStatus: "ready"),
+        BackendModels.Bottle(id: 102, cellarId: 1, cellarName: "Home cellar", wine: BackendModels.WineInfo(name: "Château Margaux", producer: "Château Margaux", region: "Bordeaux", country: "France", color: "red", vintage: 2018, grape: "Cabernet Sauvignon", drinkFrom: 2027, drinkTo: 2045, basePrice: 820), location: "Rack 5 · 20 cm from left · front", x: 20, y: 185, z: 6, orientation: "lying", windowStatus: "young"),
+        BackendModels.Bottle(id: 103, cellarId: 2, cellarName: "Summer house", wine: BackendModels.WineInfo(name: "Riesling Kabinett", producer: "Dr. Loosen", region: "Mosel", country: "Germany", color: "white", vintage: 2021, grape: "Riesling", drinkFrom: 2023, drinkTo: 2031, basePrice: 28), location: "Rack 2 · 9 cm from left · front", x: 9, y: 77, z: 6, orientation: "lying", windowStatus: "ready")
     ]
     private static let samplePersonas = [
         BackendModels.Persona(id: "demo-ada", name: "Ada Laurent", title: "The classicist", color: "#7A3340", builtIn: true),
