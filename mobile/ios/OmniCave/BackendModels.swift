@@ -56,6 +56,55 @@ enum BackendModels {
         var consents: [String: Bool]?
     }
 
+    struct Persona: Codable, Identifiable {
+        var id: String
+        var name: String
+        var title: String?
+        var color: String?
+        var builtIn: Bool?
+        var traits: PersonaTraits?
+        var philosophy: String?
+        var memory: [String]?
+    }
+
+    struct PersonaTraits: Codable {
+        var scoring: String?
+        var focus: String?
+        var loves: [String]?
+        var strictness: Int?
+        var tone: String?
+        var description: String?
+    }
+
+    struct TableTopic: Encodable {
+        var kind: String
+        var bottleId: Int?
+        var intent: String?
+        var text: String?
+    }
+
+    struct TableMessage: Codable {
+        var speaker: String
+        var text: String
+    }
+
+    struct TableRequest: Encodable {
+        var topic: TableTopic
+        var personaIds: [String]
+        var history: [TableMessage]
+    }
+
+    struct TastingEvent: Decodable {
+        var type: String?
+        var persona: String?
+        var name: String?
+        var title: String?
+        var color: String?
+        var text: String?
+        var message: String?
+        var bottle: Bottle?
+    }
+
     struct CellarSummary: Codable, Identifiable {
         var id: Int
         var name: String
@@ -264,6 +313,37 @@ final class APIClient {
             throw APIClientError.http(status: response.statusCode, message: detail ?? "Request failed (\(response.statusCode)).")
         }
         return data
+    }
+
+    func stream(_ path: String, body: Data) -> AsyncThrowingStream<BackendModels.TastingEvent, Error> {
+        AsyncThrowingStream { continuation in
+            let task = Task {
+                do {
+                    var request = URLRequest(url: baseURL.appending(path: path))
+                    request.httpMethod = "POST"
+                    request.httpBody = body
+                    request.setValue("application/json", forHTTPHeaderField: "Accept")
+                    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                    if let token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
+                    let (bytes, response) = try await session.bytes(for: request)
+                    guard let response = response as? HTTPURLResponse else { throw APIClientError.invalidResponse }
+                    guard (200..<300).contains(response.statusCode) else {
+                        if response.statusCode == 401, token != nil { onUnauthorized?() }
+                        var text = ""
+                        for try await line in bytes.lines { text += line }
+                        let detail = (try? decoder.decode(ErrorBody.self, from: Data(text.utf8)).detail)
+                        throw APIClientError.http(status: response.statusCode, message: detail ?? "Request failed (\(response.statusCode)).")
+                    }
+                    for try await line in bytes.lines where line.hasPrefix("data:") {
+                        let value = line.dropFirst(5).trimmingCharacters(in: .whitespaces)
+                        guard let data = value.data(using: .utf8), let event = try? decoder.decode(BackendModels.TastingEvent.self, from: data) else { continue }
+                        continuation.yield(event)
+                    }
+                    continuation.finish()
+                } catch { continuation.finish(throwing: error) }
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
     }
 
     private struct ErrorBody: Decodable {

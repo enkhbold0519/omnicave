@@ -996,49 +996,232 @@ private struct ClimatePoint: Identifiable {
 
 struct AIView: View {
     @EnvironmentObject private var model: AppModel
-    @State private var prompt = ""
-    @State private var answer = ""
-    @State private var selectedWine: Wine?
-    @State private var criticAnswer = ""
-    @State private var messages: [ChatMessage] = []
-    private let personas: [(String, String, Color)] = [("VH", "Victor Hale", .forestRed), ("LM", "Lucia Moretti", .forestAccent), ("SO", "Sam Okafor", Color(red: 0.25, green: 0.32, blue: 0.52))]
+    @State private var composingKind: String?
+    @State private var tasting: BackendModels.TableRequest?
     var body: some View {
-        NavigationStack { ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                Text("Sommelier").font(.forest(32)).foregroundStyle(.forestPrimary)
-                HStack {
-                    HStack(spacing: -10) { ForEach(personas, id: \.0) { item in Text(item.0).font(.forest(14, weight: .semibold)).foregroundStyle(.white).frame(width: 52, height: 52).background(item.2, in: Circle()).overlay(Circle().stroke(.forestBackground, lineWidth: 3)) } }
-                    Spacer(); Text("Manage ›").font(.forest(15)).foregroundStyle(.forestAccent)
-                }.padding(.vertical, 8)
-                Text("YOUR SOMMELIERS · 3").overline()
-                Text("START A TASTING").overline()
-                VStack(spacing: 0) {
-                    sommelierAction("Discuss a wine", icon: "wineglass", promptText: "Discuss a wine from my cellar")
-                    sommelierAction("What to open tonight", icon: "moon", promptText: "What should I open tonight?")
-                    sommelierAction("Pair with my dinner", icon: "fork.knife", promptText: "Recommend a wine pairing for my dinner")
-                    sommelierAction("Ask anything", icon: "bubble.left", promptText: "")
+        NavigationStack {
+            Group {
+                if let tasting { TastingTableView(request: tasting) { self.tasting = nil } }
+                else if let kind = composingKind {
+                    SommelierComposer(kind: kind, personas: model.personas, onBack: { composingKind = nil }, onStart: { request in composingKind = nil; tasting = request })
+                } else {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 22) {
+                            Text("Sommelier").font(.forest(32)).foregroundStyle(.forestPrimary)
+                            Text("A table of sommeliers who taste with you").font(.forest(15)).foregroundStyle(.forestSecondary)
+                            Text("YOUR SOMMELIERS · \(model.personas.count)").overline()
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 14) {
+                                    ForEach(model.personas) { persona in
+                                        VStack(spacing: 6) {
+                                            Text(initials(persona.name)).font(.forest(16, weight: .semibold)).foregroundStyle(.white).frame(width: 54, height: 54).background(Color(hex: persona.color ?? "#4A4F55"), in: Circle())
+                                            Text(persona.name.split(separator: " ").first.map(String.init) ?? persona.name).font(.forest(13, weight: .medium)).foregroundStyle(.forestPrimary)
+                                            Text(persona.title ?? "Sommelier").font(.forest(11)).foregroundStyle(.forestMuted).lineLimit(1)
+                                        }.frame(width: 92)
+                                    }
+                                }
+                            }
+                            Text("START A TASTING").overline()
+                            VStack(spacing: 0) {
+                                tastingAction("Discuss a wine", subtitle: "Scores, tasting notes and when to open it", icon: "wineglass", kind: "wine")
+                                tastingAction("What to open tonight", subtitle: "Each sommelier picks a bottle", icon: "moon", kind: "tonight")
+                                tastingAction("Pair with a meal", subtitle: "Tell them what you are eating", icon: "fork.knife", kind: "pairing")
+                                tastingAction("Ask anything", subtitle: "Ask a question about your cellar", icon: "bubble.left", kind: "open")
+                            }
+                            if let error = model.error { Text(error).font(.forest(14)).foregroundStyle(.forestDanger) }
+                            if model.personas.count < 2 { Text("At least two sommeliers are needed to start a tasting.").font(.forest(13)).foregroundStyle(.forestMuted) }
+                        }.padding(24)
+                    }.background { Color.forestBackground.ignoresSafeArea() }
                 }
-                if !answer.isEmpty { Text(answer).font(.forest(15)).foregroundStyle(.forestPrimary).frame(maxWidth: .infinity, alignment: .leading).forestCard() }
-                if !messages.isEmpty { VStack(alignment: .leading, spacing: 8) { ForEach(messages) { Text("\($0.author)  \($0.text)").font(.forest(14)).foregroundStyle(.forestSecondary) } }.frame(maxWidth: .infinity, alignment: .leading) }
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("DISCUSS A WINE").overline()
-                    Picker("Select wine", selection: $selectedWine) { Text("Choose a wine").tag(nil as Wine?); ForEach(model.wines) { Text($0.name).tag($0 as Wine?) } }.tint(.forestAccent)
-                    Button("Generate critic dialogue") { Task { if let selectedWine { criticAnswer = await model.ask("Generate a multi-critic discussion of \(selectedWine.name), \(selectedWine.winery), vintage \(selectedWine.vintage), from \(selectedWine.region). Give tasting notes and aging outlook.") } } }.buttonStyle(ForestPrimaryButton()).disabled(selectedWine == nil || model.busy)
-                    if !criticAnswer.isEmpty { Text(criticAnswer).font(.forest(14)).foregroundStyle(.forestSecondary) }
-                }.forestCard()
-                VStack(alignment: .leading, spacing: 10) { Text("RECENT CONVERSATIONS").overline(); Text("Your recent tastings will appear here.").font(.forest(14)).foregroundStyle(.forestMuted) }
-            }.padding(24)
-        }.background { Color.forestBackground.ignoresSafeArea() } }
+            }
+            .toolbar(.hidden, for: .navigationBar)
+            .task { await model.loadPersonas(); await model.loadSommelierBottles() }
+        }
     }
 
-    private func sommelierAction(_ title: String, icon: String, promptText: String) -> some View {
-        Button {
-            if promptText.isEmpty { prompt = ""; return }
-            Task { let text = await model.ask(promptText); answer = text; messages.append(ChatMessage(author: "OmniCave", text: text)) }
-        } label: {
-            HStack(spacing: 16) { Image(systemName: icon).font(.system(size: 18)).foregroundStyle(.forestAccent).frame(width: 44, height: 44).background(.forestMutedSurface, in: Circle()); Text(title).font(.forest(17, weight: .medium)).foregroundStyle(.forestPrimary); Spacer(); Image(systemName: "chevron.right").font(.system(size: 13)).foregroundStyle(.forestMuted) }
-                .padding(.vertical, 12).contentShape(Rectangle()).overlay(alignment: .bottom) { Rectangle().fill(.forestHairline).frame(height: 1) }
-        }.buttonStyle(.plain)
+    private func tastingAction(_ title: String, subtitle: String, icon: String, kind: String) -> some View {
+        Button { composingKind = kind } label: {
+            HStack(spacing: 14) {
+                Image(systemName: icon).font(.system(size: 18)).foregroundStyle(.forestAccent).frame(width: 42, height: 42).background(.forestMutedSurface, in: Circle())
+                VStack(alignment: .leading, spacing: 4) { Text(title).font(.forest(16, weight: .medium)).foregroundStyle(.forestPrimary); Text(subtitle).font(.forest(13)).foregroundStyle(.forestSecondary) }
+                Spacer(); Image(systemName: "chevron.right").font(.system(size: 12)).foregroundStyle(.forestMuted)
+            }.padding(.vertical, 12).overlay(alignment: .bottom) { Rectangle().fill(.forestHairline).frame(height: 1) }
+        }.buttonStyle(.plain).disabled(model.personas.count < 2)
+    }
+}
+
+private struct SommelierComposer: View {
+    @EnvironmentObject private var model: AppModel
+    let kind: String
+    let personas: [BackendModels.Persona]
+    let onBack: () -> Void
+    let onStart: (BackendModels.TableRequest) -> Void
+    @State private var seats: Set<String>
+    @State private var selectedBottleID: Int?
+    @State private var text = ""
+
+    init(kind: String, personas: [BackendModels.Persona], onBack: @escaping () -> Void, onStart: @escaping (BackendModels.TableRequest) -> Void) {
+        self.kind = kind; self.personas = personas; self.onBack = onBack; self.onStart = onStart
+        _seats = State(initialValue: Set(personas.prefix(3).map(\.id)))
+    }
+    private var selectedBottle: BackendModels.Bottle? { model.sommelierBottles.first { $0.id == selectedBottleID } }
+    private var ready: Bool { seats.count >= 2 && (kind != "wine" || selectedBottle != nil) && (!(kind == "pairing" || kind == "open") || text.trimmingCharacters(in: .whitespacesAndNewlines).count > 1) }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                Button(action: onBack) { Label("Back", systemImage: "chevron.left").foregroundStyle(.forestAccent) }
+                Text(title).font(.forest(28)).foregroundStyle(.forestPrimary)
+                if kind == "wine" {
+                    Picker("Wine", selection: $selectedBottleID) {
+                        Text("Choose a wine").tag(nil as Int?)
+                        ForEach(model.sommelierBottles) { bottle in Text("\(bottle.wine.name) · \(bottle.wine.vintage.map { String($0) } ?? "NV")").tag(Optional(bottle.id)) }
+                    }.tint(.forestAccent)
+                }
+                if kind == "pairing" || kind == "open" {
+                    TextField(kind == "pairing" ? "What are you eating?" : "Your question", text: $text, axis: .vertical).lineLimit(2...5).forestField()
+                }
+                Text("AT THE TABLE · \(seats.count) OF 5").overline()
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(personas) { persona in
+                            let selected = seats.contains(persona.id)
+                            Button {
+                                if selected { seats.remove(persona.id) } else if seats.count < 5 { seats.insert(persona.id) }
+                            } label: {
+                                VStack(spacing: 6) {
+                                    Text(initials(persona.name)).font(.forest(16, weight: .semibold)).foregroundStyle(.white).frame(width: 52, height: 52).background(Color(hex: persona.color ?? "#4A4F55"), in: Circle()).overlay(Circle().stroke(selected ? Color.forestAccent : .clear, lineWidth: 3).padding(-4))
+                                    Text(persona.name.split(separator: " ").first.map(String.init) ?? persona.name).font(.forest(13, weight: .medium)).foregroundStyle(selected ? .forestPrimary : .forestMuted)
+                                }.frame(width: 84).padding(.vertical, 8)
+                            }.buttonStyle(.plain)
+                        }
+                    }
+                }
+                Button("Start the tasting") {
+                    let topic: BackendModels.TableTopic
+                    if kind == "wine", let bottle = selectedBottle { topic = .init(kind: "wine", bottleId: bottle.id) }
+                    else { topic = .init(kind: "question", intent: kind, text: text.trimmingCharacters(in: .whitespacesAndNewlines)) }
+                    onStart(.init(topic: topic, personaIds: personas.filter { seats.contains($0.id) }.map(\.id), history: []))
+                }.buttonStyle(ForestPrimaryButton()).disabled(!ready)
+            }.padding(24)
+        }.background { Color.forestBackground.ignoresSafeArea() }
+    }
+
+    private var title: String {
+        switch kind { case "wine": "Discuss a wine"; case "tonight": "What to open tonight"; case "pairing": "Pair with a meal"; default: "Ask anything" }
+    }
+}
+
+private struct TastingTableView: View {
+    @EnvironmentObject private var model: AppModel
+    let request: BackendModels.TableRequest
+    let onBack: () -> Void
+    @State private var messages: [TastingMessage] = []
+    @State private var running = false
+    @State private var ended = false
+    @State private var reply = ""
+    @State private var error: String?
+    @State private var selectedBottle: BackendModels.Bottle?
+    @State private var streamTask: Task<Void, Never>?
+
+    var body: some View {
+        VStack(spacing: 12) {
+            HStack { Button(action: onBack) { Label("Sommelier", systemImage: "chevron.left").foregroundStyle(.forestAccent) }; Spacer(); Text(request.topic.kind == "wine" ? "Wine tasting" : "Cellar question").font(.forest(16, weight: .medium)).foregroundStyle(.forestPrimary) }
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 16) {
+                        ForEach(messages) { message in tastingMessage(message) }
+                        if let error { Text(error).font(.forest(14)).foregroundStyle(.forestDanger) }
+                    }.padding(.vertical, 10)
+                }.onChange(of: messages.count) { _, _ in if let last = messages.last { withAnimation { proxy.scrollTo(last.id, anchor: .bottom) } } }
+            }
+            if running {
+                HStack { ProgressView().tint(.forestAccent); Text("The sommeliers are tasting…").font(.forest(14)).foregroundStyle(.forestSecondary); Spacer(); Button("Stop") { streamTask?.cancel() } }.padding(.horizontal, 4)
+            } else if ended {
+                Button("Back to sommeliers", action: onBack).buttonStyle(ForestPrimaryButton())
+            } else {
+                HStack(spacing: 8) {
+                    TextField("Say something to the table…", text: $reply, axis: .vertical).lineLimit(1...3).font(.forest(14)).padding(12).background(.forestSurface, in: RoundedRectangle(cornerRadius: 10))
+                    Button { let text = reply.trimmingCharacters(in: .whitespacesAndNewlines); guard !text.isEmpty else { return }; reply = ""; streamTask = Task { await runRound(userText: text) } } label: { Image(systemName: "paperplane.fill").foregroundStyle(.forestAccent).frame(width: 40, height: 40) }.disabled(reply.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+                HStack(spacing: 10) {
+                    Button("Continue") { streamTask = Task { await runRound() } }.buttonStyle(.bordered)
+                    Button("End tasting") { ended = true }.buttonStyle(.bordered).disabled(messages.isEmpty)
+                }
+            }
+        }.padding(20).background { Color.forestBackground.ignoresSafeArea() }
+            .sheet(item: $selectedBottle) { bottle in WineDetail(bottle: bottle) }
+            .task { if messages.isEmpty { streamTask = Task { await runRound() }; await streamTask?.value } }
+            .onDisappear { streamTask?.cancel() }
+    }
+
+    @ViewBuilder private func tastingMessage(_ message: TastingMessage) -> some View {
+        if message.speaker == "user" {
+            Text(message.text).font(.forest(15)).foregroundStyle(.forestPrimary).frame(maxWidth: .infinity, alignment: .trailing).padding(12).background(.forestAccentSoft, in: RoundedRectangle(cornerRadius: 12))
+        } else {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Text(initials(message.name)).font(.forest(12, weight: .semibold)).foregroundStyle(.white).frame(width: 32, height: 32).background(Color(hex: message.color), in: Circle())
+                    VStack(alignment: .leading, spacing: 1) { Text(message.name).font(.forest(14, weight: .semibold)).foregroundStyle(.forestPrimary); Text(message.title).font(.forest(11)).foregroundStyle(.forestMuted) }
+                    if message.streaming { ProgressView().controlSize(.small).tint(.forestAccent) }
+                }
+                Text(message.text.isEmpty ? "…" : message.text + (message.streaming ? " ▍" : "")).font(.forest(15)).foregroundStyle(.forestSecondary).frame(maxWidth: .infinity, alignment: .leading)
+                if let bottle = message.bottle {
+                    Button { selectedBottle = bottle } label: { Label("#\(bottle.id) · \(bottle.wine.name) · \(bottle.cellarName ?? "Cellar")", systemImage: "wineglass") }.font(.forest(13, weight: .medium)).foregroundStyle(.forestAccent)
+                }
+            }.padding(14).frame(maxWidth: .infinity, alignment: .leading).background(.forestSurface, in: RoundedRectangle(cornerRadius: 14))
+        }
+    }
+
+    @MainActor private func runRound(userText: String? = nil) async {
+        guard !running else { return }
+        if let userText { messages.append(TastingMessage(speaker: "user", text: userText, name: "You", title: "", color: "#2F5D50")) }
+        running = true; error = nil
+        let history = messages.map { BackendModels.TableMessage(speaker: $0.speaker, text: $0.text) }
+        let roundRequest = BackendModels.TableRequest(topic: request.topic, personaIds: request.personaIds, history: history)
+        do {
+            for try await event in try model.tastingEvents(roundRequest) {
+                switch event.type {
+                case "turn":
+                    let persona = model.personas.first { $0.id == event.persona }
+                    messages.append(TastingMessage(speaker: event.persona ?? "", text: "", name: event.name ?? persona?.name ?? "Sommelier", title: event.title ?? persona?.title ?? "", color: event.color ?? persona?.color ?? "#4A4F55"))
+                case "delta":
+                    if let index = messages.lastIndex(where: { $0.speaker == (event.persona ?? "") && $0.speaker != "user" }) { messages[index].text += event.text ?? "" }
+                case "pick":
+                    if let index = messages.indices.last { messages[index].bottle = event.bottle }
+                case "turn_end":
+                    if let index = messages.lastIndex(where: { $0.speaker == (event.persona ?? "") }) { messages[index].streaming = false }
+                case "error": error = event.message ?? "The tasting could not continue."
+                case "done": break
+                default: break
+                }
+            }
+        } catch is CancellationError {
+        } catch { self.error = error.localizedDescription }
+        for index in messages.indices { messages[index].streaming = false }
+        running = false
+    }
+}
+
+private struct TastingMessage: Identifiable {
+    let id = UUID()
+    var speaker: String
+    var text: String
+    var name: String
+    var title: String
+    var color: String
+    var bottle: BackendModels.Bottle? = nil
+    var streaming = true
+}
+
+private func initials(_ name: String) -> String {
+    name.split(whereSeparator: \.isWhitespace).prefix(2).compactMap(\.first).map(String.init).joined().uppercased()
+}
+
+private extension Color {
+    init(hex: String) {
+        let value = UInt64(hex.trimmingCharacters(in: CharacterSet(charactersIn: "#")), radix: 16) ?? 0x4A4F55
+        self.init(.sRGB, red: Double((value >> 16) & 0xFF) / 255, green: Double((value >> 8) & 0xFF) / 255, blue: Double(value & 0xFF) / 255, opacity: 1)
     }
 }
 

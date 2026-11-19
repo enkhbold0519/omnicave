@@ -18,6 +18,8 @@ protocol AppService {
     func environment(cellarID: Int, minutes: Int) async throws -> BackendModels.Environment
     func updateZone(id: Int, update: BackendModels.ZoneUpdate) async throws -> BackendModels.EnvZone
     func bottles(query: String, cellarID: Int?) async throws -> [BackendModels.Bottle]
+    func personas() async throws -> [BackendModels.Persona]
+    func tastingEvents(_ request: BackendModels.TableRequest) throws -> AsyncThrowingStream<BackendModels.TastingEvent, Error>
     func saveBottle(id: Int?, cellarID: Int, wine: BackendModels.WineInfo) async throws -> BackendModels.Bottle
     func removeBottle(id: Int, reason: String) async throws
     func profile() async throws -> BackendModels.User
@@ -184,6 +186,22 @@ final class MockService: AppService {
         }
     }
 
+    func personas() async throws -> [BackendModels.Persona] { Self.samplePersonas }
+
+    func tastingEvents(_ request: BackendModels.TableRequest) throws -> AsyncThrowingStream<BackendModels.TastingEvent, Error> {
+        AsyncThrowingStream { continuation in
+            for id in request.personaIds {
+                let person = Self.samplePersonas.first { $0.id == id } ?? Self.samplePersonas[0]
+                continuation.yield(.init(type: "turn", persona: person.id, name: person.name, title: person.title, color: person.color))
+                let text = "This is a local tasting preview. In backend mode, my comments will reflect your cellar and the topic at hand."
+                continuation.yield(.init(type: "delta", persona: person.id, text: text))
+                continuation.yield(.init(type: "turn_end", persona: person.id))
+            }
+            continuation.yield(.init(type: "done"))
+            continuation.finish()
+        }
+    }
+
     func saveBottle(id: Int?, cellarID: Int, wine: BackendModels.WineInfo) async throws -> BackendModels.Bottle {
         var values = try await storedBottles()
         let existing = id.flatMap { requestedID in values.first { $0.id == requestedID } }
@@ -323,6 +341,12 @@ final class MockService: AppService {
         BackendModels.Bottle(id: 102, cellarId: 1, cellarName: "Home cellar", wine: BackendModels.WineInfo(name: "Château Margaux", producer: "Château Margaux", region: "Bordeaux", country: "France", color: "red", vintage: 2018, grape: "Cabernet Sauvignon", drinkFrom: 2027, drinkTo: 2045, basePrice: 820), location: "Rack 5 · 20 cm from left · front", windowStatus: "young"),
         BackendModels.Bottle(id: 103, cellarId: 2, cellarName: "Summer house", wine: BackendModels.WineInfo(name: "Riesling Kabinett", producer: "Dr. Loosen", region: "Mosel", country: "Germany", color: "white", vintage: 2021, grape: "Riesling", drinkFrom: 2023, drinkTo: 2031, basePrice: 28), location: "Rack 2 · 9 cm from left · front", windowStatus: "ready")
     ]
+    private static let samplePersonas = [
+        BackendModels.Persona(id: "demo-ada", name: "Ada Laurent", title: "The classicist", color: "#7A3340", builtIn: true),
+        BackendModels.Persona(id: "demo-min", name: "Min Park", title: "The explorer", color: "#2F5D50", builtIn: true),
+        BackendModels.Persona(id: "demo-jules", name: "Jules Moreau", title: "The skeptic", color: "#3E4F7A", builtIn: true),
+        BackendModels.Persona(id: "demo-sana", name: "Sana Okafor", title: "The optimist", color: "#7A5A2B", builtIn: true)
+    ]
     private static let sampleCellarID = UUID(uuidString: "4D198430-28FB-43B6-BE19-B86BEF376F3A")!
 }
 
@@ -435,6 +459,12 @@ final class BackendService: AppService {
         var items = [URLQueryItem(name: "q", value: query)]
         if let cellarID { items.append(URLQueryItem(name: "cellar_id", value: String(cellarID))) }
         return try await api.get("api/bottles", queryItems: items)
+    }
+
+    func personas() async throws -> [BackendModels.Persona] { try await api.get("api/personas") }
+
+    func tastingEvents(_ request: BackendModels.TableRequest) throws -> AsyncThrowingStream<BackendModels.TastingEvent, Error> {
+        try api.stream("api/ai/table", body: api.encode(request))
     }
 
     func saveBottle(id: Int?, cellarID: Int, wine: BackendModels.WineInfo) async throws -> BackendModels.Bottle {

@@ -6,6 +6,8 @@ import Network
 final class AppModel: ObservableObject {
     @Published var user: Account?
     @Published var backendUser: BackendModels.User?
+    @Published var personas: [BackendModels.Persona] = []
+    @Published var sommelierBottles: [BackendModels.Bottle] = []
     @Published var wines: [Wine] = []
     @Published var cellars: [Cellar] = []
     @Published var selectedCellar: UUID?
@@ -66,6 +68,20 @@ final class AppModel: ObservableObject {
     func loadProfile() async {
         do { backendUser = try await service.profile(); error = nil }
         catch { self.error = error.localizedDescription }
+    }
+
+    func loadPersonas() async {
+        do { personas = try await service.personas(); error = nil }
+        catch { self.error = error.localizedDescription }
+    }
+
+    func loadSommelierBottles() async {
+        do { sommelierBottles = try await service.bottles(query: "", cellarID: nil); error = nil }
+        catch { self.error = error.localizedDescription }
+    }
+
+    func tastingEvents(_ request: BackendModels.TableRequest) throws -> AsyncThrowingStream<BackendModels.TastingEvent, Error> {
+        try service.tastingEvents(request)
     }
 
     func signUp(username: String, email: String, password: String, birthDate: String, consents: [String: Bool]) async -> SignUpOutcome? {
@@ -222,7 +238,7 @@ final class AppModel: ObservableObject {
             return false
         }
     }
-    func signOut() { Task { await service.signOut(); user = nil; backendUser = nil; wines = []; cellars = []; inventoryBottles = []; inventoryCellars = []; climate = nil } }
+    func signOut() { Task { await service.signOut(); user = nil; backendUser = nil; personas = []; sommelierBottles = []; wines = []; cellars = []; inventoryBottles = []; inventoryCellars = []; climate = nil } }
     func updateProfile(_ update: BackendModels.ProfileUpdate) async -> Bool {
         var success = false
         await perform {
