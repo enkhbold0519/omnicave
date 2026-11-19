@@ -4,8 +4,13 @@ import Security
 
 protocol AppService {
     func restoreSession() async -> Account?
-    func signUp(email: String, password: String) async throws -> Account
-    func signIn(email: String, password: String) async throws -> Account
+    func legalInfo() async throws -> BackendModels.LegalInfo
+    func signUp(username: String, email: String, password: String, birthDate: String, consents: [String: Bool]) async throws -> SignUpOutcome
+    func signIn(identifier: String, password: String) async throws -> Account
+    func verifyEmail(email: String, code: String) async throws -> Account
+    func resendVerification(email: String) async throws
+    func requestPasswordReset(email: String) async throws
+    func resetPassword(email: String, code: String, password: String) async throws
     func updateEmail(_ email: String) async throws -> Account
     func updatePassword(_ password: String) async throws
     func wines() async throws -> [Wine]
@@ -17,6 +22,11 @@ protocol AppService {
     func exportData() async throws -> Data
     func deleteAccount() async throws
     func signOut() async
+}
+
+enum SignUpOutcome {
+    case created
+    case verificationRequired(email: String)
 }
 
 enum ServiceError: LocalizedError {
@@ -33,7 +43,7 @@ enum ServiceError: LocalizedError {
 final class MockService: AppService {
     static let demoEmail = "test@omnicave.app"
     static let demoPassword = "Cellar123!"
-    private struct SavedUser: Codable { var email: String; var salt: String; var digest: String }
+    private struct SavedUser: Codable { var email: String; var salt: String; var digest: String; var username: String? = nil }
     private let defaults = UserDefaults.standard
     private var signedIn: String? { defaults.string(forKey: "mock.signedIn") }
     func restoreSession() async -> Account? { signedIn.map(Account.init(email:)) }
@@ -42,24 +52,50 @@ final class MockService: AppService {
         set { defaults.set(try? JSONEncoder().encode(newValue), forKey: "mock.accounts") }
     }
 
-    func signUp(email: String, password: String) async throws -> Account {
-        let email = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard Self.validEmail(email), Self.validPassword(password) else { throw ServiceError.invalidInput }
-        guard !accounts.contains(where: { $0.email == email }) else { throw ServiceError.accountExists }
-        let salt = UUID().uuidString
-        var users = accounts
-        users.append(SavedUser(email: email, salt: salt, digest: Self.hash(password, salt)))
-        accounts = users
-        return Account(email: email)
+    func legalInfo() async throws -> BackendModels.LegalInfo {
+        BackendModels.LegalInfo(
+            version: "demo",
+            consents: [
+                BackendModels.Consent(key: "terms", required: true, title: "Terms of Service", summary: "I agree to the OmniCave Terms of Service.", document: "terms"),
+                BackendModels.Consent(key: "privacy", required: true, title: "Collection and use of personal information", summary: "Your account and cellar data are used to provide OmniCave and are kept until you delete your account.", document: "privacy"),
+                BackendModels.Consent(key: "overseas", required: true, title: "Processing outside Korea", summary: "Some data may be processed by service providers outside Korea.", document: "privacy"),
+                BackendModels.Consent(key: "marketing", required: false, title: "News and product emails", summary: "Send wine news and OmniCave updates by email.", document: nil)
+            ],
+            documents: [
+                "terms": "# Terms of Service\n\n## Demo policy\nThis local demo does not send your information to a server.",
+                "privacy": "# Privacy Policy\n\n## Demo policy\nYour demo account and cellar data stay on this device."
+            ]
+        )
     }
 
-    func signIn(email: String, password: String) async throws -> Account {
+    func signUp(username: String, email: String, password: String, birthDate: String, consents: [String: Bool]) async throws -> SignUpOutcome {
         let email = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        ensureDemoAccount()
-        guard let user = accounts.first(where: { $0.email == email }), user.digest == Self.hash(password, user.salt) else { throw ServiceError.invalidCredentials }
-        defaults.set(email, forKey: "mock.signedIn")
-        return Account(email: email)
+        guard username.range(of: #"^[A-Za-z0-9_.-]{3,32}$"#, options: .regularExpression) != nil,
+              Self.validEmail(email), Self.validPassword(password),
+              consents["terms"] == true, consents["privacy"] == true, consents["overseas"] == true,
+              let year = Int(birthDate.prefix(4)), Calendar.current.component(.year, from: .now) - year >= 19
+        else { throw ServiceError.invalidInput }
+        guard !accounts.contains(where: { $0.email == email || $0.username == username }) else { throw ServiceError.accountExists }
+        let salt = UUID().uuidString
+        var users = accounts
+        users.append(SavedUser(email: email, salt: salt, digest: Self.hash(password, salt), username: username))
+        accounts = users
+        return .created
     }
+
+    func signIn(identifier: String, password: String) async throws -> Account {
+        let value = identifier.trimmingCharacters(in: .whitespacesAndNewlines)
+        let email = value.lowercased()
+        ensureDemoAccount()
+        guard let user = accounts.first(where: { $0.email == email || $0.username == value }), user.digest == Self.hash(password, user.salt) else { throw ServiceError.invalidCredentials }
+        defaults.set(user.email, forKey: "mock.signedIn")
+        return Account(email: user.email)
+    }
+
+    func verifyEmail(email: String, code: String) async throws -> Account { throw ServiceError.invalidInput }
+    func resendVerification(email: String) async throws {}
+    func requestPasswordReset(email: String) async throws {}
+    func resetPassword(email: String, code: String, password: String) async throws { throw ServiceError.invalidInput }
 
     func updateEmail(_ email: String) async throws -> Account {
         guard Self.validEmail(email), let old = signedIn, var user = accounts.first(where: { $0.email == old }) else { throw ServiceError.invalidInput }
@@ -106,7 +142,7 @@ final class MockService: AppService {
         guard !accounts.contains(where: { $0.email == Self.demoEmail }) else { return }
         let salt = UUID().uuidString
         var users = accounts
-        users.append(SavedUser(email: Self.demoEmail, salt: salt, digest: Self.hash(Self.demoPassword, salt)))
+        users.append(SavedUser(email: Self.demoEmail, salt: salt, digest: Self.hash(Self.demoPassword, salt), username: "demo"))
         accounts = users
     }
 
@@ -138,13 +174,96 @@ final class MockService: AppService {
     private static let sampleCellarID = UUID(uuidString: "4D198430-28FB-43B6-BE19-B86BEF376F3A")!
 }
 
-/// REST boundary for the FastAPI backend. The route names are a proposed contract until the backend is ready.
+/// Backend service. Authentication uses the current /api contract; other feature routes are migrated step by step.
 final class BackendService: AppService {
     private let baseURL: URL
     private let session: URLSession
-    private var token: String? { didSet { if let token { Keychain.save(token) } else { Keychain.remove() } } }
-    init(baseURL: URL, session: URLSession = .shared) { self.baseURL = baseURL; self.session = session; self.token = Keychain.read() }
-    func restoreSession() async -> Account? { guard token != nil else { return nil }; return try? await request("GET", "users/me") }
+    private let api: APIClient
+    private var token: String? {
+        didSet {
+            api.token = token
+            if let token { Keychain.save(token) } else { Keychain.remove() }
+        }
+    }
+    var onUnauthorized: (() -> Void)?
+
+    init(baseURL: URL, session: URLSession = .shared) {
+        self.baseURL = baseURL
+        self.session = session
+        self.api = APIClient(baseURL: baseURL, session: session)
+        self.token = Keychain.read()
+        self.api.token = self.token
+        self.api.onUnauthorized = { [weak self] in
+            self?.token = nil
+            self?.onUnauthorized?()
+        }
+    }
+
+    func restoreSession() async -> Account? {
+        guard token != nil else { return nil }
+        do {
+            let user: BackendModels.User = try await api.get("api/me")
+            guard let email = user.email else { token = nil; return nil }
+            return Account(email: email)
+        } catch {
+            return nil
+        }
+    }
+
+    func legalInfo() async throws -> BackendModels.LegalInfo {
+        try await api.get("api/legal")
+    }
+
+    func signUp(username: String, email: String, password: String, birthDate: String, consents: [String: Bool]) async throws -> SignUpOutcome {
+        let body = RegisterBody(username: username, email: email, password: password, birthDate: birthDate, consents: consents, seedDemo: false)
+        let reply: BackendModels.AuthReply = try await api.request("POST", path: "api/auth/register", body: api.encode(body))
+        if reply.verificationRequired == true {
+            return .verificationRequired(email: reply.email ?? email)
+        }
+        // Registration returns a token on servers without email verification. Deliberately
+        // do not save it: the sign-up flow returns to Log in, like Android.
+        return .created
+    }
+
+    func signIn(identifier: String, password: String) async throws -> Account {
+        let reply: BackendModels.AuthReply = try await api.request(
+            "POST", path: "api/auth/login", body: api.encode(LoginBody(username: identifier, password: password))
+        )
+        guard let accessToken = reply.accessToken else { throw APIClientError.invalidResponse }
+        token = accessToken
+        return Account(email: reply.user?.email ?? identifier)
+    }
+
+    func verifyEmail(email: String, code: String) async throws -> Account {
+        let reply: BackendModels.AuthReply = try await api.request(
+            "POST", path: "api/auth/verify-email", body: api.encode(VerificationBody(email: email, code: code))
+        )
+        guard let accessToken = reply.accessToken else { throw APIClientError.invalidResponse }
+        token = accessToken
+        return Account(email: reply.user?.email ?? email)
+    }
+
+    func resendVerification(email: String) async throws {
+        let _: OKReply = try await api.request("POST", path: "api/auth/resend-code", body: api.encode(EmailBody(email: email)))
+    }
+
+    func requestPasswordReset(email: String) async throws {
+        let _: OKReply = try await api.request("POST", path: "api/auth/forgot-password", body: api.encode(EmailBody(email: email)))
+    }
+
+    func resetPassword(email: String, code: String, password: String) async throws {
+        let _: OKReply = try await api.request("POST", path: "api/auth/reset-password", body: api.encode(ResetPasswordBody(email: email, code: code, password: password)))
+    }
+
+    private struct RegisterBody: Encodable {
+        var username: String; var email: String; var password: String; var birthDate: String
+        var consents: [String: Bool]; var seedDemo: Bool
+    }
+    private struct LoginBody: Encodable { var username: String; var password: String }
+    private struct VerificationBody: Encodable { var email: String; var code: String }
+    private struct EmailBody: Encodable { var email: String }
+    private struct ResetPasswordBody: Encodable { var email: String; var code: String; var password: String }
+    private struct OKReply: Decodable { var ok: Bool? }
 
     private func request<T: Decodable>(_ method: String, _ path: String, body: Data? = nil) async throws -> T {
         var request = URLRequest(url: baseURL.appending(path: path))
@@ -186,7 +305,10 @@ final class BackendService: AppService {
         return data
     }
     func deleteAccount() async throws { try await send("DELETE", "users/me"); token = nil }
-    func signOut() async { try? await send("POST", "auth/logout"); token = nil }
+    func signOut() async {
+        do { let _: OKReply = try await api.request("POST", path: "api/auth/logout") } catch { }
+        token = nil
+    }
 }
 
 private enum Keychain {

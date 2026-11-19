@@ -26,16 +26,44 @@ private extension View {
     }
 }
 
+private enum AuthPage { case login, signUp, verify, forgotPassword }
+
 struct AuthView: View {
     @EnvironmentObject private var model: AppModel
-    @State private var registering = false
+    @State private var page: AuthPage = .login
+    @State private var identifier = ""
+    @State private var username = ""
     @State private var email = ""
     @State private var password = ""
     @State private var confirmation = ""
+    @State private var birthDate: Date?
+    @State private var code = ""
+    @State private var consents: [String: Bool] = [:]
+    @State private var selectingDate = false
+    @State private var pickerDate = Calendar.current.date(byAdding: .year, value: -30, to: .now) ?? .now
+    @State private var policyKey: String?
+    @State private var resetCodeSent = false
 
-    private var emailValid: Bool { email.range(of: #"^[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"#, options: .regularExpression) != nil }
-    private var passwordValid: Bool { password.range(of: #"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$"#, options: .regularExpression) != nil }
-    private var canSubmit: Bool { emailValid && passwordValid && (!registering || password == confirmation) }
+    private var emailValid: Bool { email.range(of: #"^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$"#, options: .regularExpression) != nil }
+    private var usernameValid: Bool { username.range(of: #"^[A-Za-z0-9_.-]{3,32}$"#, options: .regularExpression) != nil }
+    private var passwordRules: [(String, Bool)] {
+        [("At least 8 characters", password.count >= 8),
+         ("A lowercase letter", password.range(of: "[a-z]", options: .regularExpression) != nil),
+         ("An uppercase letter", password.range(of: "[A-Z]", options: .regularExpression) != nil),
+         ("A number", password.range(of: "[0-9]", options: .regularExpression) != nil),
+         ("A special character", password.range(of: "[^A-Za-z0-9]", options: .regularExpression) != nil)]
+    }
+    private var eligibleByAge: Bool {
+        guard let birthDate else { return false }
+        return Calendar.current.component(.year, from: .now) - Calendar.current.component(.year, from: birthDate) >= 19
+    }
+    private var requiredConsentsAccepted: Bool {
+        (model.legalInfo?.consents ?? []).allSatisfy { $0.required != true || consents[$0.key ?? ""] == true }
+    }
+    private var canSignUp: Bool {
+        usernameValid && emailValid && passwordRules.allSatisfy(\.1) && password == confirmation &&
+            eligibleByAge && model.legalInfo != nil && requiredConsentsAccepted
+    }
 
     var body: some View {
         NavigationStack {
@@ -44,55 +72,242 @@ struct AuthView: View {
                     Image(systemName: "wineglass.fill").font(.system(size: 34)).foregroundStyle(.forestAccent)
                         .frame(width: 104, height: 104).background(.forestMutedSurface, in: RoundedRectangle(cornerRadius: 28))
                     Text("O M N I C A V E").font(.forest(13, weight: .semibold)).tracking(3).foregroundStyle(.forestSecondary)
-                    Text(registering ? "Create account" : "Welcome back").font(.forest(36)).foregroundStyle(.forestPrimary)
-                    VStack(spacing: 12) {
-                        TextField("Email", text: $email).textContentType(.emailAddress).keyboardType(.emailAddress).textInputAutocapitalization(.never).autocorrectionDisabled().forestField()
-                        SecureField("Password", text: $password).textContentType(registering ? .newPassword : .password).forestField()
-                        if registering {
-                            SecureField("Confirm password", text: $confirmation).textContentType(.newPassword).forestField()
-                            VStack(alignment: .leading, spacing: 4) {
-                                ForEach(["8 or more characters", "A lowercase letter", "An uppercase letter", "A number", "A special character"], id: \.self) { rule in
-                                    Label(rule, systemImage: passwordMeets(rule) ? "checkmark.circle.fill" : "circle")
-                                        .font(.forest(13)).foregroundStyle(passwordMeets(rule) ? .forestSuccess : .forestMuted)
-                                }
-                            }.frame(maxWidth: .infinity, alignment: .leading)
-                        }
+                    Text(title).font(.forest(36)).foregroundStyle(.forestPrimary)
+
+                    switch page {
+                    case .login: loginForm
+                    case .signUp: signUpForm
+                    case .verify: verificationForm
+                    case .forgotPassword: forgotPasswordForm
                     }
+
                     if let error = model.error { Text(error).font(.forest(14)).foregroundStyle(.forestDanger).frame(maxWidth: .infinity, alignment: .leading) }
                     if let notice = model.notice { Text(notice).font(.forest(14)).foregroundStyle(.forestSuccess).frame(maxWidth: .infinity, alignment: .leading) }
-                    Button(registering ? "Sign up" : "Log in") {
-                        Task {
-                            if registering {
-                                await model.signUp(email: email, password: password)
-                                if model.error == nil { registering = false; password = ""; confirmation = "" }
-                            } else { await model.signIn(email: email, password: password) }
-                        }
-                    }.buttonStyle(ForestPrimaryButton()).disabled(!canSubmit || model.busy).opacity(canSubmit && !model.busy ? 1 : 0.55)
-                    Button(registering ? "I already have an account" : "Create an account") {
-                        registering.toggle(); model.error = nil; model.notice = nil
-                    }.font(.forest(16, weight: .medium)).foregroundStyle(.forestAccent)
-                    if !registering {
-                        Button { Task { await model.signIn(email: MockService.demoEmail, password: MockService.demoPassword) } } label: {
-                            VStack(spacing: 6) {
-                                Text("Use demo account").font(.forest(15, weight: .semibold))
-                                Text("\(MockService.demoEmail) · \(MockService.demoPassword)").font(.forest(12))
-                            }.frame(maxWidth: .infinity).padding(14).background(.forestSurface, in: RoundedRectangle(cornerRadius: 12))
-                        }.foregroundStyle(.forestAccent).disabled(model.busy)
-                        if AppConfig.useMock { Text("DEMO BUILD · DATA STAYS ON THIS DEVICE").overline() }
-                    }
-                }.padding(.horizontal, 24).padding(.top, 48).padding(.bottom, 32)
+                }.padding(.horizontal, 24).padding(.top, 40).padding(.bottom, 32)
             }.background { Color.forestBackground.ignoresSafeArea() }
+                .task {
+                    if model.legalInfo == nil { await model.loadLegalInfo() }
+                    if consents.isEmpty {
+                        consents = Dictionary(uniqueKeysWithValues: (model.legalInfo?.consents ?? []).compactMap { item in item.key.map { ($0, false) } })
+                    }
+                }
+                .sheet(isPresented: $selectingDate) {
+                    NavigationStack {
+                        DatePicker("Date of birth", selection: $pickerDate, in: ...Date.now, displayedComponents: .date)
+                            .datePickerStyle(.graphical).padding()
+                            .navigationTitle("Date of birth")
+                            .toolbar {
+                                ToolbarItem(placement: .confirmationAction) { Button("Done") { birthDate = pickerDate; selectingDate = false } }
+                                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { selectingDate = false } }
+                            }
+                    }.presentationDetents([.medium, .large])
+                }
+                .sheet(isPresented: Binding(get: { policyKey != nil }, set: { if !$0 { policyKey = nil } })) {
+                    let key = policyKey ?? "terms"
+                    PolicyViewer(title: key == "terms" ? "Terms of Service" : "Privacy Policy", markdown: model.legalInfo?.documents?[key] ?? "")
+                }
         }
     }
 
-    private func passwordMeets(_ rule: String) -> Bool {
-        switch rule {
-        case "8 or more characters": password.count >= 8
-        case "A lowercase letter": password.range(of: "[a-z]", options: .regularExpression) != nil
-        case "An uppercase letter": password.range(of: "[A-Z]", options: .regularExpression) != nil
-        case "A number": password.range(of: "[0-9]", options: .regularExpression) != nil
-        default: password.range(of: "[^A-Za-z0-9]", options: .regularExpression) != nil
+    private var title: String {
+        switch page {
+        case .login: "Welcome back"
+        case .signUp: "Create account"
+        case .verify: "Check your email"
+        case .forgotPassword: resetCodeSent ? "Reset password" : "Forgot password"
         }
+    }
+
+    private var loginForm: some View {
+        VStack(spacing: 12) {
+            TextField("Username or email", text: $identifier).textContentType(.username).textInputAutocapitalization(.never).autocorrectionDisabled().forestField()
+            SecureField("Password", text: $password).textContentType(.password).forestField()
+            Button("Forgot password?") { email = identifier; resetCodeSent = false; model.error = nil; model.notice = nil; page = .forgotPassword }
+                .font(.forest(14)).foregroundStyle(.forestAccent).frame(maxWidth: .infinity, alignment: .trailing)
+            Button("Log in") {
+                Task {
+                    if !(await model.signIn(identifier: identifier, password: password)), let email = model.verificationEmail {
+                        self.email = email; code = ""; page = .verify
+                    }
+                }
+            }.buttonStyle(ForestPrimaryButton()).disabled(identifier.isEmpty || password.isEmpty || model.busy)
+            Button("Create an account") { model.error = nil; model.notice = nil; page = .signUp }
+                .font(.forest(16, weight: .medium)).foregroundStyle(.forestAccent)
+            if AppConfig.useMock {
+                Button {
+                    identifier = MockService.demoEmail
+                    Task { _ = await model.signIn(identifier: MockService.demoEmail, password: MockService.demoPassword) }
+                } label: {
+                    VStack(spacing: 6) {
+                        Text("Use demo account").font(.forest(15, weight: .semibold))
+                        Text("\(MockService.demoEmail) · \(MockService.demoPassword)").font(.forest(12))
+                    }.frame(maxWidth: .infinity).padding(14).background(.forestSurface, in: RoundedRectangle(cornerRadius: 12))
+                }.foregroundStyle(.forestAccent).disabled(model.busy)
+                Text("DEMO BUILD · DATA STAYS ON THIS DEVICE").overline()
+            }
+        }
+    }
+
+    private var signUpForm: some View {
+        VStack(spacing: 12) {
+            TextField("Username", text: $username).textContentType(.username).textInputAutocapitalization(.never).autocorrectionDisabled().forestField()
+            if !username.isEmpty && !usernameValid { HintLine("3–32 letters, numbers, . _ or -", valid: false) }
+            TextField("Email", text: $email).textContentType(.emailAddress).keyboardType(.emailAddress).textInputAutocapitalization(.never).autocorrectionDisabled().forestField()
+            if !email.isEmpty && !emailValid { HintLine("Enter an email like name@example.com", valid: false) }
+            SecureField("Password", text: $password).textContentType(.newPassword).forestField()
+            VStack(alignment: .leading, spacing: 4) { ForEach(passwordRules, id: \.0) { HintLine($0.0, valid: $0.1) } }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            SecureField("Confirm password", text: $confirmation).textContentType(.newPassword).forestField()
+            if !confirmation.isEmpty { HintLine(password == confirmation ? "Passwords match" : "Passwords don't match", valid: password == confirmation) }
+            Button { pickerDate = birthDate ?? pickerDate; selectingDate = true } label: {
+                HStack { Text(birthDate.map(Self.dateLabel) ?? "Date of birth · Choose a date"); Spacer(); Image(systemName: "calendar") }
+                    .forestField()
+            }.foregroundStyle(birthDate == nil ? Color.forestMuted : Color.forestPrimary)
+            if birthDate != nil && !eligibleByAge { HintLine("You must be 19 or older to use OmniCave", valid: false) }
+            consentList
+            if let legalError = model.legalError { Text("Couldn't load the terms: \(legalError)").font(.forest(13)).foregroundStyle(.forestDanger).frame(maxWidth: .infinity, alignment: .leading) }
+            Button("Sign up") {
+                guard let birthDate else { return }
+                Task {
+                    let date = Self.birthDateString(birthDate)
+                    if let result = await model.signUp(username: username.trimmingCharacters(in: .whitespacesAndNewlines), email: email.trimmingCharacters(in: .whitespacesAndNewlines), password: password, birthDate: date, consents: consents) {
+                        switch result {
+                        case .created:
+                            identifier = username; password = ""; confirmation = ""; page = .login
+                        case .verificationRequired(let address):
+                            email = address; code = ""; page = .verify
+                        }
+                    }
+                }
+            }.buttonStyle(ForestPrimaryButton()).disabled(!canSignUp || model.busy).opacity(canSignUp && !model.busy ? 1 : 0.55)
+            Button("I already have an account") { model.error = nil; model.notice = nil; page = .login }
+                .font(.forest(16, weight: .medium)).foregroundStyle(.forestAccent)
+        }
+    }
+
+    private var consentList: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button {
+                let items = model.legalInfo?.consents ?? []
+                let allChecked = !items.isEmpty && items.allSatisfy { consents[$0.key ?? ""] == true }
+                consents = Dictionary(uniqueKeysWithValues: items.compactMap { item in item.key.map { ($0, !allChecked) } })
+            } label: {
+                let items = model.legalInfo?.consents ?? []
+                consentCheckbox(!items.isEmpty && items.allSatisfy { consents[$0.key ?? ""] == true }, title: "Agree to all", subtitle: nil)
+            }
+            Divider().overlay(.forestHairline)
+            ForEach(Array((model.legalInfo?.consents ?? []).enumerated()), id: \.offset) { _, item in
+                let key = item.key ?? ""
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack(alignment: .top, spacing: 8) {
+                        Button { consents[key] = !(consents[key] ?? false) } label: {
+                            HStack(alignment: .top, spacing: 10) {
+                                Image(systemName: consents[key] == true ? "checkmark.square.fill" : "square")
+                                    .font(.system(size: 21)).foregroundStyle(consents[key] == true ? Color.forestAccent : Color.forestMuted)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(item.required == true ? "REQUIRED" : "OPTIONAL").font(.forest(10, weight: .semibold)).tracking(1.2).foregroundStyle(item.required == true ? Color.forestAccent : Color.forestMuted)
+                                    Text(item.title ?? key).font(.forest(14, weight: .medium)).foregroundStyle(.forestPrimary)
+                                    if key == "privacy" || key == "overseas" { Text(item.summary ?? "").font(.forest(12)).foregroundStyle(.forestMuted).fixedSize(horizontal: false, vertical: true) }
+                                }.frame(maxWidth: .infinity, alignment: .leading)
+                            }.contentShape(Rectangle())
+                        }.buttonStyle(.plain)
+                        if item.document != nil { Button("View ›") { policyKey = item.document }.font(.forest(12)).foregroundStyle(.forestMuted) }
+                    }
+                }.padding(.vertical, 10)
+            }
+        }.padding(14).background(.forestSurface, in: RoundedRectangle(cornerRadius: 12)).overlay(RoundedRectangle(cornerRadius: 12).stroke(.forestHairline))
+    }
+
+    private func consentCheckbox(_ checked: Bool, title: String, subtitle: String?) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: checked ? "checkmark.square.fill" : "square").font(.system(size: 21)).foregroundStyle(checked ? Color.forestAccent : Color.forestMuted)
+            VStack(alignment: .leading) { Text(title).font(.forest(15, weight: .semibold)).foregroundStyle(.forestPrimary); if let subtitle { Text(subtitle).font(.forest(12)).foregroundStyle(.forestMuted) } }
+            Spacer()
+        }.padding(.vertical, 10).contentShape(Rectangle())
+    }
+
+    private var verificationForm: some View {
+        VStack(spacing: 14) {
+            Text("Enter the 6-digit code sent to \(email). You can also use your username if you signed up with email verification.")
+                .font(.forest(14)).foregroundStyle(.forestSecondary).frame(maxWidth: .infinity, alignment: .leading)
+            TextField("6-digit code", text: $code).keyboardType(.numberPad).textContentType(.oneTimeCode).textFieldStyle(.plain)
+                .onChange(of: code) { _, value in code = String(value.filter(\.isNumber).prefix(6)) }.forestField()
+            Button("Verify") { Task { _ = await model.verifyEmail(email: email, code: code) } }
+                .buttonStyle(ForestPrimaryButton()).disabled(code.count != 6 || model.busy)
+            Button("Send a new code") { Task { await model.resendVerification(email: email) } }.font(.forest(14)).foregroundStyle(.forestAccent)
+            Button("Back to log in") { code = ""; model.error = nil; model.notice = nil; page = .login }.font(.forest(14)).foregroundStyle(.forestAccent)
+        }
+    }
+
+    private var forgotPasswordForm: some View {
+        VStack(spacing: 12) {
+            if !resetCodeSent {
+                Text("Enter your account's email address. We'll send you a 6-digit code.").font(.forest(14)).foregroundStyle(.forestSecondary).frame(maxWidth: .infinity, alignment: .leading)
+                TextField("Email", text: $email).textContentType(.emailAddress).keyboardType(.emailAddress).textInputAutocapitalization(.never).autocorrectionDisabled().forestField()
+                Button("Send code") {
+                    Task { await model.requestPasswordReset(email: email); if model.error == nil { resetCodeSent = true } }
+                }.buttonStyle(ForestPrimaryButton()).disabled(!emailValid || model.busy)
+            } else {
+                Text("If \(email) has an account, a code is on its way.").font(.forest(14)).foregroundStyle(.forestSecondary).frame(maxWidth: .infinity, alignment: .leading)
+                TextField("6-digit code", text: $code).keyboardType(.numberPad).textContentType(.oneTimeCode)
+                    .onChange(of: code) { _, value in code = String(value.filter(\.isNumber).prefix(6)) }.forestField()
+                SecureField("New password", text: $password).textContentType(.newPassword).forestField()
+                VStack(alignment: .leading, spacing: 4) { ForEach(passwordRules, id: \.0) { HintLine($0.0, valid: $0.1) } }.frame(maxWidth: .infinity, alignment: .leading)
+                SecureField("Confirm password", text: $confirmation).textContentType(.newPassword).forestField()
+                if !confirmation.isEmpty { HintLine(password == confirmation ? "Passwords match" : "Passwords don't match", valid: password == confirmation) }
+                Button("Set new password") {
+                    Task {
+                        await model.resetPassword(email: email, code: code, password: password)
+                        if model.error == nil { page = .login; resetCodeSent = false; code = ""; password = ""; confirmation = "" }
+                    }
+                }.buttonStyle(ForestPrimaryButton()).disabled(code.count != 6 || !passwordRules.allSatisfy(\.1) || password != confirmation || model.busy)
+                Button("Use another email") { resetCodeSent = false; code = "" }.font(.forest(14)).foregroundStyle(.forestAccent)
+            }
+            Button("Back to log in") { page = .login; model.error = nil; model.notice = nil }.font(.forest(14)).foregroundStyle(.forestAccent)
+        }
+    }
+
+    private static func birthDateString(_ date: Date) -> String {
+        let formatter = DateFormatter(); formatter.calendar = Calendar(identifier: .gregorian); formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
+    }
+    private static func dateLabel(_ date: Date) -> String {
+        date.formatted(date: .long, time: .omitted)
+    }
+}
+
+private struct HintLine: View {
+    let text: String
+    let valid: Bool
+    init(_ text: String, valid: Bool) { self.text = text; self.valid = valid }
+    var body: some View { Label(text, systemImage: valid ? "checkmark.circle.fill" : "circle").font(.forest(13)).foregroundStyle(valid ? Color.forestSuccess : Color.forestMuted) }
+}
+
+private struct PolicyViewer: View {
+    @Environment(\.dismiss) private var dismiss
+    let title: String
+    let markdown: String
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    ForEach(Array(markdown.components(separatedBy: "\n\n").enumerated()), id: \.offset) { entry in
+                        let block = entry.element
+                        let trimmed = block.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if trimmed.hasPrefix("# ") { EmptyView() }
+                        else if trimmed.hasPrefix("## ") { Text(String(trimmed.dropFirst(3))).font(.forest(19, weight: .semibold)).foregroundStyle(.forestPrimary) }
+                        else if trimmed.hasPrefix("|") { Text(trimmed.replacingOccurrences(of: "|", with: "  ·  ")).font(.forest(13)).foregroundStyle(.forestSecondary) }
+                        else if trimmed.hasPrefix("- ") || trimmed.range(of: #"^\d+\. "#, options: .regularExpression) != nil { Text(markdownText(trimmed)).font(.forest(14)).foregroundStyle(.forestSecondary) }
+                        else { Text(markdownText(trimmed.replacingOccurrences(of: "\n", with: " "))).font(.forest(14)).foregroundStyle(.forestSecondary) }
+                    }
+                }.padding(22)
+            }.background(.forestBackground).navigationTitle(title).navigationBarTitleDisplayMode(.inline)
+                .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+        }
+    }
+
+    private func markdownText(_ value: String) -> AttributedString {
+        (try? AttributedString(markdown: value)) ?? AttributedString(value.replacingOccurrences(of: "**", with: ""))
     }
 }
 

@@ -16,6 +16,28 @@ enum BackendModels {
         var consents: [String: Bool]?
     }
 
+    struct Consent: Codable {
+        var key: String?
+        var required: Bool?
+        var title: String?
+        var summary: String?
+        var document: String?
+    }
+
+    struct LegalInfo: Codable {
+        var version: String?
+        var consents: [Consent]?
+        var documents: [String: String]?
+    }
+
+    struct AuthReply: Codable {
+        var accessToken: String?
+        var tokenType: String?
+        var verificationRequired: Bool?
+        var email: String?
+        var user: User?
+    }
+
     struct Preferences: Codable {
         var styles: [String]?
         var regions: [String]?
