@@ -19,8 +19,8 @@ struct OmniCaveApp: App {
 }
 
 enum AppConfig {
-    static let useMock = true
-    static let backendURL = URL(string: "https://api.example.com")!
+    static let useMock = false // Set to true to run offline with the sample data in MockService.
+    static let backendURL = URL(string: "https://54-206-251-224.sslip.io")!
 }
 
 extension ShapeStyle where Self == Color {
