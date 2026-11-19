@@ -12,6 +12,9 @@ protocol AppService {
     func requestPasswordReset(email: String) async throws
     func resetPassword(email: String, code: String, password: String) async throws
     func bottleCellars() async throws -> [BackendModels.CellarSummary]
+    func cellarDetails(id: Int) async throws -> BackendModels.Cellar
+    func createCellar(name: String) async throws -> BackendModels.Cellar
+    func renameCellar(id: Int, name: String) async throws -> BackendModels.Cellar
     func bottles(query: String, cellarID: Int?) async throws -> [BackendModels.Bottle]
     func saveBottle(id: Int?, cellarID: Int, wine: BackendModels.WineInfo) async throws -> BackendModels.Bottle
     func removeBottle(id: Int, reason: String) async throws
@@ -103,10 +106,37 @@ final class MockService: AppService {
 
     func bottleCellars() async throws -> [BackendModels.CellarSummary] {
         let bottles = try await storedBottles()
-        return [
+        return load([BackendModels.CellarSummary].self, key: key("backendCellars"), default: [
             BackendModels.CellarSummary(id: 1, name: "Home cellar", bottleCount: bottles.filter { $0.cellarId == 1 }.count),
             BackendModels.CellarSummary(id: 2, name: "Summer house", bottleCount: bottles.filter { $0.cellarId == 2 }.count)
-        ]
+        ]).map { item in
+            var updated = item
+            updated.bottleCount = bottles.filter { $0.cellarId == item.id }.count
+            return updated
+        }
+    }
+
+    func cellarDetails(id: Int) async throws -> BackendModels.Cellar {
+        let cellars = try await bottleCellars()
+        let summary = cellars.first(where: { $0.id == id })
+        let bottles = try await self.bottles(query: "", cellarID: id)
+        return BackendModels.Cellar(id: id, name: summary?.name, widthCm: 120, heightCm: 200, depthCm: 60,
+                                    racks: [BackendModels.Rack(id: 1, name: "Shelf", kind: "shelf", yCm: 60), BackendModels.Rack(id: 2, name: "Shelf", kind: "shelf", yCm: 120), BackendModels.Rack(id: 3, name: "Shelf", kind: "shelf", yCm: 170)], bottles: bottles)
+    }
+
+    func createCellar(name: String) async throws -> BackendModels.Cellar {
+        var cellars = try await bottleCellars()
+        let id = (cellars.map(\.id).max() ?? 0) + 1
+        cellars.append(BackendModels.CellarSummary(id: id, name: name))
+        defaults.set(try? JSONEncoder().encode(cellars), forKey: key("backendCellars"))
+        return BackendModels.Cellar(id: id, name: name, widthCm: 120, heightCm: 200, depthCm: 60, racks: [], bottles: [])
+    }
+
+    func renameCellar(id: Int, name: String) async throws -> BackendModels.Cellar {
+        var cellars = try await bottleCellars()
+        if let index = cellars.firstIndex(where: { $0.id == id }) { cellars[index].name = name }
+        defaults.set(try? JSONEncoder().encode(cellars), forKey: key("backendCellars"))
+        return try await cellarDetails(id: id)
     }
 
     func bottles(query: String, cellarID: Int?) async throws -> [BackendModels.Bottle] {
@@ -309,6 +339,18 @@ final class BackendService: AppService {
         try await api.get("api/cellars")
     }
 
+    func cellarDetails(id: Int) async throws -> BackendModels.Cellar {
+        try await api.get("api/cellars/\(id)")
+    }
+
+    func createCellar(name: String) async throws -> BackendModels.Cellar {
+        try await api.request("POST", path: "api/cellars", body: api.encode(NewCellarBody(name: name)))
+    }
+
+    func renameCellar(id: Int, name: String) async throws -> BackendModels.Cellar {
+        try await api.request("PATCH", path: "api/cellars/\(id)", body: api.encode(NewCellarBody(name: name)))
+    }
+
     func bottles(query: String, cellarID: Int?) async throws -> [BackendModels.Bottle] {
         var items = [URLQueryItem(name: "q", value: query)]
         if let cellarID { items.append(URLQueryItem(name: "cellar_id", value: String(cellarID))) }
@@ -339,6 +381,7 @@ final class BackendService: AppService {
     private struct OKReply: Decodable { var ok: Bool? }
     private struct WineBody: Encodable { var wine: BackendModels.WineInfo }
     private struct NewBottleBody: Encodable { var cellarID: Int; var wine: BackendModels.WineInfo }
+    private struct NewCellarBody: Encodable { var name: String }
 
     private func request<T: Decodable>(_ method: String, _ path: String, body: Data? = nil) async throws -> T {
         var request = URLRequest(url: baseURL.appending(path: path))

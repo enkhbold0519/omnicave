@@ -413,65 +413,123 @@ private struct CellarZone: Identifiable {
 
 struct CellarView: View {
     @EnvironmentObject private var model: AppModel
-    @State private var showAdd = false
-    @State private var editingCellar: Cellar?
-    @State private var query = ""
-    @State private var selectedWine: Wine?
-    private let zones = [CellarZone(style: .sparkling, title: "SPARKLING ZONE", capacity: 15, target: "5–8 °C"), CellarZone(style: .white, title: "WHITE ZONE", capacity: 20, target: "5–11 °C"), CellarZone(style: .red, title: "RED ZONE", capacity: 20, target: "12–18 °C"), CellarZone(style: .dessert, title: "DESSERT ZONE", capacity: 10, target: "8–12 °C")]
-    private var cellar: Cellar? { model.cellars.first { $0.id == model.selectedCellar } }
-    private var wines: [Wine] { model.wines.filter { $0.cellarID == model.selectedCellar && (query.isEmpty || $0.name.localizedCaseInsensitiveContains(query)) } }
+    @State private var showingAdd = false
+    @State private var editingName: String?
+    @State private var selectedBottle: BackendModels.Bottle?
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
                     Text("Cellar").font(.forest(32)).foregroundStyle(.forestPrimary)
-                    if let cellar {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("CELLAR").overline()
-                            Menu {
-                                ForEach(model.cellars) { item in Button(item.name) { model.selectedCellar = item.id } }
-                                Button("Add a cellar") { showAdd = true }
-                                Button("Edit cellar") { editingCellar = cellar }
-                            } label: { HStack { Text(cellar.name).font(.forest(20, weight: .medium)); Spacer(); Text("Change").font(.forest(15)).foregroundStyle(.forestAccent); Image(systemName: "chevron.down").foregroundStyle(.forestAccent) } }.foregroundStyle(.forestPrimary)
-                        }.padding(.vertical, 12).overlay(alignment: .top) { Rectangle().fill(.forestHairline).frame(height: 1) }.overlay(alignment: .bottom) { Rectangle().fill(.forestHairline).frame(height: 1) }
-                        Text("\(wines.count) of \(cellar.capacity) filled").font(.forest(16)).foregroundStyle(.forestSecondary)
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 14) { ForEach(WineStyle.allCases) { style in Label(style.rawValue, systemImage: "circle.fill").font(.forest(12)).foregroundStyle(style.tint) }; Label("Uncertain", systemImage: "circle.dashed").font(.forest(12)).foregroundStyle(.forestWarning) }
-                        }
-                        HStack(spacing: 10) { Image(systemName: "magnifyingglass").foregroundStyle(.forestMuted); TextField("Find a wine in this cellar", text: $query).font(.forest(15)) }.padding(14).background(.forestSurface, in: RoundedRectangle(cornerRadius: 10)).overlay(RoundedRectangle(cornerRadius: 10).stroke(.forestHairline))
-                        VStack(spacing: 18) { ForEach(zones) { zone in zoneView(zone, cellar: cellar) } }
-                            .padding(18).background(.forestCabinet, in: RoundedRectangle(cornerRadius: 20)).overlay(RoundedRectangle(cornerRadius: 20).stroke(.forestCabinetRail, lineWidth: 8))
+                    if !model.inventoryCellars.isEmpty {
+                        Menu {
+                            ForEach(model.inventoryCellars) { cellar in
+                                Button("\(cellar.name) · \(cellar.bottleCount ?? 0)") { model.selectedBottleCellarID = cellar.id }
+                            }
+                            Button("Add a cellar") { showingAdd = true }
+                            if let cellar = currentSummary { Button("Rename \(cellar.name)") { editingName = cellar.name } }
+                        } label: {
+                            HStack { VStack(alignment: .leading, spacing: 5) { Text("CELLAR").overline(); Text(currentSummary?.name ?? "Select a cellar").font(.forest(20, weight: .medium)) }; Spacer(); Image(systemName: "chevron.down").foregroundStyle(.forestAccent) }
+                        }.foregroundStyle(.forestPrimary).padding(.vertical, 12)
+                        if let cellar = model.backendCellar {
+                            Text("\(cellar.bottles?.count ?? 0) bottles · \(Int(cellar.widthCm ?? 120)) × \(Int(cellar.heightCm ?? 200)) × \(Int(cellar.depthCm ?? 60)) cm")
+                                .font(.forest(14)).foregroundStyle(.forestSecondary)
+                            CellarMapView(cellar: cellar) { selectedBottle = $0 }
+                                .padding(18).background(.forestCabinet, in: RoundedRectangle(cornerRadius: 20))
+                                .overlay(RoundedRectangle(cornerRadius: 20).stroke(.forestCabinetRail, lineWidth: 8))
+                            Text("Tap a bottle to see its details.").font(.forest(13)).foregroundStyle(.forestMuted)
+                        } else if model.busy { ProgressView().tint(.forestAccent) }
+                    } else {
+                        ContentUnavailableView("No cellars yet", systemImage: "square.grid.2x2", description: Text("Add a cellar to start placing bottles."))
                     }
+                    if let error = model.error { Text(error).font(.forest(14)).foregroundStyle(.forestWarning) }
                 }.padding(24)
-            }.background { Color.forestBackground.ignoresSafeArea() }
-                .toolbar { ToolbarItem(placement: .topBarTrailing) { Menu { Button("Add a cellar") { showAdd = true }; if let cellar { Button("Edit cellar") { editingCellar = cellar } } } label: { Image(systemName: "ellipsis") } } }
-                .sheet(isPresented: $showAdd) { CellarForm { newCellar in Task { await model.save(newCellar) } } }
-                .sheet(item: $editingCellar) { item in CellarForm(cellar: item) { updated in Task { await model.save(updated) } } }
-                .sheet(item: $selectedWine) { wine in LegacyWineDetail(wine: wine) }
-                .refreshable { await model.refresh() }
+            }
+            .background { Color.forestBackground.ignoresSafeArea() }
+            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button { showingAdd = true } label: { Image(systemName: "plus") }.accessibilityLabel("Add a cellar") } }
+            .sheet(isPresented: $showingAdd) { BackendCellarNameForm(title: "Add a cellar") { name in await model.createBackendCellar(name: name) } }
+            .sheet(item: Binding(get: { editingName.map(CellarNameEdit.init(name:)) }, set: { editingName = $0?.name })) { edit in
+                BackendCellarNameForm(title: "Rename cellar", initialName: edit.name) { name in
+                    guard let id = model.selectedBottleCellarID else { return false }
+                    return await model.renameBackendCellar(id: id, name: name)
+                }
+            }
+            .sheet(item: $selectedBottle) { bottle in WineDetail(bottle: bottle) }
+            .task { await model.loadInventoryCellars(); await model.loadBackendCellar() }
+            .onChange(of: model.selectedBottleCellarID) { _, _ in Task { await model.loadBackendCellar() } }
+            .refreshable { await model.loadInventoryCellars(); await model.loadBackendCellar() }
         }
     }
 
-    private func zoneView(_ zone: CellarZone, cellar: Cellar) -> some View {
-        let bottles = wines.filter { $0.style == zone.style }
-        let filled = min(bottles.count, zone.capacity)
-        return VStack(alignment: .leading, spacing: 13) {
-            HStack { Text(zone.title).font(.forest(12, weight: .semibold)).tracking(1.4).foregroundStyle(.forestCabinetText); Spacer(); Text("\(filled) / \(zone.capacity)").font(.forest(12)).foregroundStyle(.forestCabinetMuted) }
-            Text("Target \(zone.target)   ·   Now \(cellar.temperature, specifier: "%.1f") °C").font(.forest(13)).foregroundStyle(.forestCabinetMuted)
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 5), spacing: 14) {
-                ForEach(0..<zone.capacity, id: \.self) { index in
-                    if index < filled {
-                        Button { selectedWine = bottles[index] } label: {
-                            Circle().fill(LinearGradient(colors: [zone.style.tint.opacity(0.82), zone.style.tint], startPoint: .topLeading, endPoint: .bottomTrailing))
-                                .overlay(Circle().fill(.black.opacity(0.18)).padding(8).frame(width: 20, height: 20))
-                                .frame(width: 36, height: 36).overlay(Circle().stroke(.forestCabinetGlow.opacity(0.25), lineWidth: 1))
-                        }.buttonStyle(.plain).accessibilityLabel(bottles[index].name)
-                    } else { Circle().fill(.forestCabinetInset).frame(width: 36, height: 36).overlay(Circle().stroke(.forestCabinetRail, lineWidth: 1)) }
+    private var currentSummary: BackendModels.CellarSummary? {
+        model.inventoryCellars.first { $0.id == model.selectedBottleCellarID }
+    }
+}
+
+private struct CellarNameEdit: Identifiable { var name: String; var id: String { name } }
+
+private struct BackendCellarNameForm: View {
+    @Environment(\.dismiss) private var dismiss
+    let title: String
+    var initialName = ""
+    let save: (String) async -> Bool
+    @State private var name: String
+    @State private var saving = false
+
+    init(title: String, initialName: String = "", save: @escaping (String) async -> Bool) {
+        self.title = title; self.initialName = initialName; self.save = save
+        _name = State(initialValue: initialName)
+    }
+    var body: some View {
+        NavigationStack {
+            Form { TextField("Cellar name", text: $name).textInputAutocapitalization(.words) }
+                .navigationTitle(title).navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                    ToolbarItem(placement: .confirmationAction) { Button("Save") { Task { saving = true; if await save(name.trimmingCharacters(in: .whitespacesAndNewlines)) { dismiss() }; saving = false } }.disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || saving) }
+                }
+                .overlay { if saving { ProgressView().tint(.forestAccent) } }
+        }.presentationDetents([.medium])
+    }
+}
+
+private struct CellarMapView: View {
+    let cellar: BackendModels.Cellar
+    let openBottle: (BackendModels.Bottle) -> Void
+    private var width: Double { max(cellar.widthCm ?? 120, 1) }
+    private var height: Double { max(cellar.heightCm ?? 200, 1) }
+
+    var body: some View {
+        GeometryReader { proxy in
+            let size = proxy.size
+            ZStack(alignment: .topLeading) {
+                RoundedRectangle(cornerRadius: 8).fill(Color.forestCabinetInset)
+                ForEach((cellar.racks ?? []).filter { $0.kind == "shelf" }, id: \.id) { rack in
+                    let y = size.height * (1 - min(max((rack.yCm ?? 0) / height, 0), 1))
+                    Rectangle().fill(Color.forestCabinetRail).frame(height: 3).position(x: size.width / 2, y: y)
+                }
+                ForEach(cellar.bottles ?? []) { bottle in
+                    if let x = bottle.x, let y = bottle.y {
+                        Button { openBottle(bottle) } label: {
+                            Circle().fill(wineColor(bottle.wine.color)).overlay(Circle().fill(.black.opacity(0.22)).padding(5))
+                                .overlay(Circle().stroke(.white.opacity(0.3), lineWidth: 1))
+                                .frame(width: 28, height: 28)
+                        }.buttonStyle(.plain).accessibilityLabel(bottle.wine.name)
+                            .position(x: size.width * min(max(x / width, 0), 1), y: size.height * (1 - min(max(y / height, 0), 1)))
+                    }
                 }
             }
-            Rectangle().fill(.forestCabinetRail).frame(height: 4).clipShape(Capsule())
-        }.padding(14).background(.forestCabinetInset.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
+        }.aspectRatio(width / height, contentMode: .fit)
+    }
+
+    private func wineColor(_ color: String?) -> Color {
+        switch color?.lowercased() {
+        case "white": .forestWarning
+        case "rose", "rosé": .pink
+        case "sparkling": .forestAccent
+        default: .forestDanger
+        }
     }
 }
 

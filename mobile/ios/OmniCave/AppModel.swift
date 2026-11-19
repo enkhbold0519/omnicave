@@ -11,6 +11,7 @@ final class AppModel: ObservableObject {
     @Published var inventoryBottles: [BackendModels.Bottle] = []
     @Published var inventoryCellars: [BackendModels.CellarSummary] = []
     @Published var selectedBottleCellarID: Int?
+    @Published var backendCellar: BackendModels.Cellar?
     @Published var inventoryQuery = ""
     @Published var inventoryAllCellars = false
     @Published var error: String?
@@ -136,6 +137,36 @@ final class AppModel: ObservableObject {
         } catch {
             self.error = error.localizedDescription
         }
+    }
+
+    func loadBackendCellar() async {
+        guard let id = selectedBottleCellarID else { backendCellar = nil; return }
+        do {
+            backendCellar = try await service.cellarDetails(id: id)
+            error = nil
+        } catch { self.error = error.localizedDescription }
+    }
+
+    func createBackendCellar(name: String) async -> Bool {
+        var success = false
+        await perform {
+            let cellar = try await service.createCellar(name: name)
+            await loadInventoryCellars()
+            selectedBottleCellarID = cellar.id
+            backendCellar = cellar
+            success = true
+        }
+        return success
+    }
+
+    func renameBackendCellar(id: Int, name: String) async -> Bool {
+        var success = false
+        await perform {
+            backendCellar = try await service.renameCellar(id: id, name: name)
+            await loadInventoryCellars()
+            success = true
+        }
+        return success
     }
 
     func saveBottle(id: Int?, cellarID: Int, wine: BackendModels.WineInfo) async -> BackendModels.Bottle? {

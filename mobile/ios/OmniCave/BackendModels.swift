@@ -46,7 +46,7 @@ enum BackendModels {
         var dislikes: String?
     }
 
-    struct CellarSummary: Codable {
+    struct CellarSummary: Codable, Identifiable {
         var id: Int
         var name: String
         var bottleCount: Int? = nil
