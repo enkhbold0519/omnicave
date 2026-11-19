@@ -8,6 +8,11 @@ final class AppModel: ObservableObject {
     @Published var wines: [Wine] = []
     @Published var cellars: [Cellar] = []
     @Published var selectedCellar: UUID?
+    @Published var inventoryBottles: [BackendModels.Bottle] = []
+    @Published var inventoryCellars: [BackendModels.CellarSummary] = []
+    @Published var selectedBottleCellarID: Int?
+    @Published var inventoryQuery = ""
+    @Published var inventoryAllCellars = false
     @Published var error: String?
     @Published var notice: String?
     @Published var busy = false
@@ -25,6 +30,8 @@ final class AppModel: ObservableObject {
                     self?.user = nil
                     self?.wines = []
                     self?.cellars = []
+                    self?.inventoryBottles = []
+                    self?.inventoryCellars = []
                 }
             }
         }
@@ -106,6 +113,56 @@ final class AppModel: ObservableObject {
         await perform {
             try await service.resetPassword(email: email, code: code, password: password)
             notice = "Password changed. Log in with your new password."
+        }
+    }
+
+    func loadInventoryCellars() async {
+        do {
+            inventoryCellars = try await service.bottleCellars()
+            if !inventoryCellars.contains(where: { $0.id == selectedBottleCellarID }) {
+                selectedBottleCellarID = inventoryCellars.first?.id
+            }
+            error = nil
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
+    func loadBottles() async {
+        do {
+            let cellarID = inventoryAllCellars ? nil : selectedBottleCellarID
+            inventoryBottles = try await service.bottles(query: inventoryQuery, cellarID: cellarID)
+            error = nil
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
+    func saveBottle(id: Int?, cellarID: Int, wine: BackendModels.WineInfo) async -> BackendModels.Bottle? {
+        busy = true; error = nil; notice = nil
+        do {
+            let bottle = try await service.saveBottle(id: id, cellarID: cellarID, wine: wine)
+            await loadBottles()
+            busy = false
+            return bottle
+        } catch {
+            self.error = error.localizedDescription
+            busy = false
+            return nil
+        }
+    }
+
+    func removeBottle(id: Int, reason: String) async -> Bool {
+        busy = true; error = nil; notice = nil
+        do {
+            try await service.removeBottle(id: id, reason: reason)
+            await loadBottles()
+            busy = false
+            return true
+        } catch {
+            self.error = error.localizedDescription
+            busy = false
+            return false
         }
     }
     func signOut() { Task { await service.signOut(); user = nil; wines = []; cellars = [] } }

@@ -11,6 +11,10 @@ protocol AppService {
     func resendVerification(email: String) async throws
     func requestPasswordReset(email: String) async throws
     func resetPassword(email: String, code: String, password: String) async throws
+    func bottleCellars() async throws -> [BackendModels.CellarSummary]
+    func bottles(query: String, cellarID: Int?) async throws -> [BackendModels.Bottle]
+    func saveBottle(id: Int?, cellarID: Int, wine: BackendModels.WineInfo) async throws -> BackendModels.Bottle
+    func removeBottle(id: Int, reason: String) async throws
     func updateEmail(_ email: String) async throws -> Account
     func updatePassword(_ password: String) async throws
     func wines() async throws -> [Wine]
@@ -97,6 +101,44 @@ final class MockService: AppService {
     func requestPasswordReset(email: String) async throws {}
     func resetPassword(email: String, code: String, password: String) async throws { throw ServiceError.invalidInput }
 
+    func bottleCellars() async throws -> [BackendModels.CellarSummary] {
+        let bottles = try await storedBottles()
+        return [
+            BackendModels.CellarSummary(id: 1, name: "Home cellar", bottleCount: bottles.filter { $0.cellarId == 1 }.count),
+            BackendModels.CellarSummary(id: 2, name: "Summer house", bottleCount: bottles.filter { $0.cellarId == 2 }.count)
+        ]
+    }
+
+    func bottles(query: String, cellarID: Int?) async throws -> [BackendModels.Bottle] {
+        let needle = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        return try await storedBottles().filter { bottle in
+            let cellarMatch = cellarID == nil || bottle.cellarId == cellarID
+            let searchFields = [bottle.wine.name, bottle.wine.producer ?? "", bottle.wine.region ?? "", bottle.wine.grape ?? "", String(bottle.wine.vintage ?? 0)]
+            return cellarMatch && (needle.isEmpty || searchFields.contains { $0.localizedCaseInsensitiveContains(needle) })
+        }
+    }
+
+    func saveBottle(id: Int?, cellarID: Int, wine: BackendModels.WineInfo) async throws -> BackendModels.Bottle {
+        var values = try await storedBottles()
+        let existing = id.flatMap { requestedID in values.first { $0.id == requestedID } }
+        let bottle = BackendModels.Bottle(
+            id: existing?.id ?? ((values.map(\.id).max() ?? 100) + 1),
+            cellarId: existing?.cellarId ?? cellarID,
+            cellarName: existing?.cellarName ?? (cellarID == 2 ? "Summer house" : "Home cellar"),
+            wine: wine,
+            location: existing?.location ?? "Unassigned · front",
+            windowStatus: existing?.windowStatus ?? "young",
+            source: existing?.source ?? "manual"
+        )
+        if let index = values.firstIndex(where: { $0.id == bottle.id }) { values[index] = bottle } else { values.append(bottle) }
+        store(values, key: key("bottles"))
+        return bottle
+    }
+
+    func removeBottle(id: Int, reason: String) async throws {
+        store(try await storedBottles().filter { $0.id != id }, key: key("bottles"))
+    }
+
     func updateEmail(_ email: String) async throws -> Account {
         guard Self.validEmail(email), let old = signedIn, var user = accounts.first(where: { $0.email == old }) else { throw ServiceError.invalidInput }
         guard !accounts.contains(where: { $0.email == email.lowercased() && $0.email != old }) else { throw ServiceError.accountExists }
@@ -147,6 +189,9 @@ final class MockService: AppService {
     }
 
     private func key(_ item: String) -> String { "mock.\(signedIn ?? "guest").\(item)" }
+    private func storedBottles() async throws -> [BackendModels.Bottle] {
+        load([BackendModels.Bottle].self, key: key("bottles"), default: Self.sampleBottles)
+    }
     private func load<T: Decodable>(_ type: T.Type, key: String, default value: T) -> T {
         guard let data = defaults.data(forKey: key), let decoded = try? JSONDecoder().decode(type, from: data) else { return value }
         return decoded
@@ -170,6 +215,11 @@ final class MockService: AppService {
         Wine(name: "Barolo", winery: "G.D. Vajra", region: "Piedmont", vintage: 2019, grape: "Nebbiolo", location: "A1 · Shelf 1", cellarID: sampleCellarID, value: 62),
         Wine(name: "Château Margaux", winery: "Château Margaux", region: "Bordeaux", vintage: 2018, grape: "Cabernet Sauvignon", location: "B2 · Shelf 2", cellarID: sampleCellarID, value: 820),
         Wine(name: "Riesling Kabinett", winery: "Dr. Loosen", region: "Mosel", vintage: 2021, grape: "Riesling", location: "C1 · Shelf 3", cellarID: sampleCellarID, value: 28)
+    ]
+    private static let sampleBottles = [
+        BackendModels.Bottle(id: 101, cellarId: 1, cellarName: "Home cellar", wine: BackendModels.WineInfo(name: "Barolo", producer: "G.D. Vajra", region: "Piedmont", country: "Italy", color: "red", vintage: 2019, grape: "Nebbiolo", drinkFrom: 2024, drinkTo: 2034, basePrice: 62), location: "Rack 3 · 12 cm from left · front", windowStatus: "ready"),
+        BackendModels.Bottle(id: 102, cellarId: 1, cellarName: "Home cellar", wine: BackendModels.WineInfo(name: "Château Margaux", producer: "Château Margaux", region: "Bordeaux", country: "France", color: "red", vintage: 2018, grape: "Cabernet Sauvignon", drinkFrom: 2027, drinkTo: 2045, basePrice: 820), location: "Rack 5 · 20 cm from left · front", windowStatus: "young"),
+        BackendModels.Bottle(id: 103, cellarId: 2, cellarName: "Summer house", wine: BackendModels.WineInfo(name: "Riesling Kabinett", producer: "Dr. Loosen", region: "Mosel", country: "Germany", color: "white", vintage: 2021, grape: "Riesling", drinkFrom: 2023, drinkTo: 2031, basePrice: 28), location: "Rack 2 · 9 cm from left · front", windowStatus: "ready")
     ]
     private static let sampleCellarID = UUID(uuidString: "4D198430-28FB-43B6-BE19-B86BEF376F3A")!
 }
@@ -255,6 +305,29 @@ final class BackendService: AppService {
         let _: OKReply = try await api.request("POST", path: "api/auth/reset-password", body: api.encode(ResetPasswordBody(email: email, code: code, password: password)))
     }
 
+    func bottleCellars() async throws -> [BackendModels.CellarSummary] {
+        try await api.get("api/cellars")
+    }
+
+    func bottles(query: String, cellarID: Int?) async throws -> [BackendModels.Bottle] {
+        var items = [URLQueryItem(name: "q", value: query)]
+        if let cellarID { items.append(URLQueryItem(name: "cellar_id", value: String(cellarID))) }
+        return try await api.get("api/bottles", queryItems: items)
+    }
+
+    func saveBottle(id: Int?, cellarID: Int, wine: BackendModels.WineInfo) async throws -> BackendModels.Bottle {
+        if let id {
+            return try await api.request("PATCH", path: "api/bottles/\(id)", body: api.encode(WineBody(wine: wine)))
+        }
+        return try await api.request("POST", path: "api/bottles", body: api.encode(NewBottleBody(cellarID: cellarID, wine: wine)))
+    }
+
+    func removeBottle(id: Int, reason: String) async throws {
+        let _: OKReply = try await api.request(
+            "DELETE", path: "api/bottles/\(id)", queryItems: [URLQueryItem(name: "reason", value: reason)]
+        )
+    }
+
     private struct RegisterBody: Encodable {
         var username: String; var email: String; var password: String; var birthDate: String
         var consents: [String: Bool]; var seedDemo: Bool
@@ -264,6 +337,8 @@ final class BackendService: AppService {
     private struct EmailBody: Encodable { var email: String }
     private struct ResetPasswordBody: Encodable { var email: String; var code: String; var password: String }
     private struct OKReply: Decodable { var ok: Bool? }
+    private struct WineBody: Encodable { var wine: BackendModels.WineInfo }
+    private struct NewBottleBody: Encodable { var cellarID: Int; var wine: BackendModels.WineInfo }
 
     private func request<T: Decodable>(_ method: String, _ path: String, body: Data? = nil) async throws -> T {
         var request = URLRequest(url: baseURL.appending(path: path))

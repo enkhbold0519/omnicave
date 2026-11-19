@@ -47,9 +47,9 @@ enum BackendModels {
     }
 
     struct CellarSummary: Codable {
-        var id: Int?
-        var name: String?
-        var bottleCount: Int?
+        var id: Int
+        var name: String
+        var bottleCount: Int? = nil
     }
 
     struct Cellar: Codable {
@@ -73,34 +73,43 @@ enum BackendModels {
         var present: Bool?
     }
 
-    struct Bottle: Codable {
-        var id: Int?
-        var cellarId: Int?
-        var cellarName: String?
-        var wine: WineInfo?
-        var location: String?
-        var x: Double?
-        var y: Double?
-        var z: Double?
-        var orientation: String?
-        var level: Int?
-        var windowStatus: String?
-        var source: String?
-        var confidence: Double?
+    struct Bottle: Codable, Identifiable {
+        var id: Int
+        var cellarId: Int
+        var cellarName: String? = nil
+        var wine: WineInfo
+        var location: String? = nil
+        var x: Double? = nil
+        var y: Double? = nil
+        var z: Double? = nil
+        var orientation: String? = nil
+        var level: Int? = nil
+        var windowStatus: String? = nil
+        var source: String? = nil
+        var confidence: Double? = nil
     }
 
     struct WineInfo: Codable {
-        var id: Int?
-        var name: String?
-        var producer: String?
-        var region: String?
-        var country: String?
-        var color: String?
-        var vintage: Int?
-        var grape: String?
-        var drinkFrom: Int?
-        var drinkTo: Int?
-        var basePrice: Double?
+        var id: Int? = nil
+        var name: String
+        var producer: String? = nil
+        var region: String? = nil
+        var country: String? = nil
+        var color: String? = nil
+        var vintage: Int? = nil
+        var grape: String? = nil
+        var drinkFrom: Int? = nil
+        var drinkTo: Int? = nil
+        var basePrice: Double? = nil
+    }
+
+    struct PricePoint: Codable {
+        var date: String?
+        var price: Double?
+    }
+
+    struct PriceHistory: Codable {
+        var history: [PricePoint]?
     }
 
     struct EnvZone: Codable {
@@ -175,16 +184,22 @@ final class APIClient {
         self.decoder = decoder
     }
 
-    func get<Response: Decodable>(_ path: String) async throws -> Response {
-        try await request("GET", path: path)
+    func get<Response: Decodable>(_ path: String, queryItems: [URLQueryItem] = []) async throws -> Response {
+        try await request("GET", path: path, queryItems: queryItems)
     }
 
     func request<Response: Decodable>(
         _ method: String,
         path: String,
-        body: Data? = nil
+        body: Data? = nil,
+        queryItems: [URLQueryItem] = []
     ) async throws -> Response {
-        var urlRequest = URLRequest(url: baseURL.appending(path: path))
+        guard var components = URLComponents(url: baseURL.appending(path: path), resolvingAgainstBaseURL: false) else {
+            throw APIClientError.invalidResponse
+        }
+        if !queryItems.isEmpty { components.queryItems = queryItems }
+        guard let url = components.url else { throw APIClientError.invalidResponse }
+        var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = method
         urlRequest.httpBody = body
         urlRequest.setValue("application/json", forHTTPHeaderField: "Accept")

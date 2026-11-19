@@ -448,7 +448,7 @@ struct CellarView: View {
                 .toolbar { ToolbarItem(placement: .topBarTrailing) { Menu { Button("Add a cellar") { showAdd = true }; if let cellar { Button("Edit cellar") { editingCellar = cellar } } } label: { Image(systemName: "ellipsis") } } }
                 .sheet(isPresented: $showAdd) { CellarForm { newCellar in Task { await model.save(newCellar) } } }
                 .sheet(item: $editingCellar) { item in CellarForm(cellar: item) { updated in Task { await model.save(updated) } } }
-                .sheet(item: $selectedWine) { wine in WineDetail(wine: wine) }
+                .sheet(item: $selectedWine) { wine in LegacyWineDetail(wine: wine) }
                 .refreshable { await model.refresh() }
         }
     }
@@ -478,19 +478,27 @@ struct CellarView: View {
 struct InventoryView: View {
     @EnvironmentObject private var model: AppModel
     @Binding var selectedTab: String
-    @State private var query = ""
     @State private var adding = false
-    @State private var selected: Wine?
-    @State private var allCellars = false
+    @State private var selected: BackendModels.Bottle?
     @State private var filter = "All"
-    private let filters = ["All", "Red", "White", "Rosé", "Ready to drink"]
-    private var results: [Wine] {
-        model.wines.filter { wine in
-            let textMatch = query.isEmpty || [wine.name, wine.winery, wine.region, String(wine.vintage), wine.grape].contains { $0.localizedCaseInsensitiveContains(query) }
-            let cellarMatch = allCellars || model.selectedCellar == nil || wine.cellarID == model.selectedCellar
-            let filterMatch = filter == "All" || filter == "Ready to drink" || filter == wine.style.rawValue
-            return textMatch && cellarMatch && filterMatch
+    private let filters = ["All", "Red", "White", "Rosé", "Sparkling", "Ready to drink"]
+    private var requestKey: String {
+        "\(model.inventoryQuery)|\(model.inventoryAllCellars)|\(model.selectedBottleCellarID ?? 0)"
+    }
+    private var results: [BackendModels.Bottle] {
+        model.inventoryBottles.filter { bottle in
+            let color = bottle.wine.color ?? "red"
+            let styleMatch = filter == "All" || (filter == "Ready to drink" ? bottle.windowStatus == "ready" : color == filter.lowercased().replacingOccurrences(of: "é", with: "e"))
+            return styleMatch
         }
+    }
+    private var wineCount: Int {
+        Set(results.map { bottle in
+            bottle.wine.id.map { String($0) } ?? "\(bottle.wine.producer ?? "")|\(bottle.wine.name)|\(bottle.wine.vintage ?? 0)"
+        }).count
+    }
+    private var currentCellarName: String {
+        model.inventoryCellars.first(where: { $0.id == model.selectedBottleCellarID })?.name ?? "This cellar"
     }
 
     var body: some View {
@@ -503,11 +511,11 @@ struct InventoryView: View {
                         Button { adding = true } label: { Image(systemName: "plus").font(.system(size: 20)).foregroundStyle(.forestPrimary).frame(width: 44, height: 44) }.accessibilityLabel("Add bottle")
                         Button { selectedTab = "cellar" } label: { Image(systemName: "square.grid.2x2").font(.system(size: 20)).foregroundStyle(.forestPrimary).frame(width: 44, height: 44) }.accessibilityLabel("Open cellar map")
                     }
-                    Picker("Cellars", selection: $allCellars) {
-                        Text(model.cellars.first(where: { $0.id == model.selectedCellar })?.name ?? "My cellar").tag(false)
+                    Picker("Cellars", selection: $model.inventoryAllCellars) {
+                        Text(currentCellarName).tag(false)
                         Text("All cellars").tag(true)
                     }.pickerStyle(.segmented)
-                    HStack(spacing: 10) { Image(systemName: "magnifyingglass").foregroundStyle(.forestMuted); TextField("Wine, winery, region, vintage, grape", text: $query).font(.forest(14)) }
+                    HStack(spacing: 10) { Image(systemName: "magnifyingglass").foregroundStyle(.forestMuted); TextField("Wine, producer, region, vintage, grape", text: $model.inventoryQuery).font(.forest(14)) }
                         .padding(14).background(.forestSurface, in: RoundedRectangle(cornerRadius: 10)).overlay(RoundedRectangle(cornerRadius: 10).stroke(.forestHairline))
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) { ForEach(filters, id: \.self) { item in
@@ -518,34 +526,228 @@ struct InventoryView: View {
                                 .overlay(Capsule().stroke(filter == item ? .clear : .forestHairline))
                         } }
                     }
-                    HStack { Text("\(results.count) bottles · \(results.count) wines · \(max(0, 65 - results.count)) of 65 slots").font(.forest(14)).foregroundStyle(.forestSecondary); Spacer() }
-                    LazyVStack(spacing: 0) {
-                        ForEach(results) { wine in
-                            Button { selected = wine } label: {
-                                HStack(spacing: 14) {
-                                    Capsule().fill(wine.style.tint).frame(width: 4, height: 68)
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text("\(wine.vintage) · \(wine.style.rawValue.uppercased())").font(.forest(11, weight: .medium)).tracking(1.2).foregroundStyle(.forestMuted)
-                                        Text(wine.name).font(.forest(19, weight: .medium)).foregroundStyle(.forestPrimary)
-                                        Text("\(wine.winery) · \(wine.region)").font(.forest(14)).foregroundStyle(.forestSecondary)
-                                    }
-                                    Spacer(minLength: 4)
-                                    VStack(alignment: .trailing, spacing: 5) { Text("1").font(.forest(22)).foregroundStyle(.forestPrimary); Label("Ready", systemImage: "circle.fill").font(.forest(12)).foregroundStyle(.forestSuccess) }
-                                }.padding(.vertical, 14).contentShape(Rectangle())
-                            }.buttonStyle(.plain)
-                            Rectangle().fill(.forestHairline).frame(height: 1)
+                    HStack { Text("\(results.count) bottles · \(wineCount) wines").font(.forest(14)).foregroundStyle(.forestSecondary); Spacer() }
+                    if let error = model.error {
+                        Text(error).font(.forest(13)).foregroundStyle(.forestDanger).frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    if results.isEmpty {
+                        VStack(spacing: 8) {
+                            Text(model.error ?? (model.inventoryQuery.isEmpty ? "No bottles yet" : "No wines match"))
+                                .font(.forest(18, weight: .medium)).foregroundStyle(.forestPrimary)
+                            if model.error != nil {
+                                Button("Try again") { Task { await model.loadBottles() } }.font(.forest(14)).foregroundStyle(.forestAccent)
+                            } else if !model.inventoryQuery.isEmpty || filter != "All" {
+                                Button("Clear search and filters") { model.inventoryQuery = ""; filter = "All" }
+                                    .font(.forest(14)).foregroundStyle(.forestAccent)
+                            } else {
+                                Text("Tap Add bottle to start your cellar.").font(.forest(14)).foregroundStyle(.forestMuted)
+                            }
+                        }.frame(maxWidth: .infinity).padding(.vertical, 42)
+                    } else {
+                        LazyVStack(spacing: 0) {
+                            ForEach(results) { bottle in
+                                Button { selected = bottle } label: {
+                                    HStack(spacing: 14) {
+                                        Capsule().fill(style(for: bottle.wine.color).tint).frame(width: 4, height: 74)
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text("\(vintageLabel(bottle.wine.vintage)) · \(style(for: bottle.wine.color).rawValue.uppercased())").font(.forest(11, weight: .medium)).tracking(1.2).foregroundStyle(.forestMuted)
+                                            Text(bottle.wine.name).font(.forest(19, weight: .medium)).foregroundStyle(.forestPrimary)
+                                            Text("\(bottle.wine.producer ?? "") · \(bottle.wine.region ?? bottle.wine.country ?? "")").font(.forest(14)).foregroundStyle(.forestSecondary)
+                                            Text("\(bottle.cellarName ?? currentCellarName) · \(bottle.location ?? "Location unavailable")").font(.forest(12)).foregroundStyle(.forestMuted).lineLimit(1)
+                                        }
+                                        Spacer(minLength: 4)
+                                        VStack(alignment: .trailing, spacing: 5) {
+                                            Label(windowLabel(bottle.windowStatus), systemImage: "circle.fill")
+                                                .font(.forest(11)).foregroundStyle(windowColor(bottle.windowStatus))
+                                            Image(systemName: "chevron.right").font(.forest(12)).foregroundStyle(.forestMuted)
+                                        }
+                                    }.padding(.vertical, 14).contentShape(Rectangle())
+                                }.buttonStyle(.plain)
+                                Rectangle().fill(.forestHairline).frame(height: 1)
+                            }
                         }
                     }
                 }.padding(24)
             }.background { Color.forestBackground.ignoresSafeArea() }
-                .sheet(isPresented: $adding) { WineForm(wine: nil) { newWine in Task { await model.save(newWine) } } }
-                .sheet(item: $selected) { wine in WineDetail(wine: wine) }
-                .refreshable { await model.refresh() }
+                .sheet(isPresented: $adding) {
+                    BottleForm(cellarID: model.selectedBottleCellarID ?? model.inventoryCellars.first?.id ?? 0, bottle: nil) { _ in }
+                }
+                .sheet(item: $selected) { bottle in WineDetail(bottle: bottle) }
+                .task { await model.loadInventoryCellars() }
+                .task(id: requestKey) {
+                    try? await Task.sleep(for: .milliseconds(250))
+                    guard !Task.isCancelled else { return }
+                    await model.loadBottles()
+                }
+                .refreshable { await model.loadBottles() }
         }
+    }
+
+    private func style(for color: String?) -> WineStyle {
+        switch color {
+        case "white": .white
+        case "rose": .rose
+        case "sparkling": .sparkling
+        default: .red
+        }
+    }
+    private func vintageLabel(_ vintage: Int?) -> String { vintage.map { $0 > 0 ? String($0) : "NV" } ?? "NV" }
+    private func windowLabel(_ status: String?) -> String {
+        switch status { case "ready": "Ready"; case "past-peak": "Past peak"; default: "Young" }
+    }
+    private func windowColor(_ status: String?) -> Color {
+        switch status { case "ready": .forestSuccess; case "past-peak": .forestWarning; default: .forestSecondary }
     }
 }
 
 struct WineDetail: View {
+    @EnvironmentObject private var model: AppModel
+    @Environment(\.dismiss) private var dismiss
+    @State var bottle: BackendModels.Bottle
+    @State private var editing = false
+    @State private var confirmingRemoval = false
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("\(vintageLabel(bottle.wine.vintage)) · \(style(for: bottle.wine.color).rawValue.uppercased())").overline()
+                        Text(bottle.wine.name).font(.forest(29)).foregroundStyle(.forestPrimary)
+                        Text("\(bottle.wine.producer ?? "") · \(bottle.wine.region ?? bottle.wine.country ?? "")").font(.forest(16)).foregroundStyle(.forestSecondary)
+                        Text(windowLabel(bottle.windowStatus)).font(.forest(14)).foregroundStyle(windowColor(bottle.windowStatus)).padding(.top, 4)
+                    }.padding(.vertical, 8)
+                }
+                Section("In your cellar") {
+                    LabeledContent("Location", value: bottle.location ?? "Location unavailable")
+                    LabeledContent("Cellar", value: bottle.cellarName ?? "Cellar")
+                    Button("Ask the sommeliers") { Task { _ = await model.ask("Discuss \(bottle.wine.name) \(vintageLabel(bottle.wine.vintage))") } }
+                }
+                Section("About this wine") {
+                    LabeledContent("Producer", value: bottle.wine.producer ?? "—")
+                    LabeledContent("Region", value: bottle.wine.region ?? "—")
+                    LabeledContent("Country", value: bottle.wine.country ?? "—")
+                    LabeledContent("Grape", value: bottle.wine.grape ?? "—")
+                    LabeledContent("Vintage", value: vintageLabel(bottle.wine.vintage))
+                    if let price = bottle.wine.basePrice { LabeledContent("Base price", value: String(format: "$%.0f", price)) }
+                    if let from = bottle.wine.drinkFrom, let to = bottle.wine.drinkTo { LabeledContent("Drinking window", value: "\(from)–\(to)") }
+                }
+                Section { Button("Edit bottle") { editing = true }; Button("Remove bottle", role: .destructive) { confirmingRemoval = true } }
+            }.scrollContentBackground(.hidden).background(.forestBackground).navigationTitle("Bottle").navigationBarTitleDisplayMode(.inline)
+                .sheet(isPresented: $editing) {
+                    BottleForm(cellarID: bottle.cellarId, bottle: bottle) { updated in bottle = updated }
+                }
+                .confirmationDialog("How should this bottle be removed?", isPresented: $confirmingRemoval, titleVisibility: .visible) {
+                    Button("Mark as consumed", role: .destructive) { Task { if await model.removeBottle(id: bottle.id, reason: "consumed") { dismiss() } } }
+                    Button("Remove without consuming", role: .destructive) { Task { if await model.removeBottle(id: bottle.id, reason: "removed") { dismiss() } } }
+                }
+        }
+    }
+
+    private func style(for color: String?) -> WineStyle {
+        switch color { case "white": .white; case "rose": .rose; case "sparkling": .sparkling; default: .red }
+    }
+    private func vintageLabel(_ vintage: Int?) -> String { vintage.map { $0 > 0 ? String($0) : "NV" } ?? "NV" }
+    private func windowLabel(_ status: String?) -> String {
+        switch status { case "ready": "Ready to drink"; case "past-peak": "Past peak"; default: "Young" }
+    }
+    private func windowColor(_ status: String?) -> Color {
+        switch status { case "ready": .forestSuccess; case "past-peak": .forestWarning; default: .forestSecondary }
+    }
+}
+
+struct BottleForm: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var model: AppModel
+    let cellarID: Int
+    let bottle: BackendModels.Bottle?
+    let onSaved: (BackendModels.Bottle) -> Void
+    @State private var name: String
+    @State private var producer: String
+    @State private var region: String
+    @State private var country: String
+    @State private var grape: String
+    @State private var color: String
+    @State private var vintage: String
+    @State private var price: String
+    @State private var drinkFrom: String
+    @State private var drinkTo: String
+
+    init(cellarID: Int, bottle: BackendModels.Bottle?, onSaved: @escaping (BackendModels.Bottle) -> Void) {
+        self.cellarID = cellarID
+        self.bottle = bottle
+        self.onSaved = onSaved
+        let wine = bottle?.wine
+        _name = State(initialValue: wine?.name ?? "")
+        _producer = State(initialValue: wine?.producer ?? "")
+        _region = State(initialValue: wine?.region ?? "")
+        _country = State(initialValue: wine?.country ?? "")
+        _grape = State(initialValue: wine?.grape ?? "")
+        _color = State(initialValue: wine?.color ?? "red")
+        _vintage = State(initialValue: wine?.vintage.map(String.init) ?? String(Calendar.current.component(.year, from: .now) - 3))
+        _price = State(initialValue: wine?.basePrice.map { String($0) } ?? "")
+        _drinkFrom = State(initialValue: wine?.drinkFrom.map(String.init) ?? "")
+        _drinkTo = State(initialValue: wine?.drinkTo.map(String.init) ?? "")
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("WINE") {
+                    TextField("Wine name *", text: $name)
+                    TextField("Producer / winery *", text: $producer)
+                    TextField("Region", text: $region)
+                    TextField("Country", text: $country)
+                    TextField("Grape(s)", text: $grape)
+                }
+                Section("TYPE") {
+                    Picker("Color", selection: $color) {
+                        Text("Red").tag("red")
+                        Text("White").tag("white")
+                        Text("Rosé").tag("rose")
+                        Text("Sparkling").tag("sparkling")
+                    }
+                }
+                Section("VINTAGE & DRINKING WINDOW") {
+                    TextField("Vintage (0 = NV)", text: $vintage).keyboardType(.numberPad)
+                    TextField("Drink from", text: $drinkFrom).keyboardType(.numberPad)
+                    TextField("Drink to", text: $drinkTo).keyboardType(.numberPad)
+                }
+                Section("BASE PRICE") { TextField("Price (USD)", text: $price).keyboardType(.decimalPad) }
+                if bottle == nil { Text("The backend will place this bottle in the best free spot for its type.") }
+                if let error = model.error { Text(error).foregroundStyle(.forestDanger) }
+            }
+            .scrollContentBackground(.hidden).background(.forestBackground)
+            .navigationTitle(bottle == nil ? "Add bottle" : "Edit bottle")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(model.busy ? "Saving…" : "Save") {
+                        Task {
+                            let wine = BackendModels.WineInfo(
+                                id: bottle?.wine.id,
+                                name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+                                producer: nonEmpty(producer), region: nonEmpty(region), country: nonEmpty(country),
+                                color: color, vintage: Int(vintage), grape: nonEmpty(grape),
+                                drinkFrom: Int(drinkFrom), drinkTo: Int(drinkTo), basePrice: Double(price)
+                            )
+                            if let saved = await model.saveBottle(id: bottle?.id, cellarID: bottle?.cellarId ?? cellarID, wine: wine) {
+                                onSaved(saved)
+                                dismiss()
+                            }
+                        }
+                    }.disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || producer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || cellarID == 0 || model.busy)
+                }
+            }
+        }
+    }
+
+    private func nonEmpty(_ value: String) -> String? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
+private struct LegacyWineDetail: View {
     @EnvironmentObject private var model: AppModel
     @Environment(\.dismiss) private var dismiss
     @State var wine: Wine
@@ -554,33 +756,69 @@ struct WineDetail: View {
     var body: some View {
         NavigationStack {
             List {
-                Section { VStack(alignment: .leading, spacing: 8) { Text("\(wine.vintage) · \(wine.style.rawValue.uppercased())").overline(); Text(wine.name).font(.forest(29)).foregroundStyle(.forestPrimary); Text("\(wine.winery) · \(wine.region)").font(.forest(16)).foregroundStyle(.forestSecondary); Text("Ready · \(wine.drinkingWindow)").font(.forest(14)).foregroundStyle(.forestSuccess).padding(.top, 4) }.padding(.vertical, 8) }
-                Section("In your cellars") { LabeledContent("Location", value: wine.location); LabeledContent("Cellar", value: model.cellars.first(where: { $0.id == wine.cellarID })?.name ?? "Cellar"); Button("Ask the sommeliers") { Task { _ = await model.ask("Discuss \(wine.name) \(wine.vintage)") } } }
-                Section("About this wine") { LabeledContent("Producer", value: wine.winery); LabeledContent("Region", value: wine.region); LabeledContent("Grape", value: wine.grape); LabeledContent("Vintage", value: String(wine.vintage)); LabeledContent("Estimated value", value: String(format: "$%.0f", wine.value)) }
+                Section {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("\(wine.vintage) · \(wine.style.rawValue.uppercased())").overline()
+                        Text(wine.name).font(.forest(29)).foregroundStyle(.forestPrimary)
+                        Text("\(wine.winery) · \(wine.region)").font(.forest(16)).foregroundStyle(.forestSecondary)
+                        Text("\(wine.drinkingWindow)").font(.forest(14)).foregroundStyle(.forestSuccess).padding(.top, 4)
+                    }.padding(.vertical, 8)
+                }
+                Section("In your cellars") {
+                    LabeledContent("Location", value: wine.location)
+                    Button("Ask the sommeliers") { Task { _ = await model.ask("Discuss \(wine.name) \(wine.vintage)") } }
+                }
                 Section { Button("Edit bottle") { editing = true }; Button("Remove bottle", role: .destructive) { confirmingRemoval = true } }
-            }.scrollContentBackground(.hidden).background(.forestBackground).navigationTitle("Bottle").navigationBarTitleDisplayMode(.inline)
-                .sheet(isPresented: $editing) { WineForm(wine: wine) { updated in Task { await model.save(updated); wine = updated } } }
-                .confirmationDialog("Remove this bottle from your inventory?", isPresented: $confirmingRemoval, titleVisibility: .visible) { Button("Remove bottle", role: .destructive) { Task { await model.remove(wine); dismiss() } } }
+            }
+            .scrollContentBackground(.hidden).background(.forestBackground).navigationTitle("Bottle").navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $editing) { LegacyWineForm(wine: wine) { updated in Task { await model.save(updated); wine = updated } } }
+            .confirmationDialog("Remove this bottle from your inventory?", isPresented: $confirmingRemoval, titleVisibility: .visible) {
+                Button("Remove bottle", role: .destructive) { Task { await model.remove(wine); dismiss() } }
+            }
         }
     }
 }
 
-struct WineForm: View {
+private struct LegacyWineForm: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var model: AppModel
     @State var wine: Wine
     let isNew: Bool
     let onSave: (Wine) -> Void
+
     init(wine: Wine?, onSave: @escaping (Wine) -> Void) {
-        isNew = wine == nil; self.onSave = onSave
+        isNew = wine == nil
+        self.onSave = onSave
         _wine = State(initialValue: wine ?? Wine(name: "", winery: "", region: "", vintage: Calendar.current.component(.year, from: .now), grape: "", location: "", cellarID: UUID()))
     }
+
     var body: some View {
-        NavigationStack { Form {
-            Section("WINE") { TextField("Wine name", text: $wine.name); TextField("Winery", text: $wine.winery); TextField("Region", text: $wine.region); TextField("Vintage", value: $wine.vintage, format: .number).keyboardType(.numberPad); TextField("Grape variety", text: $wine.grape) }
-            Section("STORAGE LOCATION") { Picker("Cellar", selection: $wine.cellarID) { ForEach(model.cellars) { Text($0.name).tag($0.id) } }; TextField("Shelf and position", text: $wine.location) }
-            Section("VALUE") { TextField("Estimated value", value: $wine.value, format: .number).keyboardType(.decimalPad) }
-        }.scrollContentBackground(.hidden).background(.forestBackground).navigationTitle(isNew ? "Add bottle" : "Edit bottle").toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }; ToolbarItem(placement: .confirmationAction) { Button("Save Changes") { if isNew, let id = model.selectedCellar { wine.cellarID = id }; onSave(wine); dismiss() }.disabled(wine.name.isEmpty) } } }
+        NavigationStack {
+            Form {
+                Section("WINE") {
+                    TextField("Wine name", text: $wine.name)
+                    TextField("Winery", text: $wine.winery)
+                    TextField("Region", text: $wine.region)
+                    TextField("Vintage", value: $wine.vintage, format: .number).keyboardType(.numberPad)
+                    TextField("Grape variety", text: $wine.grape)
+                }
+                Section("STORAGE LOCATION") {
+                    Picker("Cellar", selection: $wine.cellarID) { ForEach(model.cellars) { Text($0.name).tag($0.id) } }
+                    TextField("Shelf and position", text: $wine.location)
+                }
+                Section("VALUE") { TextField("Estimated value", value: $wine.value, format: .number).keyboardType(.decimalPad) }
+            }
+            .scrollContentBackground(.hidden).background(.forestBackground).navigationTitle(isNew ? "Add bottle" : "Edit bottle")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save Changes") {
+                        if isNew, let id = model.selectedCellar { wine.cellarID = id }
+                        onSave(wine); dismiss()
+                    }.disabled(wine.name.isEmpty)
+                }
+            }
+        }
     }
 }
 
