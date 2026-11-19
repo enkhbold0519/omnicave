@@ -15,6 +15,8 @@ protocol AppService {
     func cellarDetails(id: Int) async throws -> BackendModels.Cellar
     func createCellar(name: String) async throws -> BackendModels.Cellar
     func renameCellar(id: Int, name: String) async throws -> BackendModels.Cellar
+    func environment(cellarID: Int, minutes: Int) async throws -> BackendModels.Environment
+    func updateZone(id: Int, update: BackendModels.ZoneUpdate) async throws -> BackendModels.EnvZone
     func bottles(query: String, cellarID: Int?) async throws -> [BackendModels.Bottle]
     func saveBottle(id: Int?, cellarID: Int, wine: BackendModels.WineInfo) async throws -> BackendModels.Bottle
     func removeBottle(id: Int, reason: String) async throws
@@ -137,6 +139,39 @@ final class MockService: AppService {
         if let index = cellars.firstIndex(where: { $0.id == id }) { cellars[index].name = name }
         defaults.set(try? JSONEncoder().encode(cellars), forKey: key("backendCellars"))
         return try await cellarDetails(id: id)
+    }
+
+    func environment(cellarID: Int, minutes: Int) async throws -> BackendModels.Environment {
+        let zones = load([BackendModels.EnvZone].self, key: key("environment.\(cellarID)"), default: sampleZones(cellarID: cellarID))
+        return BackendModels.Environment(cellarId: cellarID, zones: zones)
+    }
+
+    func updateZone(id: Int, update: BackendModels.ZoneUpdate) async throws -> BackendModels.EnvZone {
+        for cellarID in [1, 2] {
+            var zones = load([BackendModels.EnvZone].self, key: key("environment.\(cellarID)"), default: sampleZones(cellarID: cellarID))
+            if let index = zones.firstIndex(where: { $0.id == id }) {
+                zones[index].targetTemp = update.targetTemp; zones[index].targetHum = update.targetHum
+                zones[index].tempMin = update.tempMin; zones[index].tempMax = update.tempMax
+                zones[index].humMin = update.humMin; zones[index].humMax = update.humMax
+                zones[index].alertMinutes = update.alertMinutes
+                store(zones, key: key("environment.\(cellarID)"))
+                return zones[index]
+            }
+        }
+        throw ServiceError.invalidInput
+    }
+
+    private func sampleZones(cellarID: Int) -> [BackendModels.EnvZone] {
+        let now = Date()
+        let formatter = ISO8601DateFormatter()
+        let history: [BackendModels.Reading] = [-24, -12, -6, -1].map { offset in
+            BackendModels.Reading(temp: cellarID == 1 ? 12.4 : 11.8, hum: cellarID == 1 ? 67 : 70,
+                                  ts: formatter.string(from: now.addingTimeInterval(Double(offset) * 3600)))
+        }
+        return [BackendModels.EnvZone(id: cellarID * 10, name: "Main zone", yFrom: 0, yTo: 200,
+                                      targetTemp: 12, targetHum: 68, tempMin: 9.5, tempMax: 14.5,
+                                      humMin: 56, humMax: 80, alertMinutes: 15, latest: history.last,
+                                      history: history, sensorOnline: true, inRange: true)]
     }
 
     func bottles(query: String, cellarID: Int?) async throws -> [BackendModels.Bottle] {
@@ -349,6 +384,14 @@ final class BackendService: AppService {
 
     func renameCellar(id: Int, name: String) async throws -> BackendModels.Cellar {
         try await api.request("PATCH", path: "api/cellars/\(id)", body: api.encode(NewCellarBody(name: name)))
+    }
+
+    func environment(cellarID: Int, minutes: Int) async throws -> BackendModels.Environment {
+        try await api.get("api/cellars/\(cellarID)/environment", queryItems: [URLQueryItem(name: "minutes", value: String(minutes))])
+    }
+
+    func updateZone(id: Int, update: BackendModels.ZoneUpdate) async throws -> BackendModels.EnvZone {
+        try await api.request("PATCH", path: "api/zones/\(id)", body: api.encode(update))
     }
 
     func bottles(query: String, cellarID: Int?) async throws -> [BackendModels.Bottle] {

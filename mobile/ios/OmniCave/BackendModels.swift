@@ -130,6 +130,18 @@ enum BackendModels {
         var inRange: Bool?
     }
 
+    struct Environment: Codable { var cellarId: Int?; var zones: [EnvZone]? }
+
+    struct ZoneUpdate: Encodable {
+        var targetTemp: Double
+        var targetHum: Double
+        var tempMin: Double
+        var tempMax: Double
+        var humMin: Double
+        var humMax: Double
+        var alertMinutes: Double
+    }
+
     struct Reading: Codable {
         var temp: Double?
         var hum: Double?

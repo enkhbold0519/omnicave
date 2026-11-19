@@ -12,6 +12,7 @@ final class AppModel: ObservableObject {
     @Published var inventoryCellars: [BackendModels.CellarSummary] = []
     @Published var selectedBottleCellarID: Int?
     @Published var backendCellar: BackendModels.Cellar?
+    @Published var climate: BackendModels.Environment?
     @Published var inventoryQuery = ""
     @Published var inventoryAllCellars = false
     @Published var error: String?
@@ -145,6 +146,20 @@ final class AppModel: ObservableObject {
             backendCellar = try await service.cellarDetails(id: id)
             error = nil
         } catch { self.error = error.localizedDescription }
+    }
+
+    func loadEnvironment(minutes: Int = 1440) async {
+        guard let cellarID = selectedBottleCellarID else { climate = nil; return }
+        do { climate = try await service.environment(cellarID: cellarID, minutes: minutes); error = nil }
+        catch { self.error = error.localizedDescription }
+    }
+
+    func saveZone(id: Int, update: BackendModels.ZoneUpdate) async -> Bool {
+        do {
+            let saved = try await service.updateZone(id: id, update: update)
+            climate?.zones = (climate?.zones ?? []).map { $0.id == id ? saved : $0 }
+            return true
+        } catch { self.error = error.localizedDescription; return false }
     }
 
     func createBackendCellar(name: String) async -> Bool {

@@ -328,8 +328,9 @@ struct HomeView: View {
     @EnvironmentObject private var model: AppModel
     @Binding var selectedTab: String
     @State private var showClimate = false
-    private var cellar: Cellar? { model.cellars.first { $0.id == model.selectedCellar } }
-    private var featured: Wine? { model.wines.first { $0.cellarID == model.selectedCellar } ?? model.wines.first }
+    private var cellar: BackendModels.CellarSummary? { model.inventoryCellars.first { $0.id == model.selectedBottleCellarID } }
+    private var climateZone: BackendModels.EnvZone? { model.climate?.zones?.first }
+    private var featured: BackendModels.Bottle? { model.inventoryBottles.first }
     private var firstName: String { model.user?.email.split(separator: "@").first?.capitalized ?? "Wine lover" }
 
     var body: some View {
@@ -351,7 +352,7 @@ struct HomeView: View {
                         VStack(alignment: .leading, spacing: 14) {
                             Text("CELLAR").overline()
                             Menu {
-                                ForEach(model.cellars) { item in Button(item.name) { model.selectedCellar = item.id } }
+                                ForEach(model.inventoryCellars) { item in Button(item.name) { model.selectedBottleCellarID = item.id } }
                             } label: {
                                 HStack { Text(cellar.name).font(.forest(21, weight: .medium)); Spacer(); Text("Change").font(.forest(15)).foregroundStyle(.forestAccent); Image(systemName: "chevron.down").foregroundStyle(.forestAccent) }
                             }.foregroundStyle(.forestPrimary)
@@ -359,18 +360,18 @@ struct HomeView: View {
                         Button { showClimate = true } label: {
                             VStack(alignment: .leading, spacing: 16) {
                                 HStack(alignment: .firstTextBaseline, spacing: 10) {
-                                    Text("\(model.wines.filter { $0.cellarID == cellar.id }.count)").font(.forest(48)).foregroundStyle(.forestPrimary)
+                                    Text("\(cellar.bottleCount ?? 0)").font(.forest(48)).foregroundStyle(.forestPrimary)
                                     Text("BOTTLES").font(.forest(12, weight: .medium)).tracking(2).foregroundStyle(.forestMuted)
                                     Spacer(); Image(systemName: "arrow.right").foregroundStyle(.forestSecondary)
                                 }
                                 Rectangle().fill(.forestHairline).frame(height: 1)
                                 HStack(alignment: .top, spacing: 24) {
-                                    metric("TEMPERATURE", String(format: "%.1f°C", cellar.temperature))
-                                    metric("HUMIDITY", String(format: "%.0f%%", cellar.humidity))
+                                    metric("TEMPERATURE", climateZone?.latest?.temp.map { String(format: "%.1f°C", $0) } ?? "—")
+                                    metric("HUMIDITY", climateZone?.latest?.hum.map { String(format: "%.0f%%", $0) } ?? "—")
                                     Spacer(); Image(systemName: "arrow.right").foregroundStyle(.forestSecondary).padding(.top, 10)
                                 }
-                                Label(cellar.online ? "Live · updated just now" : "Sensor offline", systemImage: "circle.fill").font(.forest(13)).foregroundStyle(cellar.online ? .forestSuccess : .forestWarning)
-                                Text("Sensor \(cellar.online ? "OK · Connected" : "disconnected")").font(.forest(13)).foregroundStyle(.forestSecondary)
+                                Label(climateZone?.sensorOnline == true ? "Sensor online" : "Sensor offline", systemImage: "circle.fill").font(.forest(13)).foregroundStyle(climateZone?.sensorOnline == true ? .forestSuccess : .forestWarning)
+                                Text(climateZone?.inRange == true ? "Readings within limits" : "Check cellar conditions").font(.forest(13)).foregroundStyle(.forestSecondary)
                             }.forestCard()
                         }.buttonStyle(.plain).accessibilityLabel("Open temperature, humidity and cellar alerts")
                     }
@@ -379,11 +380,10 @@ struct HomeView: View {
                         if let wine = featured {
                             Button { selectedTab = "inventory" } label: {
                                 VStack(alignment: .leading, spacing: 8) {
-                                    Label("FEATURED WINE · \(wine.vintage)", systemImage: "circle.fill").font(.forest(11, weight: .medium)).tracking(1.3).foregroundStyle(wine.style.tint)
-                                    Text(wine.name).font(.forest(27)).foregroundStyle(.forestPrimary)
-                                    Text("\(wine.winery) · \(wine.region)").font(.forest(15)).foregroundStyle(.forestSecondary)
-                                    Text("Open an hour ahead; pairs well with seasonal dishes.").font(.forest(15)).foregroundStyle(.forestSecondary).padding(.top, 6)
-                                    HStack { Text("\(wine.location)").font(.forest(13)).foregroundStyle(.forestMuted); Spacer(); Text("Details →").font(.forest(14, weight: .medium)).foregroundStyle(.forestAccent) }
+                                    Label("IN YOUR CELLAR · \(wine.wine.vintage ?? 0)", systemImage: "circle.fill").font(.forest(11, weight: .medium)).tracking(1.3).foregroundStyle(.forestAccent)
+                                    Text(wine.wine.name).font(.forest(27)).foregroundStyle(.forestPrimary)
+                                    Text("\(wine.wine.producer ?? "") · \(wine.wine.region ?? wine.wine.country ?? "")").font(.forest(15)).foregroundStyle(.forestSecondary)
+                                    HStack { Text(wine.location ?? "Location unavailable").font(.forest(13)).foregroundStyle(.forestMuted); Spacer(); Text("Details →").font(.forest(14, weight: .medium)).foregroundStyle(.forestAccent) }
                                 }.frame(maxWidth: .infinity, alignment: .leading).forestCard()
                             }.buttonStyle(.plain)
                         }
@@ -394,7 +394,9 @@ struct HomeView: View {
                 }.padding(24)
             }.background { Color.forestBackground.ignoresSafeArea() }
                 .sheet(isPresented: $showClimate) { EnvironmentView() }
-                .refreshable { await model.refresh() }
+                .task { await model.loadInventoryCellars(); await model.loadEnvironment(); await model.loadBottles() }
+                .onChange(of: model.selectedBottleCellarID) { _, _ in Task { await model.loadEnvironment(); await model.loadBottles() } }
+                .refreshable { await model.loadInventoryCellars(); await model.loadEnvironment(); await model.loadBottles() }
         }
     }
 
@@ -893,25 +895,103 @@ struct CellarForm: View {
 
 struct EnvironmentView: View {
     @EnvironmentObject private var model: AppModel
-    @State private var minTemp = 10.0
-    @State private var maxTemp = 16.0
-    @State private var minHumidity = 55.0
-    @State private var maxHumidity = 75.0
-    private var cellar: Cellar? { model.cellars.first { $0.id == model.selectedCellar } }
-    private var history: [Reading] { (0..<12).map { i in Reading(date: Calendar.current.date(byAdding: .hour, value: -i, to: .now)!, temperature: (cellar?.temperature ?? 12.5) + sin(Double(i)) * 0.4, humidity: (cellar?.humidity ?? 68) + cos(Double(i)) * 2) }.reversed() }
+    private var zones: [BackendModels.EnvZone] { model.climate?.zones ?? [] }
     var body: some View {
-        NavigationStack { List {
-            if let cellar {
-                Section("Current conditions") { LabeledContent("Temperature", value: String(format: "%.1f °C", cellar.temperature)); LabeledContent("Humidity", value: String(format: "%.0f %%", cellar.humidity)); Label("Sensor status: \(cellar.online ? "Connected" : "Offline")", systemImage: cellar.online ? "checkmark.circle.fill" : "exclamationmark.triangle.fill").foregroundStyle(cellar.online ? .forestSuccess : .forestWarning) }
-                Section("12 hour history · demo data") { Chart(history) { reading in LineMark(x: .value("Time", reading.date), y: .value("Temperature", reading.temperature)).foregroundStyle(Color.forestAccent) }.frame(height: 130); Chart(history) { reading in LineMark(x: .value("Time", reading.date), y: .value("Humidity", reading.humidity)).foregroundStyle(Color.forestWhite) }.frame(height: 130) }
-                Section("Alert thresholds") { LabeledContent("Temperature (°C)") { HStack { TextField("Min", value: $minTemp, format: .number).keyboardType(.decimalPad); Text("–"); TextField("Max", value: $maxTemp, format: .number).keyboardType(.decimalPad) } }; LabeledContent("Humidity (%)") { HStack { TextField("Min", value: $minHumidity, format: .number).keyboardType(.decimalPad); Text("–"); TextField("Max", value: $maxHumidity, format: .number).keyboardType(.decimalPad) } }; Text("Demo data · live sensor alerts require backend setup.").font(.forest(12)).foregroundStyle(.forestMuted) }
-                Section("Zone controls") { stepperRow("Temperature", value: cellar.temperature, unit: "°C") { delta in Task { var updated = cellar; updated.temperature += delta; await model.save(updated) } }; stepperRow("Humidity", value: cellar.humidity, unit: "%") { delta in Task { var updated = cellar; updated.humidity += delta; await model.save(updated) } } }
+        NavigationStack {
+            List {
+                if zones.isEmpty {
+                    Text(model.error ?? "No climate zones are available for this cellar.").font(.forest(14)).foregroundStyle(.forestSecondary)
+                }
+                ForEach(zones, id: \.id) { zone in ClimateZoneCard(zone: zone) }
             }
-        }.scrollContentBackground(.hidden).background(.forestBackground).navigationTitle("Notifications & alerts") }
+            .scrollContentBackground(.hidden).background(.forestBackground).navigationTitle("Climate & alerts")
+            .task { await model.loadEnvironment(minutes: 1440) }
+            .onChange(of: model.selectedBottleCellarID) { _, _ in Task { await model.loadEnvironment(minutes: 1440) } }
+            .refreshable { await model.loadEnvironment(minutes: 1440) }
+        }
     }
-    private func stepperRow(_ title: String, value: Double, unit: String, change: @escaping (Double) -> Void) -> some View {
-        HStack { Text(title).font(.forest(15)); Spacer(); Button("−") { change(unit == "°C" ? -0.5 : -1) }; Text(String(format: unit == "°C" ? "%.1f %@" : "%.0f %@", value, unit)).font(.forest(15)); Button("+") { change(unit == "°C" ? 0.5 : 1) } }
+}
+
+private struct ClimateZoneCard: View {
+    @EnvironmentObject private var model: AppModel
+    let zone: BackendModels.EnvZone
+    @State private var draft: BackendModels.ZoneUpdate
+    @State private var saving = false
+
+    init(zone: BackendModels.EnvZone) {
+        self.zone = zone
+        _draft = State(initialValue: BackendModels.ZoneUpdate(targetTemp: zone.targetTemp ?? 12, targetHum: zone.targetHum ?? 68,
+            tempMin: zone.tempMin ?? 9.5, tempMax: zone.tempMax ?? 14.5, humMin: zone.humMin ?? 56,
+            humMax: zone.humMax ?? 80, alertMinutes: zone.alertMinutes ?? 15))
     }
+    private var history: [ClimatePoint] {
+        (zone.history ?? []).compactMap { reading in
+            guard let timestamp = reading.ts, let date = Self.parseDate(timestamp), let temp = reading.temp, let hum = reading.hum else { return nil }
+            return ClimatePoint(date: date, temperature: temp, humidity: hum)
+        }.sorted { $0.date < $1.date }
+    }
+
+    var body: some View {
+        Section(zone.name ?? "Climate zone") {
+            LabeledContent("Temperature", value: zone.latest?.temp.map { String(format: "%.1f °C", $0) } ?? "—")
+            LabeledContent("Humidity", value: zone.latest?.hum.map { String(format: "%.0f %%", $0) } ?? "—")
+            Label(zone.sensorOnline == true ? "Sensor online" : "Sensor offline", systemImage: zone.sensorOnline == true ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                .foregroundStyle(zone.sensorOnline == true ? .forestSuccess : .forestWarning)
+            if let latest = zone.latest?.ts { Text("Last reading · \(latest)").font(.forest(12)).foregroundStyle(.forestMuted) }
+            if history.isEmpty {
+                Text("No readings in the last 24 hours.").font(.forest(13)).foregroundStyle(.forestMuted)
+            } else {
+                Text("Temperature · 24 hours").font(.forest(13, weight: .medium))
+                Chart(history) { point in LineMark(x: .value("Time", point.date), y: .value("°C", point.temperature)).foregroundStyle(Color.forestAccent) }.frame(height: 120)
+                Text("Humidity · 24 hours").font(.forest(13, weight: .medium))
+                Chart(history) { point in LineMark(x: .value("Time", point.date), y: .value("%", point.humidity)).foregroundStyle(Color.forestWhite) }.frame(height: 120)
+            }
+            Text("Alert limits").font(.forest(15, weight: .medium)).padding(.top, 5)
+            climateStepper("Target temperature", value: draft.targetTemp, format: "%.1f °C", step: 0.5) { draft.targetTemp += $0; keepTempRangeValid() }
+            climateStepper("Target humidity", value: draft.targetHum, format: "%.0f %%", step: 1) { draft.targetHum += $0; keepHumidityRangeValid() }
+            climateStepper("Minimum temperature", value: draft.tempMin, format: "%.1f °C", step: 0.5) { draft.tempMin += $0 }
+            climateStepper("Maximum temperature", value: draft.tempMax, format: "%.1f °C", step: 0.5) { draft.tempMax += $0 }
+            climateStepper("Minimum humidity", value: draft.humMin, format: "%.0f %%", step: 1) { draft.humMin += $0 }
+            climateStepper("Maximum humidity", value: draft.humMax, format: "%.0f %%", step: 1) { draft.humMax += $0 }
+            climateStepper("Alert after", value: draft.alertMinutes, format: "%.0f min", step: 5) { draft.alertMinutes = min(max(draft.alertMinutes + $0, 5), 120) }
+            Button(saving ? "Saving…" : "Save alert limits") {
+                guard let id = zone.id else { return }
+                Task { saving = true; if await model.saveZone(id: id, update: draft) { await model.loadEnvironment(minutes: 1440) }; saving = false }
+            }.disabled(saving || draft.tempMin >= draft.targetTemp || draft.tempMax <= draft.targetTemp || draft.humMin >= draft.targetHum || draft.humMax <= draft.targetHum)
+        }
+    }
+
+    private func climateStepper(_ title: String, value: Double, format: String, step: Double, change: @escaping (Double) -> Void) -> some View {
+        HStack {
+            Text(title).font(.forest(13)).foregroundStyle(.forestSecondary)
+            Spacer()
+            Button { change(-step) } label: { Image(systemName: "minus.circle") }.buttonStyle(.plain)
+            Text(String(format: format, value)).font(.forest(13, weight: .medium)).frame(minWidth: 70)
+            Button { change(step) } label: { Image(systemName: "plus.circle") }.buttonStyle(.plain)
+        }
+    }
+
+    private func keepTempRangeValid() {
+        if draft.tempMin >= draft.targetTemp { draft.tempMin = draft.targetTemp - 0.5 }
+        if draft.tempMax <= draft.targetTemp { draft.tempMax = draft.targetTemp + 0.5 }
+    }
+    private func keepHumidityRangeValid() {
+        if draft.humMin >= draft.targetHum { draft.humMin = draft.targetHum - 1 }
+        if draft.humMax <= draft.targetHum { draft.humMax = draft.targetHum + 1 }
+    }
+    private static func parseDate(_ text: String) -> Date? {
+        let iso = ISO8601DateFormatter()
+        if let value = iso.date(from: text) { return value }
+        let formatter = DateFormatter(); formatter.locale = Locale(identifier: "en_US_POSIX"); formatter.timeZone = TimeZone(secondsFromGMT: 0); formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        return formatter.date(from: text)
+    }
+}
+
+private struct ClimatePoint: Identifiable {
+    var date: Date
+    var temperature: Double
+    var humidity: Double
+    var id: Date { date }
 }
 
 struct AIView: View {
