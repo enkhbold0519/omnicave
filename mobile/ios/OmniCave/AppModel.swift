@@ -20,6 +20,8 @@ final class AppModel: ObservableObject {
     @Published var drinkingWindows: BackendModels.DrinkingWindows?
     @Published var marketSummary: BackendModels.MarketSummary?
     @Published var bottlePriceHistory: [Int: BackendModels.PriceHistory] = [:]
+    @Published var notifications = BackendModels.NotificationList(unread: 0, items: [])
+    @Published var notificationError: String?
     @Published var inventoryQuery = ""
     @Published var inventoryAllCellars = false
     @Published var error: String?
@@ -42,6 +44,8 @@ final class AppModel: ObservableObject {
                     self?.cellars = []
                     self?.inventoryBottles = []
                     self?.inventoryCellars = []
+                    self?.notifications = BackendModels.NotificationList(unread: 0, items: [])
+                    self?.notificationError = nil
                 }
             }
         }
@@ -102,6 +106,18 @@ final class AppModel: ObservableObject {
     func loadPriceHistory(bottleID: Int) async {
         do { bottlePriceHistory[bottleID] = try await service.priceHistory(bottleID: bottleID) }
         catch { self.error = error.localizedDescription }
+    }
+
+    func loadNotifications() async {
+        do { notifications = try await service.notifications(); notificationError = nil }
+        catch { notificationError = error.localizedDescription }
+    }
+
+    func markNotificationRead(id: Int?) async {
+        do {
+            try await service.markNotificationRead(id: id)
+            await loadNotifications()
+        } catch { notificationError = error.localizedDescription }
     }
 
     func tastingEvents(_ request: BackendModels.TableRequest) throws -> AsyncThrowingStream<BackendModels.TastingEvent, Error> {
@@ -262,7 +278,7 @@ final class AppModel: ObservableObject {
             return false
         }
     }
-    func signOut() { Task { await service.signOut(); user = nil; backendUser = nil; personas = []; sommelierBottles = []; wines = []; cellars = []; inventoryBottles = []; inventoryCellars = []; climate = nil; briefing = nil; drinkingWindows = nil; marketSummary = nil; bottlePriceHistory = [:] } }
+    func signOut() { Task { await service.signOut(); user = nil; backendUser = nil; personas = []; sommelierBottles = []; wines = []; cellars = []; inventoryBottles = []; inventoryCellars = []; climate = nil; briefing = nil; drinkingWindows = nil; marketSummary = nil; bottlePriceHistory = [:]; notifications = BackendModels.NotificationList(unread: 0, items: []); notificationError = nil } }
     func updateProfile(_ update: BackendModels.ProfileUpdate) async -> Bool {
         var success = false
         await perform {

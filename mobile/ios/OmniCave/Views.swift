@@ -312,15 +312,107 @@ private struct PolicyViewer: View {
 }
 
 struct MainView: View {
+    @EnvironmentObject private var model: AppModel
     @State private var selectedTab = "cellar"
     var body: some View {
         TabView(selection: $selectedTab) {
-            CellarView().tabItem { Label("Cellar", systemImage: "square.grid.2x2") }.tag("cellar")
-            InventoryView(selectedTab: $selectedTab).tabItem { Label("Inventory", systemImage: "wineglass") }.tag("inventory")
-            AIView().tabItem { Label("Sommelier", systemImage: "sparkle") }.tag("sommelier")
-            BriefingView(selectedTab: $selectedTab).tabItem { Label("Briefing", systemImage: "newspaper") }.tag("briefing")
-            ValueView().tabItem { Label("Value", systemImage: "chart.line.uptrend.xyaxis") }.tag("value")
+            CellarView().modifier(NotificationsToolbar()).tabItem { Label("Cellar", systemImage: "square.grid.2x2") }.tag("cellar")
+            InventoryView(selectedTab: $selectedTab).modifier(NotificationsToolbar()).tabItem { Label("Inventory", systemImage: "wineglass") }.tag("inventory")
+            AIView().modifier(NotificationsToolbar()).tabItem { Label("Sommelier", systemImage: "sparkle") }.tag("sommelier")
+            BriefingView(selectedTab: $selectedTab).modifier(NotificationsToolbar()).tabItem { Label("Briefing", systemImage: "newspaper") }.tag("briefing")
+            ValueView().modifier(NotificationsToolbar()).tabItem { Label("Value", systemImage: "chart.line.uptrend.xyaxis") }.tag("value")
         }.tint(.forestAccent)
+            .task { await model.loadNotifications() }
+    }
+}
+
+private struct NotificationsToolbar: ViewModifier {
+    @EnvironmentObject private var model: AppModel
+    @State private var showingNotifications = false
+
+    func body(content: Content) -> some View {
+        content
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showingNotifications = true
+                        Task { await model.loadNotifications() }
+                    } label: {
+                        ZStack(alignment: .topTrailing) {
+                            Image(systemName: "bell").font(.system(size: 18)).foregroundStyle(.forestAccent).frame(width: 32, height: 32)
+                            if (model.notifications.unread ?? 0) > 0 {
+                                Text((model.notifications.unread ?? 0) > 9 ? "9+" : "\(model.notifications.unread ?? 0)")
+                                    .font(.system(size: 9, weight: .semibold)).foregroundStyle(.white)
+                                    .padding(.horizontal, 4).frame(minWidth: 16, minHeight: 16)
+                                    .background(Color.forestDanger, in: Capsule()).offset(x: 4, y: -3)
+                            }
+                        }
+                    }.accessibilityLabel("Notifications, \(model.notifications.unread ?? 0) unread")
+                }
+            }
+            .sheet(isPresented: $showingNotifications) { NotificationsView().environmentObject(model) }
+    }
+}
+
+private struct NotificationsView: View {
+    @EnvironmentObject private var model: AppModel
+    @Environment(\.dismiss) private var dismiss
+    private var items: [BackendModels.Notification] { model.notifications.items ?? [] }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text(items.isEmpty ? "Nothing yet." : (model.notifications.unread ?? 0) == 0 ? "All read" : "\(model.notifications.unread ?? 0) unread")
+                            .font(.forest(14)).foregroundStyle(.forestMuted)
+                        Spacer()
+                        if (model.notifications.unread ?? 0) > 0 {
+                            Button("Mark all read") { Task { await model.markNotificationRead(id: nil) } }
+                                .font(.forest(13, weight: .medium)).foregroundStyle(.forestAccent)
+                        }
+                    }.padding(.bottom, 4)
+                    if let error = model.notificationError {
+                        Text(error).font(.forest(14)).foregroundStyle(.forestDanger)
+                    }
+                    ForEach(items) { item in
+                        Button {
+                            if item.read == 0 { Task { await model.markNotificationRead(id: item.id) } }
+                        } label: {
+                            HStack(alignment: .top, spacing: 12) {
+                                Circle().fill(item.read == 0 ? notificationColor(item.level) : Color.forestHairline).frame(width: 9, height: 9).padding(.top, 6)
+                                VStack(alignment: .leading, spacing: 6) {
+                                    HStack {
+                                        Text(notificationTitle(item.kind)).font(.forest(14, weight: .medium))
+                                            .foregroundStyle(item.read == 0 ? notificationColor(item.level) : Color.forestMuted)
+                                        Spacer(minLength: 6)
+                                        Text(notificationDate(item.createdAt)).font(.forest(11)).foregroundStyle(.forestMuted)
+                                    }
+                                    Text(item.message ?? "").font(.forest(14)).foregroundStyle(item.read == 0 ? .forestPrimary : .forestMuted)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                            }.padding(15).background(.forestSurface, in: RoundedRectangle(cornerRadius: 12))
+                        }.buttonStyle(.plain).accessibilityHint(item.read == 0 ? "Mark as read" : "Already read")
+                    }
+                }.padding(20)
+            }
+            .background(.forestBackground).navigationTitle("Notifications").navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+            .refreshable { await model.loadNotifications() }
+        }
+    }
+
+    private func notificationTitle(_ kind: String?) -> String {
+        switch kind { case "environment": "Climate"; case "window": "Drinking window"; case "briefing": "Daily briefing"; default: (kind ?? "Update").replacingOccurrences(of: "_", with: " ").capitalized }
+    }
+    private func notificationColor(_ level: String?) -> Color {
+        switch level { case "critical": .forestDanger; case "warning": .forestWarning; default: .forestAccent }
+    }
+    private func notificationDate(_ value: String?) -> String {
+        guard let value else { return "" }
+        let parser = DateFormatter(); parser.locale = Locale(identifier: "en_US_POSIX"); parser.timeZone = TimeZone(secondsFromGMT: 0); parser.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        guard let date = parser.date(from: value.replacingOccurrences(of: "T", with: " ").prefix(19).description) else { return value }
+        return date.formatted(.dateTime.day().month(.abbreviated).hour().minute())
     }
 }
 

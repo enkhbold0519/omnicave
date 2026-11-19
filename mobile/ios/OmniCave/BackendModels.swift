@@ -169,6 +169,11 @@ enum BackendModels {
         var id: String { date }
     }
 
+    struct NotificationList: Codable {
+        var unread: Int?
+        var items: [Notification]?
+    }
+
     struct CellarSummary: Codable, Identifiable {
         var id: Int
         var name: String
@@ -262,8 +267,8 @@ enum BackendModels {
         var ts: String?
     }
 
-    struct Notification: Codable {
-        var id: Int?
+    struct Notification: Codable, Identifiable {
+        var id: Int
         var kind: String?
         var level: String?
         var message: String?

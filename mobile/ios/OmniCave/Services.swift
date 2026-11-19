@@ -24,6 +24,8 @@ protocol AppService {
     func drinkingWindows() async throws -> BackendModels.DrinkingWindows
     func marketSummary() async throws -> BackendModels.MarketSummary
     func priceHistory(bottleID: Int) async throws -> BackendModels.PriceHistory
+    func notifications() async throws -> BackendModels.NotificationList
+    func markNotificationRead(id: Int?) async throws
     func saveBottle(id: Int?, cellarID: Int, wine: BackendModels.WineInfo) async throws -> BackendModels.Bottle
     func removeBottle(id: Int, reason: String) async throws
     func profile() async throws -> BackendModels.User
@@ -251,6 +253,21 @@ final class MockService: AppService {
             return BackendModels.PricePoint(date: formatter.string(from: date), price: current * (0.92 + Double(offset) * 0.0033))
         }
         return BackendModels.PriceHistory(bottleId: bottleID, history: history, source: "simulated")
+    }
+
+    func notifications() async throws -> BackendModels.NotificationList {
+        let samples = [
+            BackendModels.Notification(id: 2, kind: "window", level: "warning", message: "A bottle in your cellar is approaching its drinking window.", read: 0, createdAt: "2026-11-19 08:00:00"),
+            BackendModels.Notification(id: 1, kind: "environment", level: "info", message: "Your cellar climate is within its target range.", read: 1, createdAt: "2026-11-18 08:00:00")
+        ]
+        let items = load([BackendModels.Notification].self, key: key("notifications"), default: samples)
+        return BackendModels.NotificationList(unread: items.filter { $0.read == 0 }.count, items: items)
+    }
+
+    func markNotificationRead(id: Int?) async throws {
+        var list = try await notifications().items ?? []
+        for index in list.indices where id == nil || list[index].id == id { list[index].read = 1 }
+        store(list, key: key("notifications"))
     }
 
     func saveBottle(id: Int?, cellarID: Int, wine: BackendModels.WineInfo) async throws -> BackendModels.Bottle {
@@ -522,6 +539,12 @@ final class BackendService: AppService {
     func drinkingWindows() async throws -> BackendModels.DrinkingWindows { try await api.get("api/recommendations/windows") }
     func marketSummary() async throws -> BackendModels.MarketSummary { try await api.get("api/market/summary") }
     func priceHistory(bottleID: Int) async throws -> BackendModels.PriceHistory { try await api.get("api/bottles/\(bottleID)/price-history") }
+    func notifications() async throws -> BackendModels.NotificationList { try await api.get("api/notifications") }
+    func markNotificationRead(id: Int?) async throws {
+        let body: Data
+        if let id { body = try api.encode(["id": id]) } else { body = try api.encode([String: Int]()) }
+        let _: OKReply = try await api.request("POST", path: "api/notifications/read", body: body)
+    }
 
     func saveBottle(id: Int?, cellarID: Int, wine: BackendModels.WineInfo) async throws -> BackendModels.Bottle {
         if let id {
