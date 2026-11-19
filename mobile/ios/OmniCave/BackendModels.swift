@@ -105,6 +105,70 @@ enum BackendModels {
         var bottle: Bottle?
     }
 
+    struct Briefing: Codable {
+        var date: String?
+        var news: [NewsItem]?
+        var newsIsSample: Bool?
+        var insights: [String]?
+        var summary: String?
+        var briefingTime: String?
+    }
+
+    struct NewsItem: Codable, Identifiable {
+        var title: String
+        var link: String?
+        var summary: String?
+        var published: String?
+        var source: String?
+        var relevance: Int?
+        var matched: [String]?
+        var id: String { link ?? title }
+    }
+
+    struct DrinkingWindows: Codable {
+        var ready: [Bottle]?
+        var approaching: [Bottle]?
+        var pastPeak: [Bottle]?
+        var year: Int?
+    }
+
+    struct MarketSummary: Codable {
+        var total: Double?
+        var change12m: Double?
+        var count: Int?
+        var currency: String?
+        var source: String?
+        var history: [ValuePoint]?
+        var bottles: [ValueRow]?
+    }
+
+    struct ValuePoint: Codable, Identifiable {
+        var date: String
+        var value: Double
+        var id: String { date }
+    }
+
+    struct ValueRow: Codable, Identifiable {
+        var bottleId: Int
+        var label: String?
+        var price: Double?
+        var change12m: Double?
+        var cellar: String?
+        var id: Int { bottleId }
+    }
+
+    struct PriceHistory: Codable {
+        var bottleId: Int?
+        var history: [PricePoint]?
+        var source: String?
+    }
+
+    struct PricePoint: Codable, Identifiable {
+        var date: String
+        var price: Double
+        var id: String { date }
+    }
+
     struct CellarSummary: Codable, Identifiable {
         var id: Int
         var name: String
@@ -160,15 +224,6 @@ enum BackendModels {
         var drinkFrom: Int? = nil
         var drinkTo: Int? = nil
         var basePrice: Double? = nil
-    }
-
-    struct PricePoint: Codable {
-        var date: String?
-        var price: Double?
-    }
-
-    struct PriceHistory: Codable {
-        var history: [PricePoint]?
     }
 
     struct EnvZone: Codable {

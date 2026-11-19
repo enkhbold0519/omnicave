@@ -16,6 +16,10 @@ final class AppModel: ObservableObject {
     @Published var selectedBottleCellarID: Int?
     @Published var backendCellar: BackendModels.Cellar?
     @Published var climate: BackendModels.Environment?
+    @Published var briefing: BackendModels.Briefing?
+    @Published var drinkingWindows: BackendModels.DrinkingWindows?
+    @Published var marketSummary: BackendModels.MarketSummary?
+    @Published var bottlePriceHistory: [Int: BackendModels.PriceHistory] = [:]
     @Published var inventoryQuery = ""
     @Published var inventoryAllCellars = false
     @Published var error: String?
@@ -77,6 +81,26 @@ final class AppModel: ObservableObject {
 
     func loadSommelierBottles() async {
         do { sommelierBottles = try await service.bottles(query: "", cellarID: nil); error = nil }
+        catch { self.error = error.localizedDescription }
+    }
+
+    func loadBriefing() async {
+        do {
+            async let brief = service.briefing()
+            async let windows = service.drinkingWindows()
+            briefing = try await brief
+            drinkingWindows = try await windows
+            error = nil
+        } catch { self.error = error.localizedDescription }
+    }
+
+    func loadMarketSummary() async {
+        do { marketSummary = try await service.marketSummary(); error = nil }
+        catch { self.error = error.localizedDescription }
+    }
+
+    func loadPriceHistory(bottleID: Int) async {
+        do { bottlePriceHistory[bottleID] = try await service.priceHistory(bottleID: bottleID) }
         catch { self.error = error.localizedDescription }
     }
 
@@ -238,7 +262,7 @@ final class AppModel: ObservableObject {
             return false
         }
     }
-    func signOut() { Task { await service.signOut(); user = nil; backendUser = nil; personas = []; sommelierBottles = []; wines = []; cellars = []; inventoryBottles = []; inventoryCellars = []; climate = nil } }
+    func signOut() { Task { await service.signOut(); user = nil; backendUser = nil; personas = []; sommelierBottles = []; wines = []; cellars = []; inventoryBottles = []; inventoryCellars = []; climate = nil; briefing = nil; drinkingWindows = nil; marketSummary = nil; bottlePriceHistory = [:] } }
     func updateProfile(_ update: BackendModels.ProfileUpdate) async -> Bool {
         var success = false
         await perform {

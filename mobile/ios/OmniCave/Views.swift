@@ -312,96 +312,15 @@ private struct PolicyViewer: View {
 }
 
 struct MainView: View {
-    @State private var selectedTab = "home"
+    @State private var selectedTab = "cellar"
     var body: some View {
         TabView(selection: $selectedTab) {
-            HomeView(selectedTab: $selectedTab).tabItem { Label("Home", systemImage: "house") }.tag("home")
-            InventoryView(selectedTab: $selectedTab).tabItem { Label("Inventory", systemImage: "wineglass") }.tag("inventory")
             CellarView().tabItem { Label("Cellar", systemImage: "square.grid.2x2") }.tag("cellar")
+            InventoryView(selectedTab: $selectedTab).tabItem { Label("Inventory", systemImage: "wineglass") }.tag("inventory")
             AIView().tabItem { Label("Sommelier", systemImage: "sparkle") }.tag("sommelier")
-            ProfileView(selectedTab: $selectedTab).tabItem { Label("Profile", systemImage: "person.cropcircle") }.tag("profile")
+            BriefingView(selectedTab: $selectedTab).tabItem { Label("Briefing", systemImage: "newspaper") }.tag("briefing")
+            ValueView().tabItem { Label("Value", systemImage: "chart.line.uptrend.xyaxis") }.tag("value")
         }.tint(.forestAccent)
-    }
-}
-
-struct HomeView: View {
-    @EnvironmentObject private var model: AppModel
-    @Binding var selectedTab: String
-    @State private var showClimate = false
-    private var cellar: BackendModels.CellarSummary? { model.inventoryCellars.first { $0.id == model.selectedBottleCellarID } }
-    private var climateZone: BackendModels.EnvZone? { model.climate?.zones?.first }
-    private var featured: BackendModels.Bottle? { model.inventoryBottles.first }
-    private var firstName: String { model.user?.email.split(separator: "@").first?.capitalized ?? "Wine lover" }
-
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 28) {
-                    HStack {
-                        Text("OmniCave").font(.forest(22, weight: .semibold)).foregroundStyle(.forestPrimary)
-                        Spacer()
-                        Circle().fill(model.networkAvailable ? .forestSuccess : .forestWarning).frame(width: 9, height: 9)
-                        Text("\(model.networkAvailable ? "Connected" : "Offline")\(AppConfig.useMock ? " · Demo" : "")").font(.forest(11)).foregroundStyle(.forestSecondary)
-                        Image(systemName: "bell.badge").font(.system(size: 20)).foregroundStyle(.forestPrimary).padding(.leading, 8)
-                    }
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Good evening, \(firstName).").font(.forest(32)).foregroundStyle(.forestPrimary)
-                        Text("Your collection is resting well.").font(.forest(17)).foregroundStyle(.forestSecondary)
-                    }
-                    if let cellar {
-                        VStack(alignment: .leading, spacing: 14) {
-                            Text("CELLAR").overline()
-                            Menu {
-                                ForEach(model.inventoryCellars) { item in Button(item.name) { model.selectedBottleCellarID = item.id } }
-                            } label: {
-                                HStack { Text(cellar.name).font(.forest(21, weight: .medium)); Spacer(); Text("Change").font(.forest(15)).foregroundStyle(.forestAccent); Image(systemName: "chevron.down").foregroundStyle(.forestAccent) }
-                            }.foregroundStyle(.forestPrimary)
-                        }.padding(.bottom, 14).overlay(alignment: .bottom) { Rectangle().fill(.forestHairline).frame(height: 1) }
-                        Button { showClimate = true } label: {
-                            VStack(alignment: .leading, spacing: 16) {
-                                HStack(alignment: .firstTextBaseline, spacing: 10) {
-                                    Text("\(cellar.bottleCount ?? 0)").font(.forest(48)).foregroundStyle(.forestPrimary)
-                                    Text("BOTTLES").font(.forest(12, weight: .medium)).tracking(2).foregroundStyle(.forestMuted)
-                                    Spacer(); Image(systemName: "arrow.right").foregroundStyle(.forestSecondary)
-                                }
-                                Rectangle().fill(.forestHairline).frame(height: 1)
-                                HStack(alignment: .top, spacing: 24) {
-                                    metric("TEMPERATURE", climateZone?.latest?.temp.map { String(format: "%.1f°C", $0) } ?? "—")
-                                    metric("HUMIDITY", climateZone?.latest?.hum.map { String(format: "%.0f%%", $0) } ?? "—")
-                                    Spacer(); Image(systemName: "arrow.right").foregroundStyle(.forestSecondary).padding(.top, 10)
-                                }
-                                Label(climateZone?.sensorOnline == true ? "Sensor online" : "Sensor offline", systemImage: "circle.fill").font(.forest(13)).foregroundStyle(climateZone?.sensorOnline == true ? .forestSuccess : .forestWarning)
-                                Text(climateZone?.inRange == true ? "Readings within limits" : "Check cellar conditions").font(.forest(13)).foregroundStyle(.forestSecondary)
-                            }.forestCard()
-                        }.buttonStyle(.plain).accessibilityLabel("Open temperature, humidity and cellar alerts")
-                    }
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("TODAY").overline()
-                        if let wine = featured {
-                            Button { selectedTab = "inventory" } label: {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Label("IN YOUR CELLAR · \(wine.wine.vintage ?? 0)", systemImage: "circle.fill").font(.forest(11, weight: .medium)).tracking(1.3).foregroundStyle(.forestAccent)
-                                    Text(wine.wine.name).font(.forest(27)).foregroundStyle(.forestPrimary)
-                                    Text("\(wine.wine.producer ?? "") · \(wine.wine.region ?? wine.wine.country ?? "")").font(.forest(15)).foregroundStyle(.forestSecondary)
-                                    HStack { Text(wine.location ?? "Location unavailable").font(.forest(13)).foregroundStyle(.forestMuted); Spacer(); Text("Details →").font(.forest(14, weight: .medium)).foregroundStyle(.forestAccent) }
-                                }.frame(maxWidth: .infinity, alignment: .leading).forestCard()
-                            }.buttonStyle(.plain)
-                        }
-                    }
-                    NavigationLink { BriefingView() } label: {
-                        HStack { VStack(alignment: .leading, spacing: 6) { Text("DAILY WINE BRIEFING").overline(); Text("Collection news and drinking-window notes").font(.forest(15)).foregroundStyle(.forestPrimary) }; Spacer(); Image(systemName: "arrow.right").foregroundStyle(.forestAccent) }.forestCard()
-                    }.buttonStyle(.plain)
-                }.padding(24)
-            }.background { Color.forestBackground.ignoresSafeArea() }
-                .sheet(isPresented: $showClimate) { EnvironmentView() }
-                .task { await model.loadInventoryCellars(); await model.loadEnvironment(); await model.loadBottles() }
-                .onChange(of: model.selectedBottleCellarID) { _, _ in Task { await model.loadEnvironment(); await model.loadBottles() } }
-                .refreshable { await model.loadInventoryCellars(); await model.loadEnvironment(); await model.loadBottles() }
-        }
-    }
-
-    private func metric(_ title: String, _ value: String) -> some View {
-        VStack(alignment: .leading, spacing: 5) { Text(title).font(.forest(11, weight: .medium)).tracking(1.4).foregroundStyle(.forestMuted); Text(value).font(.forest(25)).foregroundStyle(.forestPrimary) }
     }
 }
 
@@ -691,6 +610,17 @@ struct WineDetail: View {
                     if let price = bottle.wine.basePrice { LabeledContent("Base price", value: String(format: "$%.0f", price)) }
                     if let from = bottle.wine.drinkFrom, let to = bottle.wine.drinkTo { LabeledContent("Drinking window", value: "\(from)–\(to)") }
                 }
+                Section("Price history") {
+                    if let history = model.bottlePriceHistory[bottle.id]?.history, !history.isEmpty {
+                        let points = history.compactMap { point -> ChartValuePoint? in
+                            guard let date = parseValueDate(point.date) else { return nil }
+                            return ChartValuePoint(date: date, value: point.price)
+                        }
+                        if points.count > 1 { Chart(points) { point in LineMark(x: .value("Month", point.date), y: .value("Price", point.value)).foregroundStyle(Color.forestAccent) }.frame(height: 140) }
+                        if model.bottlePriceHistory[bottle.id]?.source == "simulated" { Text("Prices are estimates, not live market data.").font(.forest(12)).foregroundStyle(.forestMuted) }
+                    } else if model.error != nil { Text(model.error ?? "Price history is unavailable.").font(.forest(13)).foregroundStyle(.forestMuted) }
+                    else { ProgressView().tint(.forestAccent) }
+                }
                 Section { Button("Edit bottle") { editing = true }; Button("Remove bottle", role: .destructive) { confirmingRemoval = true } }
             }.scrollContentBackground(.hidden).background(.forestBackground).navigationTitle("Bottle").navigationBarTitleDisplayMode(.inline)
                 .sheet(isPresented: $editing) {
@@ -700,6 +630,7 @@ struct WineDetail: View {
                     Button("Mark as consumed", role: .destructive) { Task { if await model.removeBottle(id: bottle.id, reason: "consumed") { dismiss() } } }
                     Button("Remove without consuming", role: .destructive) { Task { if await model.removeBottle(id: bottle.id, reason: "removed") { dismiss() } } }
                 }
+                .task(id: bottle.id) { await model.loadPriceHistory(bottleID: bottle.id) }
         }
     }
 
@@ -1227,18 +1158,195 @@ private extension Color {
 
 struct BriefingView: View {
     @EnvironmentObject private var model: AppModel
+    @Binding var selectedTab: String
+    @State private var selectedBottle: BackendModels.Bottle?
+    @State private var showingProfile = false
+
     var body: some View {
-        NavigationStack { ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                Text("Daily Wine Briefing").font(.forest(30)).foregroundStyle(.forestPrimary)
-                Text(Date.now.formatted(date: .complete, time: .omitted).uppercased()).overline()
-                VStack(alignment: .leading, spacing: 8) { Text("YOUR COLLECTION").overline(); Text("\(model.wines.count) bottles across \(model.cellars.count) cellars").font(.forest(19, weight: .medium)).foregroundStyle(.forestPrimary); Text("Estimated collection value $\(model.wines.reduce(0) { $0 + $1.value }, specifier: "%.0f")").font(.forest(14)).foregroundStyle(.forestSecondary) }.forestCard()
-                Text("COLLECTION INSIGHTS").overline()
-                ForEach(model.wines.prefix(3)) { wine in HStack(alignment: .top, spacing: 12) { Circle().fill(wine.style.tint).frame(width: 10, height: 10).padding(.top, 5); VStack(alignment: .leading, spacing: 4) { Text(wine.name).font(.forest(17, weight: .medium)).foregroundStyle(.forestPrimary); Text("\(wine.vintage) · Drink \(wine.drinkingWindow)").font(.forest(14)).foregroundStyle(.forestSecondary) } }.frame(maxWidth: .infinity, alignment: .leading).forestCard() }
-                VStack(alignment: .leading, spacing: 8) { Text("WINE NEWS").overline(); Text("Vintage reports and market headlines will appear here when the backend feed is connected.").font(.forest(14)).foregroundStyle(.forestSecondary) }.forestCard()
-            }.padding(24)
-        }.background { Color.forestBackground.ignoresSafeArea() } }
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    Text(model.briefing?.summary ?? "Your cellar, today.").font(.forest(25, weight: .medium)).foregroundStyle(.forestPrimary)
+                    if let summary = model.marketSummary {
+                        Button { selectedTab = "value" } label: {
+                            HStack { VStack(alignment: .leading, spacing: 5) { Text("COLLECTION VALUE").overline(); Text("$\(summary.total ?? 0, specifier: "%.0f")").font(.forest(24, weight: .medium)).foregroundStyle(.forestPrimary) }; Spacer(); Text("\(summary.change12m ?? 0, specifier: "%+.1f")% 12m").font(.forest(14, weight: .medium)).foregroundStyle((summary.change12m ?? 0) >= 0 ? .forestSuccess : .forestDanger); Image(systemName: "chevron.right").foregroundStyle(.forestAccent) }.forestCard()
+                        }.buttonStyle(.plain)
+                    }
+                    if let windows = model.drinkingWindows {
+                        windowSection("Ready to drink", bottles: windows.ready ?? [], status: "ready")
+                        windowSection("Approaching", bottles: windows.approaching ?? [], status: "young")
+                        windowSection("Past peak", bottles: windows.pastPeak ?? [], status: "past-peak")
+                    }
+                    if let insights = model.briefing?.insights, !insights.isEmpty {
+                        Text("COLLECTION INSIGHTS").overline()
+                        VStack(alignment: .leading, spacing: 12) { ForEach(Array(insights.enumerated()), id: \.offset) { _, insight in Label(insight, systemImage: "sparkle").font(.forest(14)).foregroundStyle(.forestSecondary) } }.forestCard()
+                    }
+                    HStack { Text("WINE NEWS").overline(); Spacer(); if model.briefing?.newsIsSample == true { Text("SAMPLE STORIES").font(.forest(10, weight: .medium)).tracking(1).foregroundStyle(.forestMuted) } }
+                    if let news = model.briefing?.news, !news.isEmpty {
+                        ForEach(news) { item in
+                            VStack(alignment: .leading, spacing: 7) {
+                                if let link = item.link, let url = URL(string: link), !link.isEmpty {
+                                    Link(destination: url) { Text(item.title).font(.forest(17, weight: .medium)).foregroundStyle(.forestAccent).frame(maxWidth: .infinity, alignment: .leading) }
+                                } else { Text(item.title).font(.forest(17, weight: .medium)).foregroundStyle(.forestPrimary) }
+                                Text([item.source, item.matched?.joined(separator: " · ")].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · ")).font(.forest(12)).foregroundStyle(.forestMuted)
+                                if let summary = item.summary, !summary.isEmpty { Text(summary).font(.forest(14)).foregroundStyle(.forestSecondary) }
+                            }.frame(maxWidth: .infinity, alignment: .leading).forestCard()
+                        }
+                    } else if let error = model.error { Text(error).font(.forest(14)).foregroundStyle(.forestDanger) }
+                }.padding(24)
+            }
+            .background { Color.forestBackground.ignoresSafeArea() }
+            .navigationTitle("Briefing").navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button { showingProfile = true } label: { Image(systemName: "person.cropcircle").foregroundStyle(.forestAccent) }.accessibilityLabel("Profile") } }
+            .task { await model.loadBriefing(); await model.loadMarketSummary() }
+            .refreshable { await model.loadBriefing(); await model.loadMarketSummary() }
+            .sheet(item: $selectedBottle) { bottle in WineDetail(bottle: bottle) }
+            .sheet(isPresented: $showingProfile) { ProfileView(selectedTab: $selectedTab) }
+        }
     }
+
+    @ViewBuilder private func windowSection(_ title: String, bottles: [BackendModels.Bottle], status: String) -> some View {
+        if !bottles.isEmpty {
+            Text(title.uppercased()).overline()
+            ForEach(bottles) { bottle in
+                Button { selectedBottle = bottle } label: {
+                    HStack(spacing: 12) {
+                        Circle().fill(style(for: bottle.wine.color).tint).frame(width: 10, height: 10)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("\(bottle.wine.producer ?? "") \(bottle.wine.name) \(vintageLabel(bottle.wine.vintage))").font(.forest(15, weight: .medium)).foregroundStyle(.forestPrimary)
+                            Text(bottle.location ?? bottle.cellarName ?? "Cellar").font(.forest(12)).foregroundStyle(.forestMuted)
+                        }
+                        Spacer()
+                        Text(windowLabel(status)).font(.forest(12)).foregroundStyle(status == "past-peak" ? .forestDanger : status == "ready" ? .forestSuccess : .forestWarning)
+                    }.forestCard()
+                }.buttonStyle(.plain)
+            }
+        }
+    }
+    private func style(for color: String?) -> WineStyle {
+        switch color { case "white": .white; case "rose", "rosé": .rose; case "sparkling": .sparkling; default: .red }
+    }
+    private func vintageLabel(_ vintage: Int?) -> String { vintage.map { $0 > 0 ? String($0) : "NV" } ?? "NV" }
+    private func windowLabel(_ status: String?) -> String {
+        switch status { case "ready": "Ready to drink"; case "past-peak": "Past peak"; default: "Young" }
+    }
+    }
+
+struct ValueView: View {
+    @EnvironmentObject private var model: AppModel
+    @State private var selectedBottle: BackendModels.Bottle?
+    @State private var months = 12
+    @State private var showAll = false
+    private var bottlesByID: [Int: BackendModels.Bottle] { Dictionary(uniqueKeysWithValues: model.sommelierBottles.map { ($0.id, $0) }) }
+    private var summary: BackendModels.MarketSummary? { model.marketSummary }
+    private var points: [ChartValuePoint] {
+        (summary?.history ?? []).suffix(months + 1).compactMap { point in
+            guard let date = parseValueDate(point.date) else { return nil }
+            return ChartValuePoint(date: date, value: point.value)
+        }
+    }
+    private var rows: [BackendModels.ValueRow] { summary?.bottles ?? [] }
+    private var styleTotals: [(String, Double)] {
+        [("red", "Red"), ("white", "White"), ("rose", "Rosé"), ("sparkling", "Sparkling")].compactMap { key, label in
+            let value = rows.filter { bottlesByID[$0.bottleId]?.wine.color == key }.reduce(0) { $0 + ($1.price ?? 0) }
+            return value > 0 ? (label, value) : nil
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                if let summary {
+                    VStack(alignment: .leading, spacing: 18) {
+                        HStack {
+                            Text("\(summary.count ?? 0) bottles · \(Set(rows.compactMap(\.cellar)).count) cellars").font(.forest(13)).foregroundStyle(.forestMuted).lineLimit(1)
+                            Spacer(minLength: 4)
+                            periodButton(12, "1 year"); periodButton(24, "2 years")
+                        }
+                        Text("$\(summary.total ?? 0, specifier: "%.0f")").font(.forest(42, weight: .medium)).foregroundStyle(.forestPrimary)
+                        let change = periodChange
+                        Text("\(change, specifier: "%+.1f")% in \(months == 12 ? "a year" : "two years")").font(.forest(16, weight: .medium)).foregroundStyle(change >= 0 ? .forestSuccess : .forestDanger)
+                        if points.count > 1 {
+                            Chart(points) { point in LineMark(x: .value("Month", point.date), y: .value("Value", point.value)).foregroundStyle(Color.forestAccent) }
+                                .frame(height: 180).chartYAxisLabel("USD")
+                            HStack { Text(points.first?.date.formatted(.dateTime.month(.abbreviated).year()) ?? "").font(.forest(11)).foregroundStyle(.forestMuted); Spacer(); Text(points.last?.date.formatted(.dateTime.month(.abbreviated).year()) ?? "").font(.forest(11)).foregroundStyle(.forestMuted) }
+                        }
+                        if !styleTotals.isEmpty {
+                            Text("BY STYLE").overline()
+                            GeometryReader { geo in
+                                HStack(spacing: 2) {
+                                    ForEach(styleTotals, id: \.0) { style, value in Rectangle().fill(styleColor(style)).frame(width: geo.size.width * value / max(styleTotals.reduce(0) { $0 + $1.1 }, 1)) }
+                                }.clipShape(Capsule())
+                            }.frame(height: 10)
+                            ForEach(styleTotals, id: \.0) { style, value in HStack { Circle().fill(styleColor(style)).frame(width: 8, height: 8); Text(style).font(.forest(13)).foregroundStyle(.forestSecondary); Spacer(); Text("$\(value, specifier: "%.0f")").font(.forest(13, weight: .medium)).foregroundStyle(.forestPrimary) } }
+                        }
+                        if let top = rows.max(by: { ($0.change12m ?? 0) < ($1.change12m ?? 0) }), let low = rows.min(by: { ($0.change12m ?? 0) < ($1.change12m ?? 0) }), top.bottleId != low.bottleId {
+                            Text("12 MONTH MOVERS").overline()
+                            HStack(spacing: 10) { moverCard("Rose most", row: top); moverCard((low.change12m ?? 0) < 0 ? "Fell most" : "Rose least", row: low) }
+                        }
+                        Text("MOST VALUABLE").overline()
+                        ForEach(showAll ? rows : Array(rows.prefix(5))) { row in
+                            Button { selectedBottle = bottlesByID[row.bottleId] } label: {
+                                HStack(spacing: 12) {
+                                    RoundedRectangle(cornerRadius: 2).fill(bottleTint(row)).frame(width: 4, height: 38)
+                                    VStack(alignment: .leading, spacing: 4) { Text(row.label ?? "Wine").font(.forest(15, weight: .medium)).foregroundStyle(.forestPrimary); if Set(rows.compactMap(\.cellar)).count > 1 { Text(row.cellar ?? "").font(.forest(12)).foregroundStyle(.forestMuted) } }
+                                    Spacer()
+                                    VStack(alignment: .trailing, spacing: 4) { Text("$\(row.price ?? 0, specifier: "%.0f")").font(.forest(15, weight: .medium)).foregroundStyle(.forestPrimary); Text("\(row.change12m ?? 0, specifier: "%+.1f")%").font(.forest(12)).foregroundStyle((row.change12m ?? 0) >= 0 ? .forestSuccess : .forestDanger) }
+                                }.padding(.vertical, 8).contentShape(Rectangle())
+                            }.buttonStyle(.plain)
+                            Rectangle().fill(.forestHairline).frame(height: 1)
+                        }
+                        if rows.count > 5 { Button(showAll ? "Show fewer" : "Show all \(rows.count)") { showAll.toggle() }.font(.forest(14)).foregroundStyle(.forestAccent) }
+                        if summary.source == "simulated" { Text("Prices are estimates, not live market data.").font(.forest(12)).foregroundStyle(.forestMuted) }
+                    }.padding(24)
+                } else {
+                    VStack(spacing: 12) { ProgressView().tint(.forestAccent); Text(model.error ?? "Loading market data…").font(.forest(14)).foregroundStyle(model.error == nil ? .forestMuted : .forestDanger) }.frame(maxWidth: .infinity).padding(40)
+                }
+            }
+            .background { Color.forestBackground.ignoresSafeArea() }.navigationTitle("Value")
+            .task { await model.loadMarketSummary(); await model.loadSommelierBottles() }
+            .refreshable { await model.loadMarketSummary(); await model.loadSommelierBottles() }
+            .sheet(item: $selectedBottle) { bottle in WineDetail(bottle: bottle) }
+        }
+    }
+
+    private var periodChange: Double {
+        guard points.count > 1, let first = points.first, let last = points.last, first.value > 0 else { return summary?.change12m ?? 0 }
+        return (last.value - first.value) / first.value * 100
+    }
+    private func style(for color: String?) -> WineStyle {
+        switch color { case "white": .white; case "rose", "rosé": .rose; case "sparkling": .sparkling; default: .red }
+    }
+    private func vintageLabel(_ vintage: Int?) -> String { vintage.map { $0 > 0 ? String($0) : "NV" } ?? "NV" }
+    private func windowLabel(_ status: String?) -> String {
+        switch status { case "ready": "Ready to drink"; case "past-peak": "Past peak"; default: "Young" }
+    }
+    private func periodButton(_ value: Int, _ title: String) -> some View {
+        Button(title) { months = value }.font(.forest(12, weight: months == value ? .medium : .regular)).padding(.horizontal, 10).padding(.vertical, 7)
+            .background(months == value ? Color.forestAccentSoft : .clear, in: Capsule()).foregroundStyle(months == value ? Color.forestAccent : Color.forestSecondary).overlay(Capsule().stroke(.forestHairline))
+    }
+    private func moverCard(_ title: String, row: BackendModels.ValueRow) -> some View {
+        Button { selectedBottle = bottlesByID[row.bottleId] } label: {
+            VStack(alignment: .leading, spacing: 7) { Text(title.uppercased()).font(.forest(10, weight: .medium)).tracking(1).foregroundStyle(.forestMuted); Text(row.label ?? "Wine").font(.forest(13, weight: .medium)).foregroundStyle(.forestPrimary).lineLimit(2); Text("\(row.change12m ?? 0, specifier: "%+.1f")%").font(.forest(20, weight: .medium)).foregroundStyle((row.change12m ?? 0) >= 0 ? .forestSuccess : .forestDanger) }
+                .frame(maxWidth: .infinity, minHeight: 95, alignment: .leading).padding(12).background(.forestSurface, in: RoundedRectangle(cornerRadius: 12))
+        }.buttonStyle(.plain)
+    }
+    private func bottleTint(_ row: BackendModels.ValueRow) -> Color { styleColor(bottlesByID[row.bottleId]?.wine.color ?? "") }
+    private func styleColor(_ style: String) -> Color {
+        switch style.lowercased() { case "red": .forestRed; case "white": .forestWhite; case "rose", "rosé": .forestRose; case "sparkling": .forestSparkling; default: .forestAccent }
+    }
+}
+
+private struct ChartValuePoint: Identifiable {
+    var date: Date
+    var value: Double
+    var id: Date { date }
+}
+
+private func parseValueDate(_ value: String) -> Date? {
+    let formatter = DateFormatter(); formatter.locale = Locale(identifier: "en_US_POSIX"); formatter.timeZone = TimeZone(secondsFromGMT: 0)
+    formatter.dateFormat = value.count == 7 ? "yyyy-MM" : "yyyy-MM-dd"
+    return formatter.date(from: value)
 }
 
 struct ProfileView: View {

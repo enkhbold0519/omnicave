@@ -20,6 +20,10 @@ protocol AppService {
     func bottles(query: String, cellarID: Int?) async throws -> [BackendModels.Bottle]
     func personas() async throws -> [BackendModels.Persona]
     func tastingEvents(_ request: BackendModels.TableRequest) throws -> AsyncThrowingStream<BackendModels.TastingEvent, Error>
+    func briefing() async throws -> BackendModels.Briefing
+    func drinkingWindows() async throws -> BackendModels.DrinkingWindows
+    func marketSummary() async throws -> BackendModels.MarketSummary
+    func priceHistory(bottleID: Int) async throws -> BackendModels.PriceHistory
     func saveBottle(id: Int?, cellarID: Int, wine: BackendModels.WineInfo) async throws -> BackendModels.Bottle
     func removeBottle(id: Int, reason: String) async throws
     func profile() async throws -> BackendModels.User
@@ -200,6 +204,53 @@ final class MockService: AppService {
             continuation.yield(.init(type: "done"))
             continuation.finish()
         }
+    }
+
+    func briefing() async throws -> BackendModels.Briefing {
+        let windows = try await drinkingWindows()
+        let value = try await marketSummary()
+        return BackendModels.Briefing(
+            date: ISO8601DateFormatter().string(from: Date()),
+            news: [
+                .init(title: "Sample: How to enjoy a cellar selection", link: nil, summary: "A sample story for the offline demo.", published: nil, source: "sample", relevance: 0, matched: []),
+                .init(title: "Sample: Vintage notes for classic regions", link: nil, summary: "This headline is demo content.", published: nil, source: "sample", relevance: 0, matched: [])
+            ], newsIsSample: true,
+            insights: ["Collection value $\(Int(value.total ?? 0)) (simulated)", "\(windows.ready?.count ?? 0) bottles are ready to drink."],
+            summary: "\(windows.ready?.count ?? 0) bottles are ready to drink.", briefingTime: "08:00"
+        )
+    }
+
+    func drinkingWindows() async throws -> BackendModels.DrinkingWindows {
+        let bottles = try await storedBottles()
+        return BackendModels.DrinkingWindows(ready: bottles.filter { $0.windowStatus == "ready" },
+            approaching: bottles.filter { $0.windowStatus == "young" }, pastPeak: bottles.filter { $0.windowStatus == "past-peak" },
+            year: Calendar.current.component(.year, from: .now))
+    }
+
+    func marketSummary() async throws -> BackendModels.MarketSummary {
+        let bottles = try await storedBottles()
+        let rows = bottles.map { bottle in
+            BackendModels.ValueRow(bottleId: bottle.id, label: "\(bottle.wine.producer ?? "") \(bottle.wine.name) \(bottle.wine.vintage ?? 0)",
+                price: bottle.wine.basePrice ?? 30, change12m: 4.2, cellar: bottle.cellarName ?? "Cellar")
+        }
+        let total = rows.reduce(0) { $0 + ($1.price ?? 0) }
+        let formatter = DateFormatter(); formatter.locale = Locale(identifier: "en_US_POSIX"); formatter.dateFormat = "yyyy-MM"
+        let history = (0...24).compactMap { offset -> BackendModels.ValuePoint? in
+            guard let date = Calendar.current.date(byAdding: .month, value: offset - 24, to: .now) else { return nil }
+            return BackendModels.ValuePoint(date: formatter.string(from: date), value: total * (0.92 + Double(offset) * 0.0033))
+        }
+        return BackendModels.MarketSummary(total: total, change12m: 4.2, count: bottles.count, currency: "USD", source: "simulated", history: history, bottles: rows)
+    }
+
+    func priceHistory(bottleID: Int) async throws -> BackendModels.PriceHistory {
+        guard let bottle = try await storedBottles().first(where: { $0.id == bottleID }) else { throw ServiceError.invalidInput }
+        let current = bottle.wine.basePrice ?? 30
+        let formatter = DateFormatter(); formatter.locale = Locale(identifier: "en_US_POSIX"); formatter.dateFormat = "yyyy-MM"
+        let history = (0...24).compactMap { offset -> BackendModels.PricePoint? in
+            guard let date = Calendar.current.date(byAdding: .month, value: offset - 24, to: .now) else { return nil }
+            return BackendModels.PricePoint(date: formatter.string(from: date), price: current * (0.92 + Double(offset) * 0.0033))
+        }
+        return BackendModels.PriceHistory(bottleId: bottleID, history: history, source: "simulated")
     }
 
     func saveBottle(id: Int?, cellarID: Int, wine: BackendModels.WineInfo) async throws -> BackendModels.Bottle {
@@ -466,6 +517,11 @@ final class BackendService: AppService {
     func tastingEvents(_ request: BackendModels.TableRequest) throws -> AsyncThrowingStream<BackendModels.TastingEvent, Error> {
         try api.stream("api/ai/table", body: api.encode(request))
     }
+
+    func briefing() async throws -> BackendModels.Briefing { try await api.get("api/briefing") }
+    func drinkingWindows() async throws -> BackendModels.DrinkingWindows { try await api.get("api/recommendations/windows") }
+    func marketSummary() async throws -> BackendModels.MarketSummary { try await api.get("api/market/summary") }
+    func priceHistory(bottleID: Int) async throws -> BackendModels.PriceHistory { try await api.get("api/bottles/\(bottleID)/price-history") }
 
     func saveBottle(id: Int?, cellarID: Int, wine: BackendModels.WineInfo) async throws -> BackendModels.Bottle {
         if let id {
