@@ -20,8 +20,9 @@ protocol AppService {
     func bottles(query: String, cellarID: Int?) async throws -> [BackendModels.Bottle]
     func saveBottle(id: Int?, cellarID: Int, wine: BackendModels.WineInfo) async throws -> BackendModels.Bottle
     func removeBottle(id: Int, reason: String) async throws
-    func updateEmail(_ email: String) async throws -> Account
-    func updatePassword(_ password: String) async throws
+    func profile() async throws -> BackendModels.User
+    func updateProfile(_ update: BackendModels.ProfileUpdate) async throws -> BackendModels.User
+    func verifyEmailChange(code: String) async throws -> BackendModels.User
     func wines() async throws -> [Wine]
     func save(_ wine: Wine) async throws
     func remove(_ wine: Wine) async throws
@@ -204,23 +205,52 @@ final class MockService: AppService {
         store(try await storedBottles().filter { $0.id != id }, key: key("bottles"))
     }
 
-    func updateEmail(_ email: String) async throws -> Account {
-        guard Self.validEmail(email), let old = signedIn, var user = accounts.first(where: { $0.email == old }) else { throw ServiceError.invalidInput }
-        guard !accounts.contains(where: { $0.email == email.lowercased() && $0.email != old }) else { throw ServiceError.accountExists }
-        user.email = email.lowercased()
-        accounts.removeAll { $0.email == old }; accounts.append(user)
-        defaults.set(user.email, forKey: "mock.signedIn")
-        for item in ["wines", "cellars"] {
-            if let data = defaults.data(forKey: "mock.\(old).\(item)") { defaults.set(data, forKey: "mock.\(user.email).\(item)"); defaults.removeObject(forKey: "mock.\(old).\(item)") }
-        }
-        return Account(email: user.email)
+    func profile() async throws -> BackendModels.User {
+        if let stored = loadOptional(BackendModels.User.self, key: key("profile")) { return stored }
+        let email = signedIn ?? Self.demoEmail
+        return BackendModels.User(username: accounts.first(where: { $0.email == email })?.username ?? "demo", email: email,
+            displayName: accounts.first(where: { $0.email == email })?.username ?? "Demo", preferences: BackendModels.Preferences(styles: [], regions: [], grapes: [], likes: "", dislikes: ""),
+            briefingTime: "08:00", emailVerified: true, consents: ["terms": true, "privacy": true, "overseas": true, "marketing": false])
     }
 
-    func updatePassword(_ password: String) async throws {
-        guard Self.validPassword(password), let email = signedIn, var user = accounts.first(where: { $0.email == email }) else { throw ServiceError.invalidInput }
-        user.salt = UUID().uuidString; user.digest = Self.hash(password, user.salt)
-        accounts.removeAll { $0.email == email }; accounts.append(user)
+    func updateProfile(_ update: BackendModels.ProfileUpdate) async throws -> BackendModels.User {
+        var value = try await profile()
+        let changesEmail = update.email.map { $0.lowercased() != (value.email ?? "").lowercased() } ?? false
+        if changesEmail || update.password != nil {
+            guard let email = signedIn, let saved = accounts.first(where: { $0.email == email }),
+                  Self.hash(update.currentPassword ?? "", saved.salt) == saved.digest else { throw ServiceError.invalidInput }
+        }
+        if let name = update.displayName { value.displayName = name }
+        if let email = update.email, email != value.email {
+            guard Self.validEmail(email), !accounts.contains(where: { $0.email == email.lowercased() }) else { throw ServiceError.invalidInput }
+            let oldEmail = signedIn
+            value.email = email.lowercased()
+            if let old = oldEmail, var saved = accounts.first(where: { $0.email == old }) {
+                let newEmail = value.email ?? old
+                saved.email = newEmail; accounts.removeAll { $0.email == old }; accounts.append(saved)
+                let oldPrefix = "mock.\(old)."
+                for (storedKey, data) in defaults.dictionaryRepresentation() where storedKey.hasPrefix(oldPrefix) {
+                    defaults.set(data, forKey: "mock.\(newEmail)." + storedKey.dropFirst(oldPrefix.count))
+                    defaults.removeObject(forKey: storedKey)
+                }
+                defaults.set(newEmail, forKey: "mock.signedIn")
+            }
+        }
+        if let password = update.password {
+            guard password.count >= 8, let email = signedIn, var saved = accounts.first(where: { $0.email == email }) else { throw ServiceError.invalidInput }
+            saved.salt = UUID().uuidString; saved.digest = Self.hash(password, saved.salt); accounts.removeAll { $0.email == email }; accounts.append(saved)
+        }
+        if let preferences = update.preferences { value.preferences = preferences }
+        if let time = update.briefingTime { value.briefingTime = time }
+        if let consents = update.consents {
+            guard consents.keys.allSatisfy({ $0 == "marketing" }) else { throw ServiceError.invalidInput }
+            value.consents = (value.consents ?? [:]).merging(consents) { _, new in new }
+        }
+        store(value, key: key("profile"))
+        return value
     }
+
+    func verifyEmailChange(code: String) async throws -> BackendModels.User { try await profile() }
 
     func wines() async throws -> [Wine] { load([Wine].self, key: key("wines"), default: Self.sampleWines) }
     func save(_ wine: Wine) async throws {
@@ -236,12 +266,15 @@ final class MockService: AppService {
         store(values, key: key("cellars"))
     }
     func ask(_ prompt: String) async throws -> String { "Based on your cellar, consider a bottle that complements “\(prompt)”. This is a demonstration response; connect the backend for a personalized AI answer." }
-    func exportData() async throws -> Data { try JSONEncoder().encode(Export(wines: try await wines(), cellars: try await cellars())) }
+    func exportData() async throws -> Data {
+        try JSONEncoder().encode(Export(wines: try await wines(), cellars: try await cellars(), profile: try await profile(), bottles: try await storedBottles()))
+    }
     func deleteAccount() async throws {
         guard let email = signedIn else { return }
         accounts.removeAll { $0.email == email }
+        let prefix = "mock.\(email)."
+        for storedKey in Array(defaults.dictionaryRepresentation().keys) where storedKey.hasPrefix(prefix) { defaults.removeObject(forKey: storedKey) }
         defaults.removeObject(forKey: "mock.signedIn")
-        defaults.removeObject(forKey: key("wines")); defaults.removeObject(forKey: key("cellars"))
     }
     func signOut() async { defaults.removeObject(forKey: "mock.signedIn") }
 
@@ -261,8 +294,12 @@ final class MockService: AppService {
         guard let data = defaults.data(forKey: key), let decoded = try? JSONDecoder().decode(type, from: data) else { return value }
         return decoded
     }
+    private func loadOptional<T: Decodable>(_ type: T.Type, key: String) -> T? {
+        guard let data = defaults.data(forKey: key) else { return nil }
+        return try? JSONDecoder().decode(type, from: data)
+    }
     private func store<T: Encodable>(_ value: T, key: String) { defaults.set(try? JSONEncoder().encode(value), forKey: key) }
-    private struct Export: Encodable { var wines: [Wine]; var cellars: [Cellar] }
+    private struct Export: Encodable { var wines: [Wine]; var cellars: [Cellar]; var profile: BackendModels.User? = nil; var bottles: [BackendModels.Bottle]? = nil }
     private static func validEmail(_ email: String) -> Bool { email.range(of: #"^[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"#, options: .regularExpression) != nil }
     private static func validPassword(_ password: String) -> Bool { password.range(of: #"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$"#, options: .regularExpression) != nil }
     private static func hash(_ password: String, _ salt: String) -> String {
@@ -449,8 +486,9 @@ final class BackendService: AppService {
     private struct AuthResponse: Decodable { var accessToken: String; var user: Account }
     func signUp(email: String, password: String) async throws -> Account { try await request("POST", "auth/register", body: json(Credentials(email: email, password: password))) }
     func signIn(email: String, password: String) async throws -> Account { let result: AuthResponse = try await request("POST", "auth/login", body: json(Credentials(email: email, password: password))); token = result.accessToken; return result.user }
-    func updateEmail(_ email: String) async throws -> Account { try await request("PATCH", "users/me", body: json(Account(email: email))) }
-    func updatePassword(_ password: String) async throws { try await send("PATCH", "users/me/password", body: json(["password": password])) }
+    func profile() async throws -> BackendModels.User { try await api.get("api/me") }
+    func updateProfile(_ update: BackendModels.ProfileUpdate) async throws -> BackendModels.User { try await api.request("PATCH", path: "api/me", body: api.encode(update)) }
+    func verifyEmailChange(code: String) async throws -> BackendModels.User { try await api.request("POST", path: "api/me/email/verify", body: api.encode(["code": code])) }
     func wines() async throws -> [Wine] { try await request("GET", "wines") }
     func save(_ wine: Wine) async throws { try await send("PUT", "wines/\(wine.id)", body: json(wine)) }
     func remove(_ wine: Wine) async throws { try await send("DELETE", "wines/\(wine.id)") }
@@ -459,13 +497,9 @@ final class BackendService: AppService {
     private struct ChatResponse: Decodable { var answer: String }
     func ask(_ prompt: String) async throws -> String { let result: ChatResponse = try await request("POST", "ai/chat", body: json(["message": prompt])); return result.answer }
     func exportData() async throws -> Data {
-        var request = URLRequest(url: baseURL.appending(path: "users/me/export")); request.httpMethod = "GET"
-        if let token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
-        let (data, response) = try await session.data(for: request)
-        guard ((response as? HTTPURLResponse)?.statusCode ?? 500) < 300 else { throw ServiceError.invalidCredentials }
-        return data
+        try await api.getData("api/me/export")
     }
-    func deleteAccount() async throws { try await send("DELETE", "users/me"); token = nil }
+    func deleteAccount() async throws { let _: OKReply = try await api.request("DELETE", path: "api/me"); token = nil }
     func signOut() async {
         do { let _: OKReply = try await api.request("POST", path: "api/auth/logout") } catch { }
         token = nil

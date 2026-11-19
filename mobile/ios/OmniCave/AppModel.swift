@@ -5,6 +5,7 @@ import Network
 @MainActor
 final class AppModel: ObservableObject {
     @Published var user: Account?
+    @Published var backendUser: BackendModels.User?
     @Published var wines: [Wine] = []
     @Published var cellars: [Cellar] = []
     @Published var selectedCellar: UUID?
@@ -30,6 +31,7 @@ final class AppModel: ObservableObject {
             backend.onUnauthorized = { [weak self] in
                 Task { @MainActor in
                     self?.user = nil
+                    self?.backendUser = nil
                     self?.wines = []
                     self?.cellars = []
                     self?.inventoryBottles = []
@@ -43,7 +45,10 @@ final class AppModel: ObservableObject {
         pathMonitor.start(queue: DispatchQueue.global(qos: .utility))
         Task {
             user = await service.restoreSession()
-            if user != nil && !(service is BackendService) { await refresh() }
+            if user != nil {
+                await loadProfile()
+                if !(service is BackendService) { await refresh() }
+            }
         }
     }
     @Published var networkAvailable = true
@@ -56,6 +61,11 @@ final class AppModel: ObservableObject {
             legalInfo = nil
             legalError = error.localizedDescription
         }
+    }
+
+    func loadProfile() async {
+        do { backendUser = try await service.profile(); error = nil }
+        catch { self.error = error.localizedDescription }
     }
 
     func signUp(username: String, email: String, password: String, birthDate: String, consents: [String: Bool]) async -> SignUpOutcome? {
@@ -75,6 +85,7 @@ final class AppModel: ObservableObject {
         busy = true; error = nil; notice = nil; verificationEmail = nil
         do {
             user = try await service.signIn(identifier: identifier, password: password)
+            await loadProfile()
             if !(service is BackendService) { await refresh() }
             busy = false
             return true
@@ -211,10 +222,31 @@ final class AppModel: ObservableObject {
             return false
         }
     }
-    func signOut() { Task { await service.signOut(); user = nil; wines = []; cellars = [] } }
-    func updateEmail(_ email: String) async { await perform { user = try await service.updateEmail(email); notice = "Email updated." } }
-    func updatePassword(_ password: String) async { await perform { try await service.updatePassword(password); notice = "Password updated." } }
-    func deleteAccount() async { await perform { try await service.deleteAccount(); user = nil; wines = []; cellars = [] } }
+    func signOut() { Task { await service.signOut(); user = nil; backendUser = nil; wines = []; cellars = []; inventoryBottles = []; inventoryCellars = []; climate = nil } }
+    func updateProfile(_ update: BackendModels.ProfileUpdate) async -> Bool {
+        var success = false
+        await perform {
+            backendUser = try await service.updateProfile(update)
+            if let email = backendUser?.email { user = Account(email: email) }
+            notice = "Profile updated."
+            success = true
+        }
+        return success
+    }
+    func verifyEmailChange(code: String) async -> Bool {
+        var success = false
+        await perform {
+            backendUser = try await service.verifyEmailChange(code: code)
+            if let email = backendUser?.email { user = Account(email: email) }
+            notice = "Email address confirmed."
+            success = true
+        }
+        return success
+    }
+    func updateMarketingConsent(_ granted: Bool) async -> Bool {
+        await updateProfile(BackendModels.ProfileUpdate(consents: ["marketing": granted]))
+    }
+    func deleteAccount() async { await perform { try await service.deleteAccount(); user = nil; backendUser = nil; wines = []; cellars = []; inventoryBottles = []; inventoryCellars = []; climate = nil } }
     func refresh() async {
         await perform { wines = try await service.wines(); cellars = try await service.cellars(); if selectedCellar == nil { selectedCellar = cellars.first?.id } }
     }
@@ -222,7 +254,10 @@ final class AppModel: ObservableObject {
     func remove(_ wine: Wine) async { await perform { try await service.remove(wine); wines = try await service.wines() } }
     func save(_ cellar: Cellar) async { await perform { try await service.save(cellar); cellars = try await service.cellars() } }
     func ask(_ prompt: String) async -> String { do { return try await service.ask(prompt) } catch { self.error = error.localizedDescription; return "" } }
-    func export() async -> Data? { try? await service.exportData() }
+    func export() async -> Data? {
+        do { let data = try await service.exportData(); error = nil; return data }
+        catch { self.error = error.localizedDescription; return nil }
+    }
 
     private func perform(_ action: () async throws -> Void) async {
         busy = true; error = nil; notice = nil

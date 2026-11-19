@@ -46,6 +46,16 @@ enum BackendModels {
         var dislikes: String?
     }
 
+    struct ProfileUpdate: Encodable {
+        var displayName: String?
+        var email: String?
+        var password: String?
+        var currentPassword: String?
+        var preferences: Preferences?
+        var briefingTime: String?
+        var consents: [String: Bool]?
+    }
+
     struct CellarSummary: Codable, Identifiable {
         var id: Int
         var name: String
@@ -239,6 +249,21 @@ final class APIClient {
 
     func encode<Body: Encodable>(_ body: Body) throws -> Data {
         try encoder.encode(body)
+    }
+
+    func getData(_ path: String) async throws -> Data {
+        var request = URLRequest(url: baseURL.appending(path: path))
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        if let token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
+        let (data, response) = try await session.data(for: request)
+        guard let response = response as? HTTPURLResponse else { throw APIClientError.invalidResponse }
+        guard (200..<300).contains(response.statusCode) else {
+            if response.statusCode == 401, token != nil { onUnauthorized?() }
+            let detail = (try? decoder.decode(ErrorBody.self, from: data).detail)
+            throw APIClientError.http(status: response.statusCode, message: detail ?? "Request failed (\(response.statusCode)).")
+        }
+        return data
     }
 
     private struct ErrorBody: Decodable {

@@ -1063,7 +1063,10 @@ struct ProfileView: View {
     @Binding var selectedTab: String
     @AppStorage("appearance") private var appearance = "system"
     private var email: String { model.user?.email ?? "" }
-    private var name: String { email.split(separator: "@").first?.capitalized ?? "Wine lover" }
+    private var name: String {
+        if let displayName = model.backendUser?.displayName, !displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return displayName }
+        return model.backendUser?.username ?? email.split(separator: "@").first.map(String.init) ?? "Wine lover"
+    }
     var body: some View {
         NavigationStack { ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -1075,9 +1078,9 @@ struct ProfileView: View {
                 }.frame(maxWidth: .infinity, alignment: .leading).forestCard()
                 Text("SETTINGS").overline()
                 VStack(spacing: 0) {
-                    profileRow("My cellars", detail: "\(model.cellars.count) cellars", icon: "cabinet", action: { selectedTab = "cellar" })
+                    profileRow("My cellars", detail: "\(model.inventoryCellars.count) cellars", icon: "cabinet", action: { selectedTab = "cellar" })
                     NavigationLink { EnvironmentView() } label: { profileRowLabel("Notifications & alerts", detail: "Temperature · humidity", icon: "bell") }
-                    NavigationLink { TastePreferencesView() } label: { profileRowLabel("Taste preferences", detail: "Red wines · regions", icon: "slider.horizontal.3") }
+                    NavigationLink { TastePreferencesView() } label: { profileRowLabel("Taste preferences", detail: "Personalize recommendations", icon: "slider.horizontal.3") }
                     NavigationLink { PrivacyAndDataView() } label: { profileRowLabel("Privacy & data", detail: "Export or delete your data", icon: "lock.shield") }
                 }.background(.forestSurface, in: RoundedRectangle(cornerRadius: 12)).overlay(RoundedRectangle(cornerRadius: 12).stroke(.forestHairline))
                 Text("APPEARANCE").overline()
@@ -1085,7 +1088,7 @@ struct ProfileView: View {
                 HStack { Text("Palette").font(.forest(16)).foregroundStyle(.forestPrimary); Spacer(); Text("Forest").font(.forest(15)).foregroundStyle(.forestSecondary) }.forestCard()
                 Button("Log out", role: .destructive) { model.signOut() }.font(.forest(16, weight: .medium)).foregroundStyle(.forestDanger).frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 8)
             }.padding(24)
-        }.background { Color.forestBackground.ignoresSafeArea() } }
+        }.background { Color.forestBackground.ignoresSafeArea() }.task { await model.loadProfile(); await model.loadInventoryCellars() } }
     }
     private func profileRow(_ title: String, detail: String, icon: String, action: @escaping () -> Void) -> some View {
         Button(action: action) { profileRowLabel(title, detail: detail, icon: icon) }
@@ -1098,45 +1101,122 @@ struct ProfileView: View {
 struct AccountDetailsView: View {
     @EnvironmentObject private var model: AppModel
     @Environment(\.dismiss) private var dismiss
+    @State private var name = ""
     @State private var email = ""
     @State private var password = ""
-    @State private var showingDelete = false
+    @State private var repeatedPassword = ""
+    @State private var currentPassword = ""
+    @State private var code = ""
+    @State private var briefingTime = Calendar.current.date(from: DateComponents(hour: 8)) ?? .now
+    @State private var initialized = false
+    private var profile: BackendModels.User? { model.backendUser }
+    private var emailChanged: Bool { email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() != (profile?.email ?? "").lowercased() }
+    private var sensitiveChange: Bool { emailChanged || !password.isEmpty }
+    private var emailValid: Bool { email.range(of: #"^[^\s@]+@[^\s@]+\.[^\s@]+$"#, options: .regularExpression) != nil }
+    private var passwordValid: Bool { password.isEmpty || (password.count >= 8 && password == repeatedPassword) }
     var body: some View {
         NavigationStack { Form {
-            Section("PROFILE") { TextField("Email", text: $email).textInputAutocapitalization(.never).keyboardType(.emailAddress); SecureField("New password, optional", text: $password); Button("Save Changes") { Task { await model.updateEmail(email); if !password.isEmpty { await model.updatePassword(password); password = "" } } }.foregroundStyle(.forestAccent) }
+            Section("PROFILE") {
+                TextField("Display name", text: $name)
+                TextField("Email", text: $email).textInputAutocapitalization(.never).keyboardType(.emailAddress)
+                SecureField("New password", text: $password)
+                if !password.isEmpty { SecureField("Repeat new password", text: $repeatedPassword) }
+                if !emailValid && !email.isEmpty { Text("Enter a valid email address.").foregroundStyle(.forestDanger) }
+                if !passwordValid { Text(password.count < 8 ? "Password must be at least 8 characters." : "Passwords do not match.").foregroundStyle(.forestDanger) }
+                if sensitiveChange { SecureField("Current password", text: $currentPassword) }
+                if let username = profile?.username { Text("Username: \(username) (cannot be changed)").font(.forest(13)).foregroundStyle(.forestSecondary) }
+                DatePicker("Daily briefing", selection: $briefingTime, displayedComponents: .hourAndMinute)
+                Button("Save Changes") { Task {
+                    let formatter = DateFormatter(); formatter.locale = Locale(identifier: "en_US_POSIX"); formatter.dateFormat = "HH:mm"
+                    let update = BackendModels.ProfileUpdate(displayName: name.trimmingCharacters(in: .whitespacesAndNewlines),
+                        email: email.trimmingCharacters(in: .whitespacesAndNewlines), password: password.isEmpty ? nil : password,
+                        currentPassword: sensitiveChange ? currentPassword : nil, briefingTime: formatter.string(from: briefingTime))
+                    if await model.updateProfile(update) { password = ""; repeatedPassword = ""; currentPassword = "" }
+                } }.foregroundStyle(.forestAccent).disabled(!emailValid || !passwordValid || (sensitiveChange && currentPassword.isEmpty))
+            }
+            if let pending = profile?.pendingEmail {
+                Section("CONFIRM YOUR NEW EMAIL") {
+                    Text("Enter the 6-digit code sent to \(pending). You can keep using \(profile?.email ?? "your current email") until it is confirmed.").font(.forest(13)).foregroundStyle(.forestSecondary)
+                    TextField("6-digit code", text: $code).keyboardType(.numberPad).onChange(of: code) { _, value in code = String(value.filter(\.isNumber).prefix(6)) }
+                    Button("Confirm email") { Task { if await model.verifyEmailChange(code: code) { code = "" } } }.disabled(code.count != 6)
+                }
+            }
             if let notice = model.notice { Text(notice).foregroundStyle(.forestSuccess) }
             if let error = model.error { Text(error).foregroundStyle(.forestDanger) }
-        }.scrollContentBackground(.hidden).background(.forestBackground).navigationTitle("Edit profile").toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }.onAppear { email = model.user?.email ?? "" } }
+        }.scrollContentBackground(.hidden).background(.forestBackground).navigationTitle("Edit profile").toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }.task { await model.loadProfile(); if !initialized, let profile { name = profile.displayName ?? ""; email = profile.email ?? ""; if let time = profile.briefingTime { let parser = DateFormatter(); parser.locale = Locale(identifier: "en_US_POSIX"); parser.dateFormat = "HH:mm"; briefingTime = parser.date(from: time) ?? briefingTime }; initialized = true } } }
     }
 }
 
 struct TastePreferencesView: View {
-    @State private var selected: Set<String> = ["Red", "Burgundy"]
-    private let choices = ["Red", "White", "Rosé", "Sparkling", "Dessert", "Bordeaux", "Burgundy", "Champagne", "Rhône", "Piedmont", "Tuscany", "Rioja", "Mosel", "Napa"]
+    @EnvironmentObject private var model: AppModel
+    @State private var preferences = BackendModels.Preferences(styles: [], regions: [], grapes: [], likes: "", dislikes: "")
+    @State private var loaded = false
+    private let groups: [(String, [String])] = [
+        ("Styles", ["Red", "White", "Rosé", "Sparkling", "Dessert"]),
+        ("Regions", ["Bordeaux", "Burgundy", "Champagne", "Rhône", "Piedmont", "Tuscany", "Rioja", "Mosel", "Napa", "Mendoza"]),
+        ("Grapes", ["Cabernet Sauvignon", "Pinot Noir", "Nebbiolo", "Syrah", "Sangiovese", "Tempranillo", "Chardonnay", "Riesling", "Sauvignon Blanc", "Grenache"])
+    ]
     var body: some View {
         NavigationStack { ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 Text("Taste preferences").font(.forest(28)).foregroundStyle(.forestPrimary)
-                Text("STYLES & REGIONS").overline()
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 110))], spacing: 10) {
-                    ForEach(choices, id: \.self) { item in Button(item) { if selected.contains(item) { selected.remove(item) } else { selected.insert(item) } }.font(.forest(14)).padding(12).frame(maxWidth: .infinity).background(selected.contains(item) ? Color.forestAccentSoft : .forestSurface, in: Capsule()).foregroundStyle(selected.contains(item) ? Color.forestAccent : Color.forestSecondary).overlay(Capsule().stroke(.forestHairline)) }
+                Text("The sommeliers use these when they recommend wines for you.").font(.forest(14)).foregroundStyle(.forestSecondary)
+                ForEach(groups, id: \.0) { title, choices in
+                    Text(title.uppercased()).overline()
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 110))], spacing: 10) {
+                        ForEach(choices, id: \.self) { item in
+                            let selected = chosen(in: title).contains(item)
+                            Button(item) { Task { await toggle(item, in: title) } }.font(.forest(14))
+                                .padding(12).frame(maxWidth: .infinity).background(selected ? Color.forestAccentSoft : .forestSurface, in: Capsule())
+                                .foregroundStyle(selected ? Color.forestAccent : Color.forestSecondary).overlay(Capsule().stroke(.forestHairline))
+                        }
+                    }
                 }
+                Text("ANYTHING YOU AVOID").overline()
+                TextField("e.g. very oaky whites", text: Binding(get: { preferences.dislikes ?? "" }, set: { preferences.dislikes = $0 })).forestField()
+                Button("Save preferences") { Task { _ = await model.updateProfile(BackendModels.ProfileUpdate(preferences: preferences)) } }.buttonStyle(ForestPrimaryButton())
+                if let error = model.error { Text(error).font(.forest(13)).foregroundStyle(.forestDanger) }
             }.padding(24)
-        }.background { Color.forestBackground.ignoresSafeArea() } }
+        }.background { Color.forestBackground.ignoresSafeArea() }.navigationTitle("Taste preferences").task { await model.loadProfile(); if !loaded, let saved = model.backendUser?.preferences { preferences = BackendModels.Preferences(styles: saved.styles ?? [], regions: saved.regions ?? [], grapes: saved.grapes ?? [], likes: saved.likes ?? "", dislikes: saved.dislikes ?? ""); loaded = true } } }
+    }
+
+    private func chosen(in group: String) -> [String] {
+        switch group { case "Styles": preferences.styles ?? []; case "Regions": preferences.regions ?? []; default: preferences.grapes ?? [] }
+    }
+    private func toggle(_ item: String, in group: String) async {
+        var selected = chosen(in: group)
+        if selected.contains(item) { selected.removeAll { $0 == item } } else { selected.append(item) }
+        if group == "Styles" { preferences.styles = selected } else if group == "Regions" { preferences.regions = selected } else { preferences.grapes = selected }
+        _ = await model.updateProfile(BackendModels.ProfileUpdate(preferences: preferences))
     }
 }
 
 struct PrivacyAndDataView: View {
     @EnvironmentObject private var model: AppModel
     @State private var showingDelete = false
+    @State private var policyKey: String?
     var body: some View {
         NavigationStack { Form {
             Section("PRIVACY & DATA") {
                 Button("Export my data") { Task { if let data = await model.export(), let text = String(data: data, encoding: .utf8) { UIPasteboard.general.string = text; model.notice = "Export copied to clipboard." } } }
                 Button("Delete account") { showingDelete = true }.foregroundStyle(.forestDanger)
-                Text("Deleting your account removes your local demo account and collection.").font(.forest(13)).foregroundStyle(.forestSecondary)
+                Text("Deleting your account permanently removes your server account and its data.").font(.forest(13)).foregroundStyle(.forestSecondary)
+            }
+            Section("CONSENTS") {
+                Toggle("News and product emails · Optional", isOn: Binding(get: { model.backendUser?.consents?["marketing"] == true }, set: { value in Task { _ = await model.updateMarketingConsent(value) } }))
+                Text("Required consents (terms, privacy and processing outside Korea) can only be withdrawn by deleting your account.").font(.forest(13)).foregroundStyle(.forestSecondary)
+            }
+            Section("POLICIES") {
+                Button("Terms of Service") { policyKey = "terms" }
+                Button("Privacy Policy") { policyKey = "privacy" }
             }
             if let notice = model.notice { Text(notice).foregroundStyle(.forestSuccess) }
+            if let error = model.error { Text(error).foregroundStyle(.forestDanger) }
         }.scrollContentBackground(.hidden).background(.forestBackground).navigationTitle("Privacy & data").confirmationDialog("Permanently delete your account and data?", isPresented: $showingDelete, titleVisibility: .visible) { Button("Delete account", role: .destructive) { Task { await model.deleteAccount() } } } }
+            .task { await model.loadProfile(); if model.legalInfo == nil { await model.loadLegalInfo() } }
+            .sheet(isPresented: Binding(get: { policyKey != nil }, set: { if !$0 { policyKey = nil } })) {
+                let key = policyKey ?? "terms"
+                PolicyViewer(title: key == "terms" ? "Terms of Service" : "Privacy Policy", markdown: model.legalInfo?.documents?[key] ?? "")
+            }
     }
 }
