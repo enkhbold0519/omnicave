@@ -74,6 +74,8 @@
   font-size: var(--fs-body);
   color-scheme: dark;
 }
+/* The webOS runtime injects "LG Display-Regular"; keep the app's own font. */
+body, body * { font-family: var(--font) !important; }
 :root[data-palette='bordeaux'] {
   --surface: #1d1719; --surface-muted: #272023; --hairline: #33292c;
   --fg: #efe6e2; --fg-2: #cdc3c1; --muted: #a99d9c; --on-accent: #151112;
@@ -344,7 +346,7 @@ rect.btl.sel, rect.btl.hl { stroke: var(--cab-glow); stroke-width: 4; }
 .ask-box { background: var(--warn-soft); border-radius: var(--r-md); padding: var(--s4); display: flex; flex-direction: column; gap: var(--s3); font-size: var(--fs-caption); }
 .led { width: 12px; height: 12px; border-radius: 50%; background: var(--hairline); display: inline-block; }
 .led.on { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
-code { font-family: Consolas, monospace; font-size: 0.9em; color: var(--accent); }
+code { font-family: Consolas, monospace !important; font-size: 0.9em; color: var(--accent); }
 
 /* bottle bottom sheet */
 .sheet { position: absolute; left: 0; right: 0; bottom: 0; height: 66%; background: var(--surface); border-top: var(--hair) solid var(--hairline);
@@ -689,8 +691,8 @@ input:disabled, textarea:disabled { opacity: 0.6; }
 @keyframes fb-to { to { opacity: var(--to); } }
 .fb-sweep { animation: fb-sweep 2.6s ease-in-out 6s forwards; }
 @keyframes fb-sweep { to { transform: skewX(-12deg) translateX(330px); } }
-.fb-label-word { font-family: Georgia, 'Times New Roman', serif; font-size: 11px; letter-spacing: 2.4px; fill: #4a3f2e; }
-.fb-label-vin { font-family: Georgia, 'Times New Roman', serif; font-size: 32px; fill: #3a3125; }
+.fb-label-word { font-family: Georgia, 'Times New Roman', serif !important; font-size: 11px; letter-spacing: 2.4px; fill: #4a3f2e; }
+.fb-label-vin { font-family: Georgia, 'Times New Roman', serif !important; font-size: 32px; fill: #3a3125; }
 .fb-reflection { opacity: 0; animation: fb-to 1.5s ease-out 5.5s forwards; --to: 1; }
 .fb-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--s2); }
 .fb-info > * { animation: rise 800ms var(--ease-out) both; }
