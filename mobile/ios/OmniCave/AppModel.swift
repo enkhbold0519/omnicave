@@ -8,9 +8,6 @@ final class AppModel: ObservableObject {
     @Published var backendUser: BackendModels.User?
     @Published var personas: [BackendModels.Persona] = []
     @Published var sommelierBottles: [BackendModels.Bottle] = []
-    @Published var wines: [Wine] = []
-    @Published var cellars: [Cellar] = []
-    @Published var selectedCellar: UUID?
     @Published var inventoryBottles: [BackendModels.Bottle] = []
     @Published var inventoryCellars: [BackendModels.CellarSummary] = []
     @Published var selectedBottleCellarID: Int?
@@ -43,8 +40,6 @@ final class AppModel: ObservableObject {
                 Task { @MainActor in
                     self?.user = nil
                     self?.backendUser = nil
-                    self?.wines = []
-                    self?.cellars = []
                     self?.inventoryBottles = []
                     self?.inventoryCellars = []
                     self?.notifications = BackendModels.NotificationList(unread: 0, items: [])
@@ -60,7 +55,7 @@ final class AppModel: ObservableObject {
             user = await service.restoreSession()
             if user != nil {
                 await loadProfile()
-                if !(service is BackendService) { await refresh() }
+                await refresh()
             }
         }
     }
@@ -242,7 +237,7 @@ final class AppModel: ObservableObject {
         do {
             user = try await service.signIn(identifier: identifier, password: password)
             await loadProfile()
-            if !(service is BackendService) { await refresh() }
+            await refresh()
             busy = false
             return true
         } catch let apiError as APIClientError where apiError.statusCode == 403 {
@@ -378,7 +373,7 @@ final class AppModel: ObservableObject {
             return false
         }
     }
-    func signOut() { Task { await service.signOut(); user = nil; backendUser = nil; personas = []; sommelierBottles = []; wines = []; cellars = []; inventoryBottles = []; inventoryCellars = []; climate = nil; briefing = nil; drinkingWindows = nil; marketSummary = nil; bottlePriceHistory = [:]; notifications = BackendModels.NotificationList(unread: 0, items: []); notificationError = nil } }
+    func signOut() { Task { await service.signOut(); user = nil; backendUser = nil; personas = []; sommelierBottles = []; inventoryBottles = []; inventoryCellars = []; climate = nil; briefing = nil; drinkingWindows = nil; marketSummary = nil; bottlePriceHistory = [:]; notifications = BackendModels.NotificationList(unread: 0, items: []); notificationError = nil } }
     func updateProfile(_ update: BackendModels.ProfileUpdate) async -> Bool {
         var success = false
         await perform {
@@ -402,14 +397,12 @@ final class AppModel: ObservableObject {
     func updateMarketingConsent(_ granted: Bool) async -> Bool {
         await updateProfile(BackendModels.ProfileUpdate(consents: ["marketing": granted]))
     }
-    func deleteAccount() async { await perform { try await service.deleteAccount(); user = nil; backendUser = nil; wines = []; cellars = []; inventoryBottles = []; inventoryCellars = []; climate = nil } }
+    func deleteAccount() async { await perform { try await service.deleteAccount(); user = nil; backendUser = nil; inventoryBottles = []; inventoryCellars = []; climate = nil } }
     func refresh() async {
-        await perform { wines = try await service.wines(); cellars = try await service.cellars(); if selectedCellar == nil { selectedCellar = cellars.first?.id } }
+        await loadInventoryCellars()
+        await loadBottles()
+        await loadBackendCellar()
     }
-    func save(_ wine: Wine) async { await perform { try await service.save(wine); wines = try await service.wines() } }
-    func remove(_ wine: Wine) async { await perform { try await service.remove(wine); wines = try await service.wines() } }
-    func save(_ cellar: Cellar) async { await perform { try await service.save(cellar); cellars = try await service.cellars() } }
-    func ask(_ prompt: String) async -> String { do { return try await service.ask(prompt) } catch { self.error = error.localizedDescription; return "" } }
     func export() async -> Data? {
         do { let data = try await service.exportData(); error = nil; return data }
         catch { self.error = error.localizedDescription; return nil }

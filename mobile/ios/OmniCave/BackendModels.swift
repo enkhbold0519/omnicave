@@ -1,7 +1,6 @@
 import Foundation
 
-/// Models for the backend API. They are namespaced so the existing mock UI models
-/// can remain in place until each screen is migrated.
+/// Codable models that mirror the backend API responses.
 enum BackendModels {
     struct User: Codable {
         var id: Int?

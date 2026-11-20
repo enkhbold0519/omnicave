@@ -827,7 +827,6 @@ struct WineDetail: View {
                 Section("In your cellar") {
                     LabeledContent("Location", value: bottle.location ?? "Location unavailable")
                     LabeledContent("Cellar", value: bottle.cellarName ?? "Cellar")
-                    Button("Ask the sommeliers") { Task { _ = await model.ask("Discuss \(bottle.wine.name) \(vintageLabel(bottle.wine.vintage))") } }
                 }
                 Section("About this wine") {
                     LabeledContent("Producer", value: bottle.wine.producer ?? "—")
@@ -981,92 +980,6 @@ struct BottleForm: View {
     private func nonEmpty(_ value: String) -> String? {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
-    }
-}
-
-private struct LegacyWineDetail: View {
-    @EnvironmentObject private var model: AppModel
-    @Environment(\.dismiss) private var dismiss
-    @State var wine: Wine
-    @State private var editing = false
-    @State private var confirmingRemoval = false
-    var body: some View {
-        NavigationStack {
-            List {
-                Section {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("\(wine.vintage) · \(wine.style.rawValue.uppercased())").overline()
-                        Text(wine.name).font(.forest(29)).foregroundStyle(.forestPrimary)
-                        Text("\(wine.winery) · \(wine.region)").font(.forest(16)).foregroundStyle(.forestSecondary)
-                        Text("\(wine.drinkingWindow)").font(.forest(14)).foregroundStyle(.forestSuccess).padding(.top, 4)
-                    }.padding(.vertical, 8)
-                }
-                Section("In your cellars") {
-                    LabeledContent("Location", value: wine.location)
-                    Button("Ask the sommeliers") { Task { _ = await model.ask("Discuss \(wine.name) \(wine.vintage)") } }
-                }
-                Section { Button("Edit bottle") { editing = true }; Button("Remove bottle", role: .destructive) { confirmingRemoval = true } }
-            }
-            .scrollContentBackground(.hidden).background(.forestBackground).navigationTitle("Bottle").navigationBarTitleDisplayMode(.inline)
-            .sheet(isPresented: $editing) { LegacyWineForm(wine: wine) { updated in Task { await model.save(updated); wine = updated } } }
-            .confirmationDialog("Remove this bottle from your inventory?", isPresented: $confirmingRemoval, titleVisibility: .visible) {
-                Button("Remove bottle", role: .destructive) { Task { await model.remove(wine); dismiss() } }
-            }
-        }
-    }
-}
-
-private struct LegacyWineForm: View {
-    @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var model: AppModel
-    @State var wine: Wine
-    let isNew: Bool
-    let onSave: (Wine) -> Void
-
-    init(wine: Wine?, onSave: @escaping (Wine) -> Void) {
-        isNew = wine == nil
-        self.onSave = onSave
-        _wine = State(initialValue: wine ?? Wine(name: "", winery: "", region: "", vintage: Calendar.current.component(.year, from: .now), grape: "", location: "", cellarID: UUID()))
-    }
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section("WINE") {
-                    TextField("Wine name", text: $wine.name)
-                    TextField("Winery", text: $wine.winery)
-                    TextField("Region", text: $wine.region)
-                    TextField("Vintage", value: $wine.vintage, format: .number).keyboardType(.numberPad)
-                    TextField("Grape variety", text: $wine.grape)
-                }
-                Section("STORAGE LOCATION") {
-                    Picker("Cellar", selection: $wine.cellarID) { ForEach(model.cellars) { Text($0.name).tag($0.id) } }
-                    TextField("Shelf and position", text: $wine.location)
-                }
-                Section("VALUE") { TextField("Estimated value", value: $wine.value, format: .number).keyboardType(.decimalPad) }
-            }
-            .scrollContentBackground(.hidden).background(.forestBackground).navigationTitle(isNew ? "Add bottle" : "Edit bottle")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save Changes") {
-                        if isNew, let id = model.selectedCellar { wine.cellarID = id }
-                        onSave(wine); dismiss()
-                    }.disabled(wine.name.isEmpty)
-                }
-            }
-        }
-    }
-}
-
-struct CellarForm: View {
-    @Environment(\.dismiss) private var dismiss
-    @State private var name: String
-    let onSave: (Cellar) -> Void
-    private let cellar: Cellar?
-    init(cellar: Cellar? = nil, onSave: @escaping (Cellar) -> Void) { self.cellar = cellar; self.onSave = onSave; _name = State(initialValue: cellar?.name ?? "") }
-    var body: some View {
-        NavigationStack { Form { Section("CELLAR") { TextField("Cellar name", text: $name) } }.scrollContentBackground(.hidden).background(.forestBackground).navigationTitle(cellar == nil ? "Add a cellar" : "Edit cellar").toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }; ToolbarItem(placement: .confirmationAction) { Button("Save Changes") { var value = cellar ?? Cellar(name: name); value.name = name; onSave(value); dismiss() }.disabled(name.isEmpty) } } }
     }
 }
 

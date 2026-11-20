@@ -39,12 +39,6 @@ protocol AppService {
     func profile() async throws -> BackendModels.User
     func updateProfile(_ update: BackendModels.ProfileUpdate) async throws -> BackendModels.User
     func verifyEmailChange(code: String) async throws -> BackendModels.User
-    func wines() async throws -> [Wine]
-    func save(_ wine: Wine) async throws
-    func remove(_ wine: Wine) async throws
-    func cellars() async throws -> [Cellar]
-    func save(_ cellar: Cellar) async throws
-    func ask(_ prompt: String) async throws -> String
     func exportData() async throws -> Data
     func deleteAccount() async throws
     func signOut() async
@@ -406,22 +400,8 @@ final class MockService: AppService {
 
     func verifyEmailChange(code: String) async throws -> BackendModels.User { try await profile() }
 
-    func wines() async throws -> [Wine] { load([Wine].self, key: key("wines"), default: Self.sampleWines) }
-    func save(_ wine: Wine) async throws {
-        var values = try await wines()
-        if let index = values.firstIndex(where: { $0.id == wine.id }) { values[index] = wine } else { values.append(wine) }
-        store(values, key: key("wines"))
-    }
-    func remove(_ wine: Wine) async throws { store(try await wines().filter { $0.id != wine.id }, key: key("wines")) }
-    func cellars() async throws -> [Cellar] { load([Cellar].self, key: key("cellars"), default: [Cellar(id: Self.sampleCellarID, name: "Home cellar"), Cellar(name: "Summer house")]) }
-    func save(_ cellar: Cellar) async throws {
-        var values = try await cellars()
-        if let index = values.firstIndex(where: { $0.id == cellar.id }) { values[index] = cellar } else { values.append(cellar) }
-        store(values, key: key("cellars"))
-    }
-    func ask(_ prompt: String) async throws -> String { "Based on your cellar, consider a bottle that complements “\(prompt)”. This is a demonstration response; connect the backend for a personalized AI answer." }
     func exportData() async throws -> Data {
-        try JSONEncoder().encode(Export(wines: try await wines(), cellars: try await cellars(), profile: try await profile(), bottles: try await storedBottles()))
+        try JSONEncoder().encode(Export(profile: try await profile(), bottles: try await storedBottles(), cellars: try await bottleCellars()))
     }
     func deleteAccount() async throws {
         guard let email = signedIn else { return }
@@ -453,7 +433,7 @@ final class MockService: AppService {
         return try? JSONDecoder().decode(type, from: data)
     }
     private func store<T: Encodable>(_ value: T, key: String) { defaults.set(try? JSONEncoder().encode(value), forKey: key) }
-    private struct Export: Encodable { var wines: [Wine]; var cellars: [Cellar]; var profile: BackendModels.User? = nil; var bottles: [BackendModels.Bottle]? = nil }
+    private struct Export: Encodable { var profile: BackendModels.User; var bottles: [BackendModels.Bottle]; var cellars: [BackendModels.CellarSummary] }
     private static func validEmail(_ email: String) -> Bool { email.range(of: #"^[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"#, options: .regularExpression) != nil }
     private static func validPassword(_ password: String) -> Bool { password.range(of: #"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$"#, options: .regularExpression) != nil }
     private static func hash(_ password: String, _ salt: String) -> String {
@@ -467,11 +447,6 @@ final class MockService: AppService {
         }
         return result.map { String(format: "%02x", $0) }.joined()
     }
-    private static let sampleWines = [
-        Wine(name: "Barolo", winery: "G.D. Vajra", region: "Piedmont", vintage: 2019, grape: "Nebbiolo", location: "A1 · Shelf 1", cellarID: sampleCellarID, value: 62),
-        Wine(name: "Château Margaux", winery: "Château Margaux", region: "Bordeaux", vintage: 2018, grape: "Cabernet Sauvignon", location: "B2 · Shelf 2", cellarID: sampleCellarID, value: 820),
-        Wine(name: "Riesling Kabinett", winery: "Dr. Loosen", region: "Mosel", vintage: 2021, grape: "Riesling", location: "C1 · Shelf 3", cellarID: sampleCellarID, value: 28)
-    ]
     private static let sampleBottles = [
         BackendModels.Bottle(id: 101, cellarId: 1, cellarName: "Home cellar", wine: BackendModels.WineInfo(name: "Barolo", producer: "G.D. Vajra", region: "Piedmont", country: "Italy", color: "red", vintage: 2019, grape: "Nebbiolo", drinkFrom: 2024, drinkTo: 2034, basePrice: 62), location: "Rack 3 · 12 cm from left · front", x: 12, y: 113, z: 6, orientation: "lying", windowStatus: "ready"),
         BackendModels.Bottle(id: 102, cellarId: 1, cellarName: "Home cellar", wine: BackendModels.WineInfo(name: "Château Margaux", producer: "Château Margaux", region: "Bordeaux", country: "France", color: "red", vintage: 2018, grape: "Cabernet Sauvignon", drinkFrom: 2027, drinkTo: 2045, basePrice: 820), location: "Rack 5 · 20 cm from left · front", x: 20, y: 185, z: 6, orientation: "lying", windowStatus: "young"),
@@ -483,10 +458,9 @@ final class MockService: AppService {
         BackendModels.Persona(id: "demo-jules", name: "Jules Moreau", title: "The skeptic", color: "#3E4F7A", builtIn: true),
         BackendModels.Persona(id: "demo-sana", name: "Sana Okafor", title: "The optimist", color: "#7A5A2B", builtIn: true)
     ]
-    private static let sampleCellarID = UUID(uuidString: "4D198430-28FB-43B6-BE19-B86BEF376F3A")!
 }
 
-/// Backend service. Authentication uses the current /api contract; other feature routes are migrated step by step.
+/// Backend service. Requests use the API routes and JSON shapes served by the project backend.
 final class BackendService: AppService {
     private let baseURL: URL
     private let session: URLSession
@@ -747,39 +721,9 @@ final class BackendService: AppService {
     private struct NewBottleBody: Encodable { var cellarID: Int; var wine: BackendModels.WineInfo }
     private struct NewCellarBody: Encodable { var name: String }
 
-    private func request<T: Decodable>(_ method: String, _ path: String, body: Data? = nil) async throws -> T {
-        var request = URLRequest(url: baseURL.appending(path: path))
-        request.httpMethod = method; request.httpBody = body
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        if let token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
-        let (data, response) = try await session.data(for: request)
-        guard ((response as? HTTPURLResponse)?.statusCode ?? 500) < 300 else { throw ServiceError.invalidCredentials }
-        let decoder = JSONDecoder(); decoder.keyDecodingStrategy = .convertFromSnakeCase
-        return try decoder.decode(T.self, from: data)
-    }
-    private func send(_ method: String, _ path: String, body: Data? = nil) async throws {
-        var request = URLRequest(url: baseURL.appending(path: path))
-        request.httpMethod = method; request.httpBody = body
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        if let token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
-        let (_, response) = try await session.data(for: request)
-        guard ((response as? HTTPURLResponse)?.statusCode ?? 500) < 300 else { throw ServiceError.invalidCredentials }
-    }
-    private func json<T: Encodable>(_ value: T) throws -> Data { let encoder = JSONEncoder(); encoder.keyEncodingStrategy = .convertToSnakeCase; return try encoder.encode(value) }
-    private struct Credentials: Encodable { var email: String; var password: String }
-    private struct AuthResponse: Decodable { var accessToken: String; var user: Account }
-    func signUp(email: String, password: String) async throws -> Account { try await request("POST", "auth/register", body: json(Credentials(email: email, password: password))) }
-    func signIn(email: String, password: String) async throws -> Account { let result: AuthResponse = try await request("POST", "auth/login", body: json(Credentials(email: email, password: password))); token = result.accessToken; return result.user }
     func profile() async throws -> BackendModels.User { try await api.get("api/me") }
     func updateProfile(_ update: BackendModels.ProfileUpdate) async throws -> BackendModels.User { try await api.request("PATCH", path: "api/me", body: api.encode(update)) }
     func verifyEmailChange(code: String) async throws -> BackendModels.User { try await api.request("POST", path: "api/me/email/verify", body: api.encode(["code": code])) }
-    func wines() async throws -> [Wine] { try await request("GET", "wines") }
-    func save(_ wine: Wine) async throws { try await send("PUT", "wines/\(wine.id)", body: json(wine)) }
-    func remove(_ wine: Wine) async throws { try await send("DELETE", "wines/\(wine.id)") }
-    func cellars() async throws -> [Cellar] { try await request("GET", "cellars") }
-    func save(_ cellar: Cellar) async throws { try await send("PUT", "cellars/\(cellar.id)", body: json(cellar)) }
-    private struct ChatResponse: Decodable { var answer: String }
-    func ask(_ prompt: String) async throws -> String { let result: ChatResponse = try await request("POST", "ai/chat", body: json(["message": prompt])); return result.answer }
     func exportData() async throws -> Data {
         try await api.getData("api/me/export")
     }
