@@ -29,3 +29,13 @@ xcodebuild -project mobile/ios/OmniCave.xcodeproj \
 ```
 
 Use any installed simulator if iPhone 15 is unavailable. See [how-to-run-ios-app.md](../how-to-run-ios-app.md) for setup details.
+
+## Tests
+
+Run the backend client and API-model regression tests from the repository root:
+
+```sh
+swift test --package-path mobile/ios
+```
+
+The suite uses a stub HTTP session, so it does not need a running backend or modify server data.
