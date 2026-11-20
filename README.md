@@ -67,7 +67,7 @@ The system rests on three ideas:
 | [`mobile/ios/`](mobile/ios/OmniCave/README.md) | iOS companion app |
 | [`AI-7B/`](AI-7B/CLAUDE.md) | Critic LoRA training and serving |
 | [`deploy/`](deploy/README.md) | Production deployment on AWS |
-| [`documents/`](documents) | Paper ([PDF](documents/wine_cellar.pdf), [LaTeX](documents/wine_cellar.tex)) and [requirement coverage](documents/requirements-coverage.md) |
+| [`documents/`](documents) | Paper ([PDF](documents/wine_cellar.pdf), [LaTeX](documents/wine_cellar.tex)) |
 
 ## Links
 
