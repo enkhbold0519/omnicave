@@ -39,7 +39,7 @@ The system rests on three ideas:
 - **Climate monitoring:** temperature and humidity per zone, with history and alerts when conditions drift.
 - **AI sommelier table:** fictional critics taste and debate a bottle, streamed word by word.
 - **Daily briefing and collection value:** personalised wine news, bottles ready to drink, and market value over time.
-- **Multi-device, multi-cellar:** the door display and the Android app stay in sync live over WebSocket, across several cellars, with offline caching.
+- **Multi-device, multi-cellar:** the door display, the Android app and the iOS app stay in sync live over WebSocket, across several cellars, with offline caching.
 
 ## Demo Video
 
@@ -64,14 +64,14 @@ The system rests on three ideas:
 | [`webos/`](webos/README.md) | Cellar-door display app and the appliance simulator |
 | [`backend/`](backend/README.md) | Cloud API shared by all clients |
 | [`mobile/Kotlin/`](mobile/Kotlin/README.md) | Android companion app |
-| [`mobile/ios/`](mobile/ios) | iOS companion app |
+| [`mobile/ios/`](mobile/ios/OmniCave/README.md) | iOS companion app |
 | [`AI-7B/`](AI-7B/CLAUDE.md) | Critic LoRA training and serving |
 | [`deploy/`](deploy/README.md) | Production deployment on AWS |
-| [`documents/`](documents) | Paper and requirement coverage |
+| [`documents/`](documents) | Paper ([PDF](documents/wine_cellar.pdf), [LaTeX](documents/wine_cellar.tex)) and [requirement coverage](documents/requirements-coverage.md) |
 
 ## Links
 
-- Paper: *PDF coming soon* · [LaTeX source](documents/wine_cellar.tex)
+- Paper: [PDF](documents/wine_cellar.pdf) · [LaTeX source](documents/wine_cellar.tex)
 - Presentation slides: *coming soon*
 - Live demo: *coming soon*
 
