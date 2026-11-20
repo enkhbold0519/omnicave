@@ -13,6 +13,7 @@
 *.pdf
 
 # Local configuration and dependencies
+.build/
 .env
 .env.*
 !.env.example

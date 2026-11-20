@@ -14,16 +14,33 @@ Windows alone cannot build or run this iOS project in Apple's iOS Simulator. To 
 
 Apple's simulator workflow is part of Xcode on Mac. Expo Go is not a substitute for it because Expo Go only runs Expo/React Native apps. See [Apple's device and Simulator guide](https://developer.apple.com/documentation/xcode/running-your-app-on-simulated-or-physical-devices) and [Expo's FAQ](https://docs.expo.dev/faq/).
 
-## Demo login
+## Default: connect to the backend
 
-The app starts in local demo mode. On the sign-in screen, either tap **Use demo account**, or enter:
+Backend mode is the default. Its base URL is configured in `OmniCave/OmniCaveApp.swift` as `AppConfig.backendURL`; sign in with an account registered on that server. The local demo account is only available in mock mode.
+
+To use a local backend with the iOS Simulator, start the server from the repository root:
+
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+uvicorn app.main:app --reload
+```
+
+Set `AppConfig.backendURL` to `http://localhost:8000` and keep `AppConfig.useMock = false`. Local networking is allowed for the simulator in the app's Info settings; arbitrary HTTP loads are not enabled. For email verification screens, run the server with `EMAIL_VERIFICATION_REQUIRED=1` as described in the backend handoff. A physical iPhone needs a reachable backend address instead of the simulator's `localhost`.
+
+## Offline mock login
+
+Set `AppConfig.useMock = true` in `OmniCave/OmniCaveApp.swift`. On the sign-in screen, tap **Use demo account**, or enter:
 
 - **Email:** `test@omnicave.app`
 - **Password:** `Cellar123!`
 
-The demo account is created on the device the first time it is used. Alternatively, choose **Create account** and use a valid email plus a password with at least 8 characters, including one uppercase letter, one lowercase letter, one number, and one symbol.
+The mock account is created on the device the first time it is used. Alternatively, choose **Create account** and use a valid email plus a password with at least 8 characters, including one uppercase letter, one lowercase letter, one number, and one symbol.
 
-This is a shared demo credential, not a private or production account. Demo accounts, bottles, and cellar changes are stored locally on each device; they are not shared between testers. Do not use real or sensitive information.
+This shared mock credential is not a private or production account. Mock accounts, bottles, and cellar changes stay locally on each device; they are not shared between testers. Do not use real or sensitive information.
 
 ## Run it on a Mac with Xcode
 
@@ -31,7 +48,7 @@ This is a shared demo credential, not a private or production account. Demo acco
 2. Open `mobile/ios/OmniCave.xcodeproj` in Xcode.
 3. In the toolbar, select the **OmniCave** scheme and an iPhone Simulator destination.
 4. Click the Run triangle, or press **Command-R**.
-5. When the app opens, use the demo login above.
+5. When the app opens, use an account for the configured backend. To use the offline mock, enable it before building.
 
 The project targets iOS 17. Xcode may ask to download an iOS Simulator runtime the first time you choose a simulator.
 
@@ -45,13 +62,13 @@ The team member who uploads the build needs access to an Apple Developer Program
 4. In Organizer, select the archive and choose **Distribute App → App Store Connect → Upload**. Resolve any signing or validation messages Xcode reports.
 5. In App Store Connect, open the app's **TestFlight** tab, add the uploaded build to a tester group, and invite teammates by email or an available public link.
 6. For external testers, Apple requires the first build to pass TestFlight App Review. Once the build is available, testers install Apple's **TestFlight** app on their iPhone/iPad, accept the invitation, and install OmniCave from TestFlight.
-7. Testers open OmniCave and use the demo login above.
+7. Testers open OmniCave and sign in to the backend configured in the build.
 
 Apple's current instructions are in [TestFlight](https://developer.apple.com/testflight/) and [Invite external testers](https://developer.apple.com/help/app-store-connect/test-a-beta-version/invite-external-testers). Availability and review status are controlled in App Store Connect.
 
-## What the current demo does (and does not) test
+## What the app does (and does not) test
 
-`AppConfig.useMock` is currently `true`. Sign-in, account creation, cellar, wine, and recommendation flows use the local mock service. This build does **not** contact the project backend or OpenAI, and demo changes made on one device do not appear on another. The displayed sensor readings and recommendations are sample content. This is a UI and flow preview, not an end-to-end backend test.
+With the default `AppConfig.useMock = false`, screens use the configured backend. Tasting and food-pairing responses stream from the server, and foreground changes from other clients refresh the visible tab. Label-photo reading is simulated on the server and returns sample wine data; market prices and some climate/news values may also be simulated. In mock mode, all data stays on the device and no backend request is made.
 
 ## Report a problem
 

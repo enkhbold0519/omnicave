@@ -1,37 +1,41 @@
 # OmniCave iOS
 
-Native SwiftUI companion app, targeting iOS 17. The project is in `mobile/ios/OmniCave.xcodeproj`; open that file in Xcode. Select an iPhone simulator in the device menu beside the OmniCave scheme, then press **Run** (or Command-R).
+Native SwiftUI app targeting iOS 17. Open `OmniCave.xcodeproj` in Xcode, select an iPhone simulator, then press **Run** (or Command-R). The app uses the forest palette and Avenir Next, which is available on iOS without adding font files.
 
-The interface follows the supplied forest cellar design: warm cream surfaces, forest-green accents, wine-style colors, and a dark cellar map. The design reference names Montserrat, which is not bundled with this project; the app uses iOS's Avenir Next font so it works without adding font files.
+## Backend mode
 
-## Demo mode
+Backend mode is the default. `AppConfig.useMock` is `false`, and `AppConfig.backendURL` in `OmniCaveApp.swift` points to the team server. Change that one URL to use another server. The client uses bearer tokens in Keychain and JSON `snake_case` conversion; it does not contain an AI provider key.
 
-`AppConfig.useMock` in `OmniCaveApp.swift` is `true` initially. Create an account using a valid email and a password with at least 8 characters, one uppercase letter, one lowercase letter, one number, and one symbol. Mock accounts, cellar settings, and bottles persist locally. Password verifiers are salted and iterated; this local demo store is not a replacement for backend authentication.
+Implemented backend flows include sign-up and login, email verification and password reset, profile and privacy settings, cellars and bottle inventory, climate readings and limits, tasting table and persona management, wine pairing, briefing, value, in-app notifications, label-photo review, and foreground WebSocket updates. Push notifications are not implemented.
 
-For immediate access, use **test@omnicave.app** with password **Cellar123!**, or tap **Use demo account** on the login screen. The test account is created locally the first time it is used.
+Some server features intentionally return sample or estimated results: label reading currently produces sample wine data, market values may be simulated, and the briefing can mark news as sample. Sensor data depends on a connected device or server simulator. Check the server response and in-app labels when using these features.
 
-Demo wine recommendations are illustrative text. Sensor history and values are sample data. News, live market pricing, push notifications, computer vision, and cloud multi-agent/streaming inference need their backend or appliance services.
+### Local backend
 
-## Backend switch
+From the repository root, start the backend using its instructions in `backend/README.md` (or create its Python virtual environment and install `backend/requirements.txt`). Run the API at `http://localhost:8000`. In `OmniCaveApp.swift`, set `AppConfig.backendURL` to `http://localhost:8000` while keeping `useMock` false. The project allows local networking for this simulator URL; it does not enable arbitrary HTTP loads. For email-code screens, start the server with `EMAIL_VERIFICATION_REQUIRED=1` as described in the handoff.
 
-Set `AppConfig.useMock` to `false` and replace `AppConfig.backendURL` with the FastAPI base URL. The app then uses `BackendService`; bearer tokens are kept in Keychain and AI prompts go to the backend `ai/chat` route. The app never contains an OpenAI key or calls OpenAI directly.
+## Offline mock mode
 
-The report does not define API routes or JSON schemas, so the REST client currently uses this proposed contract. Align it with the backend OpenAPI schema before switching out of demo mode:
+Set `AppConfig.useMock` to `true` to use local sample data without contacting the backend. Mock accounts, cellars, bottles, and other changes stay on that device. Use **test@omnicave.app** / **Cellar123!** or tap **Use demo account**. This shared demo login is for mock mode only; it is not a backend account.
 
-| Method | Route | Expected payload/result |
-| --- | --- | --- |
-| POST | `/auth/register` | `{email,password}` → `{email}` |
-| POST | `/auth/login` | `{email,password}` → `{access_token,user:{email}}` |
-| POST | `/auth/logout` | bearer token → success |
-| GET/PATCH | `/users/me` | account; PATCH accepts `{email}` |
-| PATCH | `/users/me/password` | `{password}` |
-| GET/PUT/DELETE | `/wines`, `/wines/{id}` | JSON wine records |
-| GET/PUT | `/cellars`, `/cellars/{id}` | JSON cellar records |
-| POST | `/ai/chat` | `{message}` → `{answer}` |
-| GET/DELETE | `/users/me/export`, `/users/me` | authenticated export or account deletion |
+Mock tasting, pairing, climate, market, and label-photo results are illustrative sample content. They are not server responses.
 
-JSON fields use `snake_case`; the client maps those to Swift properties. HTTPS is expected for deployed URLs. The prototype does not yet implement WebSocket updates, token refresh, APNs, or streaming chat.
+## Useful build command
 
-## Scope notes
+```sh
+xcodebuild -project mobile/ios/OmniCave.xcodeproj \
+  -scheme OmniCave \
+  -destination 'platform=iOS Simulator,name=iPhone 15' build
+```
 
-Implemented flows cover account creation/login/profile/logout/deletion, local inventory CRUD and search, cellar selection/renaming, bottle location display, environment controls, recommendations, critic prompt requests, cellar summaries, and data export. Automatic bottle recognition and sensor/news/market/push integrations belong to the cellar hardware or backend and are represented as demo content until those services exist.
+Use any installed simulator if iPhone 15 is unavailable. See [how-to-run-ios-app.md](../how-to-run-ios-app.md) for setup details.
+
+## Tests
+
+Run the backend client and API-model regression tests from the repository root:
+
+```sh
+swift test --package-path mobile/ios
+```
+
+The suite uses a stub HTTP session, so it does not need a running backend or modify server data.

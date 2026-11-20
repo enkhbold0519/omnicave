@@ -12,6 +12,7 @@
 		A10000000000000000000012 /* Services.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000E /* Services.swift */; };
 		A10000000000000000000013 /* Views.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000F /* Views.swift */; };
 		A10000000000000000000019 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000018 /* AppModel.swift */; };
+		A1000000000000000000001A /* BackendModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000001B /* BackendModels.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -21,6 +22,8 @@
 		A1000000000000000000000E /* Services.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services.swift; sourceTree = "<group>"; };
 		A1000000000000000000000F /* Views.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views.swift; sourceTree = "<group>"; };
 		A10000000000000000000018 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		A1000000000000000000001B /* BackendModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendModels.swift; sourceTree = "<group>"; };
+		A1000000000000000000001C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -58,6 +61,8 @@
 				A1000000000000000000000E /* Services.swift */,
 				A1000000000000000000000F /* Views.swift */,
 				A10000000000000000000018 /* AppModel.swift */,
+				A1000000000000000000001B /* BackendModels.swift */,
+				A1000000000000000000001C /* Info.plist */,
 			);
 			path = OmniCave;
 			sourceTree = "<group>";
@@ -134,6 +139,7 @@
 				A10000000000000000000012 /* Services.swift in Sources */,
 				A10000000000000000000013 /* Views.swift in Sources */,
 				A10000000000000000000019 /* AppModel.swift in Sources */,
+				A1000000000000000000001A /* BackendModels.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -165,10 +171,8 @@
 		A10000000000000000000016 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = OmniCave;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OmniCave/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.omnicave.ios;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -180,10 +184,8 @@
 		A10000000000000000000017 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = OmniCave;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OmniCave/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.omnicave.ios;
 				PRODUCT_NAME = "$(TARGET_NAME)";
