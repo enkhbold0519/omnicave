@@ -198,7 +198,8 @@ enum BackendModels {
         var yCm: Double?
         var depthCm: Double?
         var capacity: Int?
-        var present: Bool?
+        // SQLite serializes the backend's INTEGER column as 0/1 rather than JSON true/false.
+        var present: Int?
     }
 
     struct Bottle: Codable, Identifiable {
@@ -279,11 +280,13 @@ enum BackendModels {
 
 enum APIClientError: LocalizedError {
     case http(status: Int, message: String)
+    case decoding(path: String, details: String)
     case invalidResponse
 
     var errorDescription: String? {
         switch self {
         case let .http(_, message): message
+        case let .decoding(path, details): "Could not read \(path): \(details)"
         case .invalidResponse: "The server returned an invalid response."
         }
     }
@@ -353,7 +356,22 @@ final class APIClient {
                 message: detail ?? "Request failed (\(response.statusCode))."
             )
         }
-        return try decoder.decode(Response.self, from: data)
+        return try decode(Response.self, from: data, path: path)
+    }
+
+    private func decode<Response: Decodable>(_ type: Response.Type, from data: Data, path: String) throws -> Response {
+        do { return try decoder.decode(type, from: data) }
+        catch let error as DecodingError {
+            let details: String
+            switch error {
+            case let .typeMismatch(type, context): details = "Expected \(type) at \(context.codingPath.map(\.stringValue).joined(separator: ".")): \(context.debugDescription)"
+            case let .valueNotFound(type, context): details = "Missing \(type) at \(context.codingPath.map(\.stringValue).joined(separator: ".")): \(context.debugDescription)"
+            case let .keyNotFound(key, context): details = "Missing field \(key.stringValue) at \(context.codingPath.map(\.stringValue).joined(separator: ".")): \(context.debugDescription)"
+            case let .dataCorrupted(context): details = "Invalid value at \(context.codingPath.map(\.stringValue).joined(separator: ".")): \(context.debugDescription)"
+            @unknown default: details = error.localizedDescription
+            }
+            throw APIClientError.decoding(path: path, details: details)
+        }
     }
 
     func encode<Body: Encodable>(_ body: Body) throws -> Data {
