@@ -5,6 +5,7 @@ import UIKit
 struct OmniCaveApp: App {
     @StateObject private var model = AppModel(service: AppConfig.useMock ? MockService() : BackendService(baseURL: AppConfig.backendURL))
     @AppStorage("appearance") private var appearance = "system"
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
@@ -14,6 +15,9 @@ struct OmniCaveApp: App {
             .environmentObject(model)
             .tint(.forestAccent)
             .preferredColorScheme(appearance == "light" ? .light : appearance == "dark" ? .dark : nil)
+            .task { model.setLiveUpdatesActive(scenePhase == .active) }
+            .onChange(of: scenePhase) { _, phase in model.setLiveUpdatesActive(phase == .active) }
+            .onChange(of: model.user) { _, user in model.setLiveUpdatesActive(scenePhase == .active && user != nil) }
         }
     }
 }

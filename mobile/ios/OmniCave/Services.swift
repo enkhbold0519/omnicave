@@ -491,6 +491,11 @@ final class BackendService: AppService {
     private let baseURL: URL
     private let session: URLSession
     private let api: APIClient
+    private let liveSession = URLSession(configuration: .default)
+    private var liveSocket: URLSessionWebSocketTask?
+    private var liveReconnectTask: Task<Void, Never>?
+    private var liveUpdatesActive = false
+    private var liveChangeHandler: ((String) -> Void)?
     private var token: String? {
         didSet {
             api.token = token
@@ -498,6 +503,73 @@ final class BackendService: AppService {
         }
     }
     var onUnauthorized: (() -> Void)?
+
+    func startLiveUpdates(onChange: @escaping (String) -> Void) {
+        liveChangeHandler = onChange
+        liveUpdatesActive = true
+        connectLiveUpdates()
+    }
+
+    func stopLiveUpdates() {
+        liveUpdatesActive = false
+        liveReconnectTask?.cancel(); liveReconnectTask = nil
+        liveChangeHandler = nil
+        liveSocket?.cancel(with: .normalClosure, reason: nil)
+        liveSocket = nil
+    }
+
+    private func connectLiveUpdates() {
+        guard liveUpdatesActive, liveSocket == nil, let token else { return }
+        var components = URLComponents(url: baseURL.appending(path: "api/ws"), resolvingAgainstBaseURL: false)
+        components?.scheme = baseURL.scheme == "https" ? "wss" : "ws"
+        guard let url = components?.url else { scheduleLiveReconnect(); return }
+        let socket = liveSession.webSocketTask(with: url)
+        liveSocket = socket
+        socket.resume()
+        let auth = try? JSONSerialization.data(withJSONObject: ["token": token])
+        let authText = auth.flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
+        Task {
+            do {
+                try await socket.send(.string(authText))
+                await receiveLiveMessage(from: socket)
+            } catch { liveConnectionEnded(socket) }
+        }
+    }
+
+    private func receiveLiveMessage(from socket: URLSessionWebSocketTask) async {
+        do {
+            while liveUpdatesActive, liveSocket === socket {
+                let message = try await socket.receive()
+                if case .string(let text) = message,
+                   let data = text.data(using: .utf8),
+                   let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   object["type"] as? String == "changed" {
+                    liveChangeHandler?(object["what"] as? String ?? "")
+                }
+            }
+        } catch { liveConnectionEnded(socket) }
+    }
+
+    private func liveConnectionEnded(_ socket: URLSessionWebSocketTask) {
+        guard liveSocket === socket else { return }
+        let unauthorized = socket.closeCode.rawValue == 4401
+        liveSocket = nil
+        if unauthorized {
+            token = nil
+            onUnauthorized?()
+        } else {
+            scheduleLiveReconnect()
+        }
+    }
+
+    private func scheduleLiveReconnect() {
+        guard liveUpdatesActive, token != nil, liveReconnectTask == nil else { return }
+        liveReconnectTask = Task {
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            liveReconnectTask = nil
+            connectLiveUpdates()
+        }
+    }
 
     init(baseURL: URL, session: URLSession = .shared) {
         self.baseURL = baseURL

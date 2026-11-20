@@ -23,6 +23,8 @@ final class AppModel: ObservableObject {
     @Published var notifications = BackendModels.NotificationList(unread: 0, items: [])
     @Published var notificationError: String?
     @Published var pendingLabelDetections: [BackendModels.LabelDetection] = []
+    @Published var liveUpdateSequence = 0
+    @Published var lastLiveUpdate = ""
     @Published var inventoryQuery = ""
     @Published var inventoryAllCellars = false
     @Published var error: String?
@@ -63,6 +65,31 @@ final class AppModel: ObservableObject {
         }
     }
     @Published var networkAvailable = true
+
+    func setLiveUpdatesActive(_ active: Bool) {
+        guard let backend = service as? BackendService, active, user != nil else {
+            (service as? BackendService)?.stopLiveUpdates()
+            return
+        }
+        backend.startLiveUpdates { [weak self] what in
+            Task { @MainActor in
+                self?.lastLiveUpdate = what
+                self?.liveUpdateSequence += 1
+            }
+        }
+    }
+
+    func reloadVisibleData(for tab: String, change: String) async {
+        if change.contains("notifications") { await loadNotifications() }
+        switch tab {
+        case "cellar": await loadInventoryCellars(); await loadBackendCellar()
+        case "inventory": await loadBottles()
+        case "sommelier": await loadPersonas(); await loadSommelierBottles()
+        case "briefing": await loadBriefing()
+        case "value": await loadMarketSummary()
+        default: break
+        }
+    }
 
     func loadLegalInfo() async {
         do {

@@ -324,6 +324,9 @@ struct MainView: View {
             ValueView().tabItem { Label("Value", systemImage: "chart.line.uptrend.xyaxis") }.tag("value")
         }.tint(.forestAccent)
             .task { await model.loadNotifications() }
+            .onChange(of: model.liveUpdateSequence) { _, _ in
+                Task { await model.reloadVisibleData(for: selectedTab, change: model.lastLiveUpdate) }
+            }
     }
 }
 
