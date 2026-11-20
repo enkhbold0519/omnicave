@@ -84,6 +84,28 @@ final class AppModel: ObservableObject {
         catch { self.error = error.localizedDescription }
     }
 
+    func savePersona(id: String?, name: String, title: String, color: String, traits: BackendModels.PersonaTraits) async -> Bool {
+        do {
+            _ = try await service.savePersona(id: id, name: name, title: title, color: color, traits: traits)
+            await loadPersonas()
+            return error == nil
+        } catch let caught { self.error = caught.localizedDescription; return false }
+    }
+
+    func deletePersona(id: String) async -> Bool {
+        do { try await service.deletePersona(id: id); await loadPersonas(); return error == nil }
+        catch { self.error = error.localizedDescription; return false }
+    }
+
+    func clearPersonaMemory(id: String) async -> Bool {
+        do { try await service.clearPersonaMemory(id: id); await loadPersonas(); return error == nil }
+        catch { self.error = error.localizedDescription; return false }
+    }
+
+    func winePairing(bottleID: Int) throws -> AsyncThrowingStream<BackendModels.TastingEvent, Error> {
+        try service.winePairing(bottleID: bottleID)
+    }
+
     func loadSommelierBottles() async {
         do { sommelierBottles = try await service.bottles(query: "", cellarID: nil); error = nil }
         catch { self.error = error.localizedDescription }

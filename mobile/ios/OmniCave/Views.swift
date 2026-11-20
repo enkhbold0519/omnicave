@@ -807,6 +807,9 @@ struct WineDetail: View {
     @State var bottle: BackendModels.Bottle
     @State private var editing = false
     @State private var confirmingRemoval = false
+    @State private var pairing = ""
+    @State private var pairingError: String?
+    @State private var pairingLoading = false
     var body: some View {
         NavigationStack {
             List {
@@ -831,6 +834,24 @@ struct WineDetail: View {
                     LabeledContent("Vintage", value: vintageLabel(bottle.wine.vintage))
                     if let price = bottle.wine.basePrice { LabeledContent("Base price", value: String(format: "$%.0f", price)) }
                     if let from = bottle.wine.drinkFrom, let to = bottle.wine.drinkTo { LabeledContent("Drinking window", value: "\(from)–\(to)") }
+                }
+                Section("Food pairing") {
+                    if pairingLoading { ProgressView().tint(.forestAccent) }
+                    if !pairing.isEmpty { Text(pairing).font(.forest(14)).foregroundStyle(.forestSecondary) }
+                    if let pairingError { Text(pairingError).font(.forest(13)).foregroundStyle(.forestDanger) }
+                    Button(pairing.isEmpty ? "Suggest dishes" : "Refresh suggestions") {
+                        Task {
+                            pairing = ""; pairingError = nil; pairingLoading = true
+                            do {
+                                let stream = try model.winePairing(bottleID: bottle.id)
+                                for try await event in stream {
+                                    if event.type == "delta" { pairing += event.text ?? "" }
+                                    if event.type == "error" { pairingError = event.message }
+                                }
+                            } catch { pairingError = error.localizedDescription }
+                            pairingLoading = false
+                        }
+                    }.disabled(pairingLoading)
                 }
                 Section("Price history") {
                     if let history = model.bottlePriceHistory[bottle.id]?.history, !history.isEmpty {
@@ -1151,6 +1172,7 @@ struct AIView: View {
     @EnvironmentObject private var model: AppModel
     @State private var composingKind: String?
     @State private var tasting: BackendModels.TableRequest?
+    @State private var managingPersonas = false
     var body: some View {
         NavigationStack {
             Group {
@@ -1163,6 +1185,10 @@ struct AIView: View {
                             Text("Sommelier").font(.forest(32)).foregroundStyle(.forestPrimary)
                             Text("A table of sommeliers who taste with you").font(.forest(15)).foregroundStyle(.forestSecondary)
                             Text("YOUR SOMMELIERS · \(model.personas.count)").overline()
+                            Button { managingPersonas = true } label: {
+                                Label("Manage sommeliers", systemImage: "person.2")
+                                    .font(.forest(14, weight: .medium)).foregroundStyle(.forestAccent)
+                            }
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 14) {
                                     ForEach(model.personas) { persona in
@@ -1190,6 +1216,7 @@ struct AIView: View {
             .navigationTitle(tasting != nil ? "Tasting" : composingKind == nil ? "Sommelier" : "New tasting")
             .navigationBarTitleDisplayMode(.inline)
             .task { await model.loadPersonas(); await model.loadSommelierBottles() }
+            .sheet(isPresented: $managingPersonas) { PersonaManagerView() }
             .modifier(NotificationsToolbar())
         }
     }
@@ -1202,6 +1229,139 @@ struct AIView: View {
                 Spacer(); Image(systemName: "chevron.right").font(.system(size: 12)).foregroundStyle(.forestMuted)
             }.padding(.vertical, 12).overlay(alignment: .bottom) { Rectangle().fill(.forestHairline).frame(height: 1) }
         }.buttonStyle(.plain).disabled(model.personas.count < 2)
+    }
+}
+
+private struct PersonaEditorRoute: Identifiable {
+    let persona: BackendModels.Persona?
+    var id: String { persona?.id ?? "new" }
+}
+
+private struct PersonaManagerView: View {
+    @EnvironmentObject private var model: AppModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var editor: PersonaEditorRoute?
+
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(model.personas) { persona in
+                    Button { editor = PersonaEditorRoute(persona: persona) } label: {
+                        HStack(spacing: 12) {
+                            Text(initials(persona.name)).font(.forest(15, weight: .semibold)).foregroundStyle(.white)
+                                .frame(width: 42, height: 42).background(Color(hex: persona.color ?? "#4A4F55"), in: Circle())
+                            VStack(alignment: .leading) {
+                                Text(persona.name).font(.forest(16, weight: .medium)).foregroundStyle(.forestPrimary)
+                                Text("\(persona.title ?? "Sommelier")\(persona.builtIn == true ? " · built-in" : "")").font(.forest(12)).foregroundStyle(.forestMuted)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right").font(.forest(12)).foregroundStyle(.forestMuted)
+                        }
+                    }.listRowBackground(Color.forestSurface)
+                }
+                Section { Button { editor = PersonaEditorRoute(persona: nil) } label: { Label("Add a sommelier", systemImage: "plus") }.foregroundStyle(.forestAccent) }
+            }
+            .scrollContentBackground(.hidden).background(.forestBackground)
+            .navigationTitle("Your sommeliers").navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+            .task { await model.loadPersonas() }
+            .sheet(item: $editor) { route in PersonaEditorView(persona: route.persona) }
+        }
+    }
+}
+
+private struct PersonaEditorView: View {
+    @EnvironmentObject private var model: AppModel
+    @Environment(\.dismiss) private var dismiss
+    let persona: BackendModels.Persona?
+    @State private var name: String
+    @State private var title: String
+    @State private var color: String
+    @State private var scoring: String
+    @State private var focus: String
+    @State private var loves: Set<String>
+    @State private var strictness: Int
+    @State private var tone: String
+    @State private var description: String
+    @State private var confirmingDelete = false
+
+    private let colors = ["#7A3340", "#2F5D50", "#3E4F7A", "#7A5A2B", "#5B3F6E", "#2E6070", "#6B4A3A", "#4A4F55"]
+    private let loveOptions = ["power", "elegance", "acidity", "oak", "fruit", "age", "value", "terroir"]
+    private var builtIn: Bool { persona?.builtIn == true }
+
+    init(persona: BackendModels.Persona?) {
+        self.persona = persona
+        let traits = persona?.traits
+        _name = State(initialValue: persona?.name ?? "")
+        _title = State(initialValue: persona?.title ?? "")
+        _color = State(initialValue: persona?.color ?? "#2F5D50")
+        _scoring = State(initialValue: traits?.scoring ?? "hundred")
+        _focus = State(initialValue: traits?.focus ?? "everywhere")
+        _loves = State(initialValue: Set(traits?.loves ?? ["elegance"]))
+        _strictness = State(initialValue: traits?.strictness ?? 3)
+        _tone = State(initialValue: traits?.tone ?? "warm")
+        _description = State(initialValue: traits?.description ?? "")
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                if builtIn {
+                    Section("Built-in sommelier") {
+                        Text(persona?.philosophy ?? "This sommelier is part of OmniCave.")
+                        if !(persona?.memory ?? []).isEmpty {
+                            ForEach(persona?.memory ?? [], id: \.self) { Text("•  \($0)") }
+                        } else { Text("Nothing remembered yet.").foregroundStyle(.secondary) }
+                        Button("Clear memory", role: .destructive) {
+                            guard let id = persona?.id else { return }
+                            Task { if await model.clearPersonaMemory(id: id) { dismiss() } }
+                        }.disabled((persona?.memory ?? []).isEmpty)
+                    }
+                } else {
+                    Section("Sommelier") {
+                        TextField("Name", text: $name).textInputAutocapitalization(.words)
+                        TextField("Role", text: $title)
+                        Picker("Scoring", selection: $scoring) { Text("100 points").tag("hundred"); Text("20 points").tag("twenty"); Text("5 stars").tag("stars") }
+                        Picker("Wine focus", selection: $focus) { Text("Old World").tag("old-world"); Text("New World").tag("new-world"); Text("Everywhere").tag("everywhere") }
+                        Picker("Tone", selection: $tone) { Text("Formal").tag("formal"); Text("Warm").tag("warm"); Text("Playful").tag("playful"); Text("Blunt").tag("blunt") }
+                        Stepper("Strictness: \(strictness)/5", value: $strictness, in: 1...5)
+                    }
+                    Section("Colour") {
+                        HStack { ForEach(colors, id: \.self) { choice in
+                            Circle().fill(Color(hex: choice)).frame(width: 30, height: 30)
+                                .overlay(Circle().stroke(color == choice ? Color.primary : .clear, lineWidth: 2).padding(-4))
+                                .onTapGesture { color = choice }
+                        } }
+                    }
+                    Section("Values · choose up to 3") {
+                        ForEach(loveOptions, id: \.self) { option in
+                            Toggle(option.capitalized, isOn: Binding(get: { loves.contains(option) }, set: { enabled in
+                                if enabled { if loves.count < 3 { loves.insert(option) } }
+                                else { loves.remove(option) }
+                            }))
+                        }
+                    }
+                    Section("In their own words") { TextField("How they taste and talk", text: $description, axis: .vertical).lineLimit(3...6) }
+                    if persona != nil {
+                        Section { Button("Delete sommelier", role: .destructive) { confirmingDelete = true } }
+                    }
+                }
+                if let error = model.error { Section { Text(error).foregroundStyle(.red) } }
+            }
+            .navigationTitle(persona?.name ?? "New sommelier").navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                if !builtIn { ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        let traits = BackendModels.PersonaTraits(scoring: scoring, focus: focus, loves: Array(loves.prefix(3)), strictness: strictness, tone: tone, description: description)
+                        Task { if await model.savePersona(id: persona?.id, name: name.trimmingCharacters(in: .whitespacesAndNewlines), title: title, color: color, traits: traits) { dismiss() } }
+                    }.disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || loves.isEmpty)
+                } }
+            }
+            .confirmationDialog("Delete this sommelier? Their saved memory will also be removed.", isPresented: $confirmingDelete, titleVisibility: .visible) {
+                Button("Delete", role: .destructive) { if let id = persona?.id { Task { if await model.deletePersona(id: id) { dismiss() } } } }
+            }
+        }
     }
 }
 

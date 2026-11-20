@@ -19,6 +19,10 @@ protocol AppService {
     func updateZone(id: Int, update: BackendModels.ZoneUpdate) async throws -> BackendModels.EnvZone
     func bottles(query: String, cellarID: Int?) async throws -> [BackendModels.Bottle]
     func personas() async throws -> [BackendModels.Persona]
+    func savePersona(id: String?, name: String, title: String, color: String, traits: BackendModels.PersonaTraits) async throws -> BackendModels.Persona
+    func deletePersona(id: String) async throws
+    func clearPersonaMemory(id: String) async throws
+    func winePairing(bottleID: Int) throws -> AsyncThrowingStream<BackendModels.TastingEvent, Error>
     func tastingEvents(_ request: BackendModels.TableRequest) throws -> AsyncThrowingStream<BackendModels.TastingEvent, Error>
     func briefing() async throws -> BackendModels.Briefing
     func drinkingWindows() async throws -> BackendModels.DrinkingWindows
@@ -198,7 +202,37 @@ final class MockService: AppService {
         }
     }
 
-    func personas() async throws -> [BackendModels.Persona] { Self.samplePersonas }
+    func personas() async throws -> [BackendModels.Persona] {
+        Self.samplePersonas + load([BackendModels.Persona].self, key: key("personas"), default: []).filter { $0.builtIn != true }
+    }
+
+    func savePersona(id: String?, name: String, title: String, color: String, traits: BackendModels.PersonaTraits) async throws -> BackendModels.Persona {
+        guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw ServiceError.invalidInput }
+        var values = try await personas().filter { $0.builtIn != true }
+        let result = BackendModels.Persona(id: id ?? "u\(UUID().uuidString)", name: name, title: title, color: color, builtIn: false, traits: traits, philosophy: nil, memory: [])
+        if let id, let index = values.firstIndex(where: { $0.id == id }) { values[index] = result }
+        else { values.append(result) }
+        store(values, key: key("personas"))
+        return result
+    }
+
+    func deletePersona(id: String) async throws {
+        store(try await personas().filter { $0.builtIn != true && $0.id != id }, key: key("personas"))
+    }
+
+    func clearPersonaMemory(id: String) async throws {
+        var values = try await personas()
+        guard let index = values.firstIndex(where: { $0.id == id }) else { throw ServiceError.invalidInput }
+        values[index].memory = []
+        store(values.filter { $0.builtIn != true }, key: key("personas"))
+    }
+
+    func winePairing(bottleID: Int) throws -> AsyncThrowingStream<BackendModels.TastingEvent, Error> {
+        AsyncThrowingStream { continuation in
+            continuation.yield(.init(type: "delta", text: "Local sample: try a seasonal dish with this wine, keeping the seasoning balanced so the wine remains clear."))
+            continuation.yield(.init(type: "done")); continuation.finish()
+        }
+    }
 
     func tastingEvents(_ request: BackendModels.TableRequest) throws -> AsyncThrowingStream<BackendModels.TastingEvent, Error> {
         AsyncThrowingStream { continuation in
@@ -564,6 +598,21 @@ final class BackendService: AppService {
     }
 
     func personas() async throws -> [BackendModels.Persona] { try await api.get("api/personas") }
+    func savePersona(id: String?, name: String, title: String, color: String, traits: BackendModels.PersonaTraits) async throws -> BackendModels.Persona {
+        let body = PersonaBody(name: name, title: title, color: color, traits: traits)
+        let method = id == nil ? "POST" : "PATCH"
+        let path = id.map { "api/personas/\($0)" } ?? "api/personas"
+        return try await api.request(method, path: path, body: api.encode(body))
+    }
+    func deletePersona(id: String) async throws {
+        let _: OKReply = try await api.request("DELETE", path: "api/personas/\(id)", body: nil)
+    }
+    func clearPersonaMemory(id: String) async throws {
+        let _: OKReply = try await api.request("DELETE", path: "api/personas/\(id)/memory", body: nil)
+    }
+    func winePairing(bottleID: Int) throws -> AsyncThrowingStream<BackendModels.TastingEvent, Error> {
+        try api.stream("api/ai/pairing/wine", body: api.encode(WinePairingBody(bottleId: bottleID)))
+    }
 
     func tastingEvents(_ request: BackendModels.TableRequest) throws -> AsyncThrowingStream<BackendModels.TastingEvent, Error> {
         try api.stream("api/ai/table", body: api.encode(request))
@@ -616,6 +665,8 @@ final class BackendService: AppService {
     private struct EmailBody: Encodable { var email: String }
     private struct ResetPasswordBody: Encodable { var email: String; var code: String; var password: String }
     private struct OKReply: Decodable { var ok: Bool? }
+    private struct PersonaBody: Encodable { var name: String; var title: String; var color: String; var traits: BackendModels.PersonaTraits }
+    private struct WinePairingBody: Encodable { var bottleId: Int }
     private struct LabelPhotoBody: Encodable { var imageB64: String; var contentType: String }
     private struct ConfirmDetectionBody: Encodable { var wine: BackendModels.WineInfo }
     private struct ConfirmDetectionReply: Decodable { var bottle: BackendModels.Bottle? }
