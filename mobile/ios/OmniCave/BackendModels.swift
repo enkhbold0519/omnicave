@@ -218,6 +218,49 @@ enum BackendModels {
         var confidence: Double? = nil
     }
 
+    struct LabelPhotoResponse: Decodable {
+        var new: [LabelDetection]?
+        var provider: String?
+    }
+
+    struct LabelDetection: Codable, Identifiable {
+        var detectionId: Int
+        var wine: DetectedWine
+        var note: String?
+        var confidence: Double?
+        var id: Int { detectionId }
+    }
+
+    struct DetectionRecord: Decodable {
+        var id: Int
+        var payload: DetectionPayload
+    }
+
+    struct DetectionPayload: Decodable {
+        var wine: DetectedWine
+        var note: String?
+        var confidence: Double?
+    }
+
+    struct DetectedWine: Codable {
+        var id: Int?
+        var name: String?
+        var producer: String?
+        var region: String?
+        var country: String?
+        var color: String?
+        var vintage: Int?
+        var grape: String?
+        var drinkFrom: Int?
+        var drinkTo: Int?
+        var basePrice: Double?
+
+        var editableWine: WineInfo {
+            WineInfo(id: id, name: name ?? "", producer: producer, region: region, country: country,
+                     color: color, vintage: vintage, grape: grape, drinkFrom: drinkFrom, drinkTo: drinkTo, basePrice: basePrice)
+        }
+    }
+
     struct WineInfo: Codable {
         var id: Int? = nil
         var name: String

@@ -26,6 +26,10 @@ protocol AppService {
     func priceHistory(bottleID: Int) async throws -> BackendModels.PriceHistory
     func notifications() async throws -> BackendModels.NotificationList
     func markNotificationRead(id: Int?) async throws
+    func scanLabelPhoto(cellarID: Int, imageBase64: String, contentType: String) async throws -> BackendModels.LabelPhotoResponse
+    func pendingLabelDetections() async throws -> [BackendModels.LabelDetection]
+    func confirmLabelDetection(id: Int, cellarID: Int, wine: BackendModels.WineInfo) async throws -> BackendModels.Bottle?
+    func rejectLabelDetection(id: Int) async throws
     func saveBottle(id: Int?, cellarID: Int, wine: BackendModels.WineInfo) async throws -> BackendModels.Bottle
     func removeBottle(id: Int, reason: String) async throws
     func profile() async throws -> BackendModels.User
@@ -270,6 +274,34 @@ final class MockService: AppService {
         var list = try await notifications().items ?? []
         for index in list.indices where id == nil || list[index].id == id { list[index].read = 1 }
         store(list, key: key("notifications"))
+    }
+
+    func scanLabelPhoto(cellarID: Int, imageBase64: String, contentType: String) async throws -> BackendModels.LabelPhotoResponse {
+        let detection = BackendModels.LabelDetection(
+            detectionId: Int(Date().timeIntervalSince1970 * 1000),
+            wine: BackendModels.DetectedWine(name: "Sample Riesling", producer: "Mock Winery", color: "white", vintage: 2022, grape: "Riesling"),
+            note: "Photo reading is simulated. Review this sample wine before adding it.", confidence: 0.72
+        )
+        var pending = try await pendingLabelDetections()
+        pending.insert(detection, at: 0)
+        store(pending, key: key("labelDetections"))
+        return BackendModels.LabelPhotoResponse(new: [detection], provider: "mock")
+    }
+
+    func pendingLabelDetections() async throws -> [BackendModels.LabelDetection] {
+        load([BackendModels.LabelDetection].self, key: key("labelDetections"), default: [])
+    }
+
+    func confirmLabelDetection(id: Int, cellarID: Int, wine: BackendModels.WineInfo) async throws -> BackendModels.Bottle? {
+        guard try await pendingLabelDetections().contains(where: { $0.id == id }) else { throw ServiceError.invalidInput }
+        let bottle = try await saveBottle(id: nil, cellarID: cellarID, wine: wine)
+        let pending = try await pendingLabelDetections().filter { $0.id != id }
+        store(pending, key: key("labelDetections"))
+        return bottle
+    }
+
+    func rejectLabelDetection(id: Int) async throws {
+        store(try await pendingLabelDetections().filter { $0.id != id }, key: key("labelDetections"))
     }
 
     func saveBottle(id: Int?, cellarID: Int, wine: BackendModels.WineInfo) async throws -> BackendModels.Bottle {
@@ -547,6 +579,20 @@ final class BackendService: AppService {
         if let id { body = try api.encode(["id": id]) } else { body = try api.encode([String: Int]()) }
         let _: OKReply = try await api.request("POST", path: "api/notifications/read", body: body)
     }
+    func scanLabelPhoto(cellarID: Int, imageBase64: String, contentType: String) async throws -> BackendModels.LabelPhotoResponse {
+        try await api.request("POST", path: "api/cellars/\(cellarID)/vision/label", body: api.encode(LabelPhotoBody(imageB64: imageBase64, contentType: contentType)))
+    }
+    func pendingLabelDetections() async throws -> [BackendModels.LabelDetection] {
+        let records: [BackendModels.DetectionRecord] = try await api.get("api/detections")
+        return records.map { BackendModels.LabelDetection(detectionId: $0.id, wine: $0.payload.wine, note: $0.payload.note, confidence: $0.payload.confidence) }
+    }
+    func confirmLabelDetection(id: Int, cellarID: Int, wine: BackendModels.WineInfo) async throws -> BackendModels.Bottle? {
+        let reply: ConfirmDetectionReply = try await api.request("POST", path: "api/detections/\(id)/confirm", body: api.encode(ConfirmDetectionBody(wine: wine)))
+        return reply.bottle
+    }
+    func rejectLabelDetection(id: Int) async throws {
+        let _: RejectedReply = try await api.request("POST", path: "api/detections/\(id)/reject", body: api.encode([String: String]()))
+    }
 
     func saveBottle(id: Int?, cellarID: Int, wine: BackendModels.WineInfo) async throws -> BackendModels.Bottle {
         if let id {
@@ -570,6 +616,10 @@ final class BackendService: AppService {
     private struct EmailBody: Encodable { var email: String }
     private struct ResetPasswordBody: Encodable { var email: String; var code: String; var password: String }
     private struct OKReply: Decodable { var ok: Bool? }
+    private struct LabelPhotoBody: Encodable { var imageB64: String; var contentType: String }
+    private struct ConfirmDetectionBody: Encodable { var wine: BackendModels.WineInfo }
+    private struct ConfirmDetectionReply: Decodable { var bottle: BackendModels.Bottle? }
+    private struct RejectedReply: Decodable { var rejected: Int? }
     private struct WineBody: Encodable { var wine: BackendModels.WineInfo }
     private struct NewBottleBody: Encodable { var cellarID: Int; var wine: BackendModels.WineInfo }
     private struct NewCellarBody: Encodable { var name: String }

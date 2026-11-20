@@ -22,6 +22,7 @@ final class AppModel: ObservableObject {
     @Published var bottlePriceHistory: [Int: BackendModels.PriceHistory] = [:]
     @Published var notifications = BackendModels.NotificationList(unread: 0, items: [])
     @Published var notificationError: String?
+    @Published var pendingLabelDetections: [BackendModels.LabelDetection] = []
     @Published var inventoryQuery = ""
     @Published var inventoryAllCellars = false
     @Published var error: String?
@@ -118,6 +119,56 @@ final class AppModel: ObservableObject {
             try await service.markNotificationRead(id: id)
             await loadNotifications()
         } catch { notificationError = error.localizedDescription }
+    }
+
+    func loadPendingLabelDetections() async {
+        do { pendingLabelDetections = try await service.pendingLabelDetections() }
+        catch { self.error = error.localizedDescription }
+    }
+
+    func scanLabelPhoto(cellarID: Int, imageBase64: String, contentType: String) async -> Bool {
+        busy = true; error = nil; notice = nil
+        do {
+            let response = try await service.scanLabelPhoto(cellarID: cellarID, imageBase64: imageBase64, contentType: contentType)
+            pendingLabelDetections = (response.new ?? []) + pendingLabelDetections
+            if response.new?.isEmpty != false { notice = "No label was detected." }
+            busy = false
+            return !(response.new ?? []).isEmpty
+        } catch {
+            self.error = error.localizedDescription
+            busy = false
+            return false
+        }
+    }
+
+    func confirmLabelDetection(_ detection: BackendModels.LabelDetection, cellarID: Int, wine: BackendModels.WineInfo) async -> Bool {
+        busy = true; error = nil
+        do {
+            let bottle = try await service.confirmLabelDetection(id: detection.id, cellarID: cellarID, wine: wine)
+            pendingLabelDetections.removeAll { $0.id == detection.id }
+            await loadInventoryCellars()
+            await loadBackendCellar()
+            await loadBottles()
+            if bottle == nil { notice = "This wine is already in your cellar." }
+            busy = false
+            return true
+        } catch {
+            self.error = error.localizedDescription
+            busy = false
+            return false
+        }
+    }
+
+    func rejectLabelDetection(_ detection: BackendModels.LabelDetection) async -> Bool {
+        do {
+            try await service.rejectLabelDetection(id: detection.id)
+            pendingLabelDetections.removeAll { $0.id == detection.id }
+            error = nil
+            return true
+        } catch {
+            self.error = error.localizedDescription
+            return false
+        }
     }
 
     func tastingEvents(_ request: BackendModels.TableRequest) throws -> AsyncThrowingStream<BackendModels.TastingEvent, Error> {

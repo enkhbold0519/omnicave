@@ -1,6 +1,7 @@
 import SwiftUI
 import Charts
 import UIKit
+import PhotosUI
 
 private struct ForestPrimaryButton: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
@@ -429,6 +430,8 @@ struct CellarView: View {
     @State private var showingAdd = false
     @State private var editingName: String?
     @State private var selectedBottle: BackendModels.Bottle?
+    @State private var selectedPhoto: PhotosPickerItem?
+    @State private var selectedDetection: BackendModels.LabelDetection?
 
     var body: some View {
         NavigationStack {
@@ -445,6 +448,20 @@ struct CellarView: View {
                         } label: {
                             HStack { VStack(alignment: .leading, spacing: 5) { Text("CELLAR").overline(); Text(currentSummary?.name ?? "Select a cellar").font(.forest(20, weight: .medium)) }; Spacer(); Image(systemName: "chevron.down").foregroundStyle(.forestAccent) }
                         }.foregroundStyle(.forestPrimary).padding(.vertical, 12)
+                        PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                            Label("Add from label photo", systemImage: "camera")
+                                .font(.forest(15, weight: .medium)).foregroundStyle(.forestAccent)
+                                .frame(maxWidth: .infinity, alignment: .leading).padding(14)
+                                .background(.forestSurface, in: RoundedRectangle(cornerRadius: 10))
+                        }.disabled(model.selectedBottleCellarID == nil || model.busy)
+                        if !model.pendingLabelDetections.isEmpty {
+                            Button {
+                                selectedDetection = model.pendingLabelDetections.first
+                            } label: {
+                                Label("Review pending labels (\(model.pendingLabelDetections.count))", systemImage: "text.viewfinder")
+                                    .font(.forest(14, weight: .medium)).foregroundStyle(.forestWarning)
+                            }
+                        }
                         if let cellar = model.backendCellar {
                             Text("\(cellar.bottles?.count ?? 0) bottles · \(Int(cellar.widthCm ?? 120)) × \(Int(cellar.heightCm ?? 200)) × \(Int(cellar.depthCm ?? 60)) cm")
                                 .font(.forest(14)).foregroundStyle(.forestSecondary)
@@ -469,8 +486,17 @@ struct CellarView: View {
                 }
             }
             .sheet(item: $selectedBottle) { bottle in WineDetail(bottle: bottle) }
-            .task { await model.loadInventoryCellars(); await model.loadBackendCellar() }
+            .sheet(item: $selectedDetection) { detection in
+                LabelReviewView(detection: detection, cellarID: model.selectedBottleCellarID ?? 0,
+                    confirm: { wine in await model.confirmLabelDetection(detection, cellarID: model.selectedBottleCellarID ?? 0, wine: wine) },
+                    reject: { await model.rejectLabelDetection(detection) })
+            }
+            .task { await model.loadInventoryCellars(); await model.loadBackendCellar(); await model.loadPendingLabelDetections() }
             .onChange(of: model.selectedBottleCellarID) { _, _ in Task { await model.loadBackendCellar() } }
+            .onChange(of: selectedPhoto) { _, item in
+                guard let item else { return }
+                Task { await scan(item) }
+            }
             .refreshable { await model.loadInventoryCellars(); await model.loadBackendCellar() }
             .modifier(NotificationsToolbar())
         }
@@ -479,6 +505,90 @@ struct CellarView: View {
     private var currentSummary: BackendModels.CellarSummary? {
         model.inventoryCellars.first { $0.id == model.selectedBottleCellarID }
     }
+
+    private func scan(_ item: PhotosPickerItem) async {
+        guard let cellarID = model.selectedBottleCellarID else { return }
+        defer { selectedPhoto = nil }
+        guard let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data) else {
+            model.error = "The selected photo could not be read."
+            return
+        }
+        let maxDimension: CGFloat = 1600
+        let ratio = min(1, maxDimension / max(image.size.width, image.size.height))
+        let size = CGSize(width: max(1, image.size.width * ratio), height: max(1, image.size.height * ratio))
+        let renderer = UIGraphicsImageRenderer(size: size)
+        let resized = renderer.jpegData(withCompressionQuality: 0.78) { _ in image.draw(in: CGRect(origin: .zero, size: size)) }
+        guard await model.scanLabelPhoto(cellarID: cellarID, imageBase64: resized.base64EncodedString(), contentType: "image/jpeg") else { return }
+        selectedDetection = model.pendingLabelDetections.first
+    }
+}
+
+private struct LabelReviewView: View {
+    @Environment(\.dismiss) private var dismiss
+    let detection: BackendModels.LabelDetection
+    let cellarID: Int
+    let confirm: (BackendModels.WineInfo) async -> Bool
+    let reject: () async -> Bool
+    @State private var name: String
+    @State private var producer: String
+    @State private var region: String
+    @State private var vintage: String
+    @State private var color: String
+    @State private var saving = false
+
+    init(detection: BackendModels.LabelDetection, cellarID: Int, confirm: @escaping (BackendModels.WineInfo) async -> Bool, reject: @escaping () async -> Bool) {
+        self.detection = detection; self.cellarID = cellarID; self.confirm = confirm; self.reject = reject
+        _name = State(initialValue: detection.wine.name ?? "")
+        _producer = State(initialValue: detection.wine.producer ?? "")
+        _region = State(initialValue: detection.wine.region ?? "")
+        _vintage = State(initialValue: detection.wine.vintage.map(String.init) ?? "")
+        _color = State(initialValue: detection.wine.color ?? "red")
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Text("Label reading is simulated by the server and returns sample wine data. Check the details before adding it.")
+                    if let confidence = detection.confidence { Text("Match confidence: \(Int(confidence * 100))%") }
+                    if let note = detection.note { Text(note).foregroundStyle(.secondary) }
+                }
+                Section("Wine details") {
+                    TextField("Wine name", text: $name)
+                    TextField("Producer", text: $producer)
+                    TextField("Region", text: $region)
+                    TextField("Vintage", text: $vintage).keyboardType(.numberPad)
+                    Picker("Color", selection: $color) {
+                        ForEach(["red", "white", "rose", "sparkling"], id: \.self) { Text($0.capitalized).tag($0) }
+                    }
+                }
+                Section {
+                    Button("Discard detection", role: .destructive) {
+                        Task { saving = true; if await reject() { dismiss() }; saving = false }
+                    }
+                }
+            }
+            .navigationTitle("Review label")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Add to cellar") {
+                        let original = detection.wine
+                        let wine = BackendModels.WineInfo(id: original.id, name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+                            producer: producer.nilIfBlank, region: region.nilIfBlank, country: original.country, color: color,
+                            vintage: Int(vintage), grape: original.grape, drinkFrom: original.drinkFrom, drinkTo: original.drinkTo, basePrice: original.basePrice)
+                        Task { saving = true; if await confirm(wine) { dismiss() }; saving = false }
+                    }.disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || saving)
+                }
+            }
+            .overlay { if saving { ProgressView().tint(.forestAccent) } }
+        }.presentationDetents([.medium, .large])
+    }
+}
+
+private extension String {
+    var nilIfBlank: String? { let value = trimmingCharacters(in: .whitespacesAndNewlines); return value.isEmpty ? nil : value }
 }
 
 private struct CellarNameEdit: Identifiable { var name: String; var id: String { name } }
