@@ -220,63 +220,159 @@ def simulate_detections(c, cel: dict, event: str) -> tuple[list[dict], dict]:
     rnd = random.Random()
     racks = racks_of(c, cel["id"])
     bottles = stored_bottles(c, cel["id"])
-    dets = [{"position": {"x": b["x"] + rnd.uniform(-0.8, 0.8), "y": b["y"] + rnd.uniform(-0.5, 0.5), "z": b["z"] + rnd.uniform(-1, 1)},
-             "orientation": b["orientation"], "confidence": round(rnd.uniform(0.88, 0.99), 2),
-             "label": {k: b[k] for k in ("name", "producer", "vintage", "region", "country", "grape", "color")},
-             "_id": b["id"]} for b in bottles]
-    # back-row bottles hidden behind a front bottle are not visible to the camera
-    dets = [d for d in dets if not _occluded(next(b for b in bottles if b["id"] == d["_id"]), [o for o in dets if o is not d])]
+
     if event == "random":
         event = rnd.choice(["insert", "insert", "stack", "move", "remove"])
+
     shelves = [r for r in racks if r["present"]]
-    on_top = [b for b in bottles if not any(o["level"] > b["level"] and abs(o["x"] - b["x"]) < geo.D and o["rack_id"] == b["rack_id"]
-                                            and abs(o["z"] - b["z"]) < 15 for o in bottles)]
+    on_top = [
+        b for b in bottles
+        if not any(
+            o["level"] > b["level"]
+            and abs(o["x"] - b["x"]) < geo.D
+            and o["rack_id"] == b["rack_id"]
+            and abs(o["z"] - b["z"]) < 15
+            for o in bottles
+        )
+    ]
+
+    def make_detections(camera_bottles):
+        dets = [
+            {
+                "position": {
+                    "x": b["x"] + rnd.uniform(-0.8, 0.8),
+                    "y": b["y"] + rnd.uniform(-0.5, 0.5),
+                    "z": b["z"] + rnd.uniform(-1, 1),
+                },
+                "orientation": b["orientation"],
+                "confidence": round(rnd.uniform(0.88, 0.99), 2),
+                "label": {
+                    k: b[k]
+                    for k in (
+                        "name", "producer", "vintage", "region",
+                        "country", "grape", "color"
+                    )
+                },
+                "_id": b["id"],
+            }
+            for b in camera_bottles
+        ]
+
+        # Back-row bottles hidden behind a front bottle
+        # are not visible to the camera.
+        return [
+            d for d in dets
+            if not _occluded(
+                next(b for b in camera_bottles if b["id"] == d["_id"]),
+                [o for o in dets if o is not d],
+            )
+        ]
+
+    # Generate the initial camera snapshot.
+    dets = make_detections(bottles)
     info = {"event": event}
+
     if event in ("insert", "stack"):
         truth = dict(rnd.choice(CATALOG))
         spot = None
+
         if event == "stack":
             for r in rnd.sample(shelves, len(shelves)):
-                row = sorted(b["x"] for b in bottles if b["rack_id"] == r["id"] and b["level"] == 0 and b["z"] < 20)
-                taken = [b["x"] for b in bottles if b["rack_id"] == r["id"] and b["level"] == 1 and b["z"] < 20]
-                grooves = [(a + b_) / 2 for a, b_ in zip(row, row[1:])
-                           if b_ - a <= geo.D * 1.3 and not any(abs(t - (a + b_) / 2) < geo.D * 0.6 for t in taken)]
+                row = sorted(
+                    b["x"] for b in bottles
+                    if b["rack_id"] == r["id"]
+                    and b["level"] == 0
+                    and b["z"] < 20
+                )
+                taken = [
+                    b["x"] for b in bottles
+                    if b["rack_id"] == r["id"]
+                    and b["level"] == 1
+                    and b["z"] < 20
+                ]
+                grooves = [
+                    (a + b_) / 2
+                    for a, b_ in zip(row, row[1:])
+                    if b_ - a <= geo.D * 1.3
+                    and not any(
+                        abs(t - (a + b_) / 2) < geo.D * 0.6
+                        for t in taken
+                    )
+                ]
                 if grooves:
-                    spot = {"x": rnd.choice(grooves), "y": r["y_cm"] + geo.R + geo.STACK_STEP, "z": 6.0, "level": 1}
+                    spot = {
+                        "x": rnd.choice(grooves),
+                        "y": r["y_cm"] + geo.R + geo.STACK_STEP,
+                        "z": 6.0,
+                        "level": 1,
+                    }
                     break
             if not spot:
                 raise ApiError(409, "No row with two neighbouring bottles to stack on")
         else:
             r = rnd.choice(shelves)
-            spot = geo.find_free_spot(racks, bottles, cel["width_cm"], lambda x: x["id"] == r["id"])
+            spot = geo.find_free_spot(
+                racks, bottles, cel["width_cm"],
+                lambda x: x["id"] == r["id"]
+            )
             if not spot:
                 raise ApiError(409, "No free space")
+
         ocr, note, conf = _ocr(truth, rnd)
-        dets.append({"position": {"x": spot["x"], "y": spot["y"], "z": spot["z"]}, "orientation": "lying",
-                     "confidence": round(conf, 2), "label": ocr, "note": note})
+        dets.append({
+            "position": {"x": spot["x"], "y": spot["y"], "z": spot["z"]},
+            "orientation": "lying",
+            "confidence": round(conf, 2),
+            "label": ocr,
+            "note": note,
+        })
         info["wine"] = f"{truth['producer']} {truth['name']}"
+
     elif event == "move":
         if not on_top:
             raise ApiError(409, "Nothing to move")
         b = rnd.choice(on_top)
         r = rnd.choice([x for x in shelves if x["id"] != b["rack_id"]] or shelves)
-        spot = geo.find_free_spot(racks, bottles, cel["width_cm"], lambda x: x["id"] == r["id"])
+        spot = geo.find_free_spot(
+            racks, bottles, cel["width_cm"],
+            lambda x: x["id"] == r["id"]
+        )
         if not spot:
             raise ApiError(409, "No free space")
         for d in dets:
             if d["_id"] == b["id"]:
-                d["position"] = {"x": spot["x"], "y": spot["y"], "z": spot["z"]}
+                d["position"] = {
+                    "x": spot["x"], "y": spot["y"], "z": spot["z"]
+                }
         info["wine"] = f"{b['producer']} {b['name']}"
+
     elif event == "remove":
         if not on_top:
             raise ApiError(409, "Cellar is empty")
-        b = rnd.choice(on_top)
-        dets = [d for d in dets if d.get("_id") != b["id"]]
+
+        # Only select a bottle that is currently visible to the camera.
+        visible_ids = {d["_id"] for d in dets}
+        removable = [b for b in on_top if b["id"] in visible_ids]
+
+        if not removable:
+            raise ApiError(409, "No visible bottle to remove")
+
+        b = rnd.choice(removable)
         info["wine"] = f"{b['producer']} {b['name']}"
+
+        # Simulate physical removal before generating the new snapshot.
+        # Bottles previously hidden behind it can now be detected.
+        remaining_bottles = [
+            bottle for bottle in bottles if bottle["id"] != b["id"]
+        ]
+        dets = make_detections(remaining_bottles)
+
     elif event != "none":
         raise ApiError(400, "event must be random|insert|stack|move|remove|none")
+
     for d in dets:
         d.pop("_id", None)
+
     return dets, info
 
 
