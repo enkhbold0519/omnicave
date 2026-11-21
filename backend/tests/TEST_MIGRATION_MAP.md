@@ -38,5 +38,5 @@ migration has been reviewed and validated.
 - [x] Complete pytest suite passes: 14 tests.
 - [x] Review migration coverage against the original test_api.py.
 - [x] Add direct unit tests.
-- [ ] Configure and validate CI workflows.
-- [ ] Remove the original test_api.py only after migration review.
+- [x] Configure and validate CI workflows.
+- [x] Remove the original test_api.py only after migration review.
