@@ -140,7 +140,7 @@ jobs:
         uses: android-actions/setup-android@v4
 
       - name: Install Android SDK 37
-        run: sdkmanager "platforms;android-37"
+        run: sdkmanager "platforms;android-37.0"
 
       - name: Configure local properties
         working-directory: mobile/Kotlin
