@@ -130,12 +130,18 @@ def test_vision_scan_and_detection_workflow(user, call):
     # 6. Detect a removed bottle
     # --------------------------------------------------
 
-    scan = call(
-        "POST",
-        f"/api/cellars/{cid}/vision/scan",
-        {"event": "remove"},
-        token=token,
-    )
+    # The simulator may randomly select a bottle that is already
+    # occluded. Retry until it selects a visible bottle.
+    for _ in range(20):
+        scan = call(
+            "POST",
+            f"/api/cellars/{cid}/vision/scan",
+            {"event": "remove"},
+            token=token,
+        )
+
+        if scan["removed"]:
+            break
 
     assert len(scan["removed"]) == 1
 
