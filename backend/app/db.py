@@ -186,7 +186,7 @@ CREATE TABLE IF NOT EXISTS notifications (
 
 # ---------------------------------------------------------------- PostgreSQL adapter
 
-_NO_ID_TABLES = {"tokens", "schema_version"}   # tables without an integer `id` column (no RETURNING id)
+_NO_ID_TABLES = {"tokens", "schema_version", "market_prices"}   # tables without an integer `id` column (no RETURNING id)
 
 
 def _pg_schema(sql: str) -> str:
