@@ -4,8 +4,8 @@ Goal: move the persona LoRA + RAG pipeline from the 1.5B PoC (`AI-1.5B-Legacy/lo
 `Qwen/Qwen2.5-7B-Instruct` on a rented RunPod GPU, with four base personas, better training data
 and vLLM serving that the webOS backend can reach. Since 2026-11-16 `AI-7B/` is self-contained: the
 shared base files (`prompts.py`, `train.py`, `check_prompt_sync.py`, `build_xwines.py`, the X-Wines
-mapping) were copied here from the PoC, which now lives in `AI-1.5B-Legacy/` (rank study and the
-Critic Lab rank demo).
+mapping) were copied here from the PoC. The PoC folder (`AI-1.5B-Legacy/`) was removed on 2026-11-24; it is
+still in git history.
 
 Requirements: paper FR "Cloud-Powered Multi-Agent LLM Dialog System" (central base model, no
 aggressive quantization, server-side dynamic LoRA swapping, persona expansion without appliance
@@ -102,7 +102,7 @@ Verified when: the webOS display shows a 4-persona debate from RunPod.
 #### Step 4.2: Backend hookup (Size: S)
 - Acceptance: `webos/backend/app/llm.py` sends `VLLM_API_KEY` (today it sends "EMPTY"), and
   `personas.json` gets the 4 base personas. These are `webos/` edits, so they need decision D5.
-- Verification: `python -m tests.test_api`; display check on the emulator
+- Verification: `cd backend && python -m pytest`; display check on the emulator
 - Blocked by: 4.1, D5
 
 ### Phase 5: Evaluation

@@ -114,6 +114,10 @@ jobs:
         working-directory: webos/wine-cellar-display
         run: npm ci
 
+      - name: Run display unit tests
+        working-directory: webos/wine-cellar-display
+        run: npm test
+
       - name: Build webOS display
         working-directory: webos/wine-cellar-display
         run: npm run build

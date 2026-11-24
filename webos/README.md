@@ -24,6 +24,10 @@ talks to the shared backend (`/api`).
    ```
    Set `WEBOS_DEVICE=tv` for an LG TV (default: the emulator).
 
+## Tests
+`cd wine-cellar-display && npm test` runs the unit tests in `tests/` (Vitest): critic score badges and verdict,
+offline cache and write queue, clean-up on logout, sign-up reply, screen saver. CI runs them before every build.
+
 ## Structure
 | Path | What |
 |---|---|

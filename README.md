@@ -1,13 +1,10 @@
 # OmniCave
 
-**An AI-driven wine cellar with a transparent display door**
+**Wine cellar management with AI critics, designed for transparent display doors.**
 
 > 26-2 Hanyang University Software Engineering Project
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="documents/images/hero-light.png">
-  <img src="documents/images/hero-light.png" alt="OmniCave" width="100%">
-</picture>
+<img src="documents/images/hero-light.png" alt="OmniCave" width="100%">
 
 ## Overview
 
@@ -18,62 +15,81 @@ what is stored and where, and the cellar keeps its own inventory up to date.
 
 The system rests on three ideas:
 
-- **The cellar knows its contents.** A vision pipeline reads labels and maps each bottle to a position in
-  centimetres, including bottles stacked freely without fixed slots. The owner only confirms what was recognised.
-- **Expert opinion on every bottle.** Several fictional wine critics, each with its own scoring philosophy, debate a
+- **The cellar knows its contents.** Each bottle's label is read once when it goes in, the system suggests a free
+  spot, and every position is tracked in centimetres, including bottles stacked freely without fixed slots.
+- **Expert opinion on every bottle.** Four fictional wine critics, each with its own scoring philosophy, debate a
   wine live on the door. They share one base language model with a separate LoRA adapter per critic, swapped on the server.
 - **A thin appliance, a smart cloud.** All AI runs in the cloud, so the cellar's own computer stays small, cool and
-  cheap, and every feature is shared with the companion app.
+  cheap, and every feature is shared with the companion apps.
 
-## Architecture
+## Links
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="documents/images/architecture-light.png">
-  <img src="documents/images/architecture-light.png" alt="OmniCave architecture" width="100%">
-</picture>
+| Resource | Link |
+|---|---|
+| Paper | [PDF](documents/wine_cellar.pdf) · [LaTeX source](documents/wine_cellar.tex) |
+| Presentation slides | *coming soon* |
+| Blog | *coming soon* |
+| Demo video | *coming soon* |
+| Live demo | [omnicave.vercel.app](https://omnicave.vercel.app) |
 
 ## Key Features
 
-- **Automatic inventory:** bottles are detected, their labels read and their positions mapped, then confirmed by the owner.
-- **Transparent door display:** a to-scale door map and a 3D view of the cellar on a see-through OLED panel.
-- **Climate monitoring:** temperature and humidity per zone, with history and alerts when conditions drift.
-- **AI sommelier table:** fictional critics taste and debate a bottle, streamed word by word.
-- **Daily briefing and collection value:** personalised wine news, bottles ready to drink, and market value over time.
-- **Multi-device, multi-cellar:** the door display, the Android app and the iOS app stay in sync live over WebSocket, across several cellars, with offline caching.
+- **AI critic debate:** four fictional critics (Victor, Livia, Marcus and Jordan), each a LoRA adapter on one shared
+  Qwen2.5-7B model served by vLLM, debate a bottle with evidence retrieved for that wine, streamed word by word. On
+  unseen wines they stay in character in 98–100% of answers, against 0–28% for the base model.
+- **Label recognition:** photograph a bottle; Amazon Rekognition reads the label, the backend matches it to a wine
+  and suggests a free spot, and the owner confirms.
+- **Bottles mapped in centimetres:** free stacking with gravity, a to-scale door view and a 3D view. Scan
+  reconciliation turns successive scans into new, moved, removed and hidden bottles.
+- **Climate monitoring:** temperature and humidity per zone, with history and alerts, from the paired appliance
+  (simulated readings when no appliance is connected).
+- **Daily briefing and collection value:** wine news, bottles ready to drink, and market value over time. Prices come
+  from WineAPI.io where available, otherwise a labelled estimate.
+- **One account, every screen:** the door display, the Android app and the iOS app stay in sync live over WebSocket,
+  across several cellars, with offline caching.
+- **Privacy by design:** 19+ age check, PIPA consents, and data export and account deletion.
 
-## Demo Video
+## Architecture
 
-<!-- TODO: YouTube thumbnail linking to the demo video -->
-*Coming soon.*
+<img src="documents/images/architecture-light.png" alt="OmniCave architecture" width="100%">
 
 ## Tech Stack
 
 | Layer | Technologies |
 |---|---|
-| Door display | React 19, TypeScript, Vite, webOS |
+| Door display | React 19, TypeScript, Vite, webOS; web version hosted on Vercel |
 | Mobile | Kotlin, Jetpack Compose (Android); SwiftUI (iOS) |
 | Backend | Python 3.12, FastAPI, WebSocket (live sync), Server-Sent Events (streamed AI answers) |
-| Database | PostgreSQL 17 on AWS RDS; SQLite for development |
-| AI | Qwen2.5-7B-Instruct with per-critic LoRA adapters, served by vLLM |
-| Infrastructure | AWS EC2, Docker Compose, Caddy (HTTPS), Vercel |
+| Database | PostgreSQL 17 on Amazon RDS; SQLite for development |
+| AI critics | Qwen2.5-7B-Instruct with one LoRA adapter per critic, served by vLLM on RunPod, behind our RAG gateway |
+| Vision and data | Amazon Rekognition (label text), WineAPI.io (market prices) |
+| Infrastructure | Amazon EC2, Docker Compose, Caddy (HTTPS), GitHub Actions (CI) |
+
+## Demo Video
+
+<!-- TODO: replace with a YouTube thumbnail linking to the video:
+<a href="https://www.youtube.com/watch?v=VIDEO_ID"><img src="https://img.youtube.com/vi/VIDEO_ID/maxresdefault.jpg" alt="OmniCave demo video" width="100%"></a>
+-->
+*Coming soon.*
 
 ## Repository
 
-| Folder | Contents |
-|---|---|
-| [`webos/`](webos/README.md) | Cellar-door display app and the appliance simulator |
-| [`backend/`](backend/README.md) | Cloud API shared by all clients |
-| [`mobile/Kotlin/`](mobile/Kotlin/README.md) | Android companion app |
-| [`mobile/ios/`](mobile/ios/OmniCave/README.md) | iOS companion app |
-| [`AI-7B/`](AI-7B/CLAUDE.md) | Critic LoRA training and serving |
-| [`deploy/`](deploy/README.md) | Production deployment on AWS |
-| [`documents/`](documents) | Paper ([PDF](documents/wine_cellar.pdf), [LaTeX](documents/wine_cellar.tex)) |
-
-## Links
-
-- Paper: [PDF](documents/wine_cellar.pdf) · [LaTeX source](documents/wine_cellar.tex)
-- Presentation slides: *coming soon*
-- Live demo: *coming soon*
+```
+omnicave/
+├── backend/                   # FastAPI cloud API shared by all clients
+│   ├── app/                   #   routes, inventory, vision, AI critics, accounts
+│   └── tests/                 #   pytest suite (SQLite and PostgreSQL in CI)
+├── webos/
+│   ├── wine-cellar-display/   # door display (React, webOS, Vercel)
+│   └── edge/                  # appliance simulator: pairing, sensors, scans
+├── mobile/
+│   ├── Kotlin/                # Android app
+│   └── ios/                   # iOS app
+├── AI-7B/                     # critic LoRA training, evaluation and RAG gateway
+├── deploy/                    # AWS deployment (Docker Compose, Caddy)
+├── documents/                 # paper, requirements coverage, diagrams
+└── .github/workflows/         # CI
+```
 
 ## Team
 

@@ -77,7 +77,7 @@ apps -> backend (EC2) -> gateway.py (pod :8001) -> vLLM + 4 LoRAs (pod :8000)
    - Pod off or unreachable: the mock answer is shown without an error text and the server is skipped for 60 s.
      `GET /api/health` -> `llm.last_error` tells whether the last request reached the pod.
    - `backend/personas.json` holds the four personas word for word (name, title, philosophy, `lora_adapter`), each with
-     the table's `traits` block added. `backend/tests/test_api.py` fails if they drift from `personas.json` here.
+     the table's `traits` block added. `backend/tests/test_ai.py` fails if they drift from `personas.json` here.
 2. **Gateway** (`gateway.py`, on the pod): finds the wine (`prompts.parse_label`) and the persona
    (`prompts.parse_persona`, from `AI-7B/personas.json`), looks up the pool row whose `label` equals the parsed
    label and appends `evidence7b.block_for(persona_id, row)`. Unknown wine or missing `pool.jsonl`: `row = {}`, the

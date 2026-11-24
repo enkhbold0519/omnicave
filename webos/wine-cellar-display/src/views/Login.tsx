@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { api, ApiError, setToken } from '../api'
+import { api, ApiError, needsVerification, setToken } from '../api'
 import { useDraft } from '../hooks'
 import type { User } from '../types'
 import { Field } from '../components/ui'
@@ -135,8 +135,7 @@ function SignUp({ onBack, onCreated, onVerify }: { onBack: () => void; onCreated
       setF({ username: '', email: '' })
       // with email verification on, the code screen comes first; otherwise back to Log-In
       // (paper: sign-up completes registration and returns to Log-In, no automatic sign-in)
-      // the normal login reply also carries verification_required (false), so check the value, not the key
-      if ('email' in r && r.verification_required) onVerify(r.email)
+      if (needsVerification(r)) onVerify(r.email)
       else onCreated(f.username.trim())
     } catch (e) { setErr((e as Error).message) } finally { setBusy(false) }
   }

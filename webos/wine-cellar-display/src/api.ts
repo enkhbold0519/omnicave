@@ -29,7 +29,25 @@ export function apiBase(): string { return safeGet(LS.base) ?? defaultBase() }
 export function setApiBase(v: string) { safeSet(LS.base, v.trim() || null) }
 
 export function getToken() { return safeGet(LS.token) }
-export function setToken(t: string | null) { safeSet(LS.token, t) }
+/** Logging out (t = null) also removes the previous user's data from this display, so the next person to log in
+ *  never sees it: cached API responses, queued offline changes and stored critic conversations. Device settings
+ *  (server address, screen saver, colour theme) stay. */
+export function setToken(t: string | null) {
+  safeSet(LS.token, t)
+  if (t === null) clearUserData()
+}
+const USER_KEYS = [LS.queue, 'wc.tastings']
+export function clearUserData() {
+  try {
+    const keys = Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i) ?? '')
+    for (const k of keys) if (k.startsWith(LS.cache) || USER_KEYS.includes(k)) localStorage.removeItem(k)
+  } catch { /* storage unavailable */ }
+}
+
+/** Sign-up reply: the normal login reply also carries verification_required (false), so check the value. */
+export function needsVerification(r: unknown): r is { verification_required: true; email: string } {
+  return typeof r === 'object' && r !== null && 'email' in r && (r as { verification_required?: unknown }).verification_required === true
+}
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message) }
@@ -108,13 +126,18 @@ export async function mutateOrQueue<T>(method: string, path: string, body: unkno
     return null
   }
 }
-export async function flushQueue() {
-  const q = queued()
-  const left: QueuedOp[] = []
-  for (const op of q) {
-    try { await api(op.method, op.path, op.body) } catch (e) { if (e instanceof OfflineError) left.push(op) }
-  }
-  safeSet(LS.queue, JSON.stringify(left))
+/** One flush at a time: the first successful request switches the app back online, which would otherwise start a
+ *  second flush of the same queue and send every change twice. */
+let flushing: Promise<void> | null = null
+export function flushQueue(): Promise<void> {
+  flushing ??= (async () => {
+    const left: QueuedOp[] = []
+    for (const op of queued()) {
+      try { await api(op.method, op.path, op.body) } catch (e) { if (e instanceof OfflineError) left.push(op) }
+    }
+    safeSet(LS.queue, JSON.stringify(left))
+  })().finally(() => { flushing = null })
+  return flushing
 }
 
 /* -------- Server-Sent Events over POST (token streaming) -------- */
