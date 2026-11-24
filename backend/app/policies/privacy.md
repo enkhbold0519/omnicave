@@ -28,7 +28,7 @@ To run the service we use providers whose servers may be outside Korea (see the 
 
 | Provider | Country | What it processes |
 |---|---|---|
-| Amazon Web Services (server and database) | Australia (Sydney) until the planned move to Seoul | All account and cellar data |
+| Amazon Web Services (server, database, label reading with Amazon Rekognition) | Australia (Sydney) | All account and cellar data; label photos are read and not stored |
 | Vercel (web display hosting) | United States | Web page delivery; no account data stored |
 | RunPod (AI sommelier server, when switched on) | United States / other regions | The wine and question sent for an AI answer |
 | Amazon SES (email, once enabled) | Korea (Seoul) | Your email address and the code |

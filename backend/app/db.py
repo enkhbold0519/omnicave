@@ -99,6 +99,16 @@ CREATE TABLE IF NOT EXISTS devices (
   last_seen TEXT, last_telemetry TEXT, last_scan TEXT,
   created_at TEXT DEFAULT (datetime('now'))
 );
+-- real market prices (market.py): one row per wine, refreshed at most daily
+CREATE TABLE IF NOT EXISTS market_prices (
+  wine_key TEXT PRIMARY KEY,                    -- normalised producer|name|vintage
+  wineapi_id TEXT NOT NULL DEFAULT '',          -- WineAPI.io wine id ('' = no match)
+  price REAL,                                   -- USD median of merchant prices; NULL = no record
+  merchant TEXT,
+  matched_vintage INTEGER,                      -- vintage of the matched WineAPI wine
+  checked_at TEXT NOT NULL,                     -- UTC ISO time of the last check
+  calls INTEGER NOT NULL DEFAULT 0              -- API requests that check used (daily budget)
+);
 CREATE TABLE IF NOT EXISTS wines (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL, producer TEXT NOT NULL,
@@ -269,7 +279,7 @@ def tx():
             conn.close()
 
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 # PostgreSQL holds real data, so schema changes are migrations, never a reset:
 # MIGRATIONS[n] upgrades version n-1 -> n. Add an entry here and bump SCHEMA_VERSION.
@@ -294,6 +304,13 @@ CREATE TABLE IF NOT EXISTS email_codes (
   created_at TEXT DEFAULT (datetime('now'))
 );
 INSERT INTO consents(user_id, key, granted, version) SELECT id, 'legacy', 1, 'legacy' FROM users;
+"""),
+    # v4: cache of real market prices (WineAPI.io)
+    4: _pg_schema("""
+CREATE TABLE IF NOT EXISTS market_prices (
+  wine_key TEXT PRIMARY KEY, wineapi_id TEXT NOT NULL DEFAULT '', price REAL, merchant TEXT,
+  matched_vintage INTEGER, checked_at TEXT NOT NULL, calls INTEGER NOT NULL DEFAULT 0
+);
 """),
 }
 

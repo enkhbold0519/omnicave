@@ -14,7 +14,7 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from . import config, db, live, simulator
+from . import config, db, live, market, simulator
 from .routes import ROUTES, Route, run, sse
 from .services import ApiError, user_from_token
 
@@ -23,8 +23,10 @@ from .services import ApiError, user_from_token
 async def lifespan(app: FastAPI):
     db.init()
     simulator.start()
+    market.start()
     yield
     simulator.stop()
+    market.stop()
 
 
 app = FastAPI(title="Wine Cellar Dev Backend", version="0.2.0", lifespan=lifespan)

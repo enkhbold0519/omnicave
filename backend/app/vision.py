@@ -23,7 +23,7 @@ import random
 import re
 import urllib.request
 
-from . import config, db, geometry as geo
+from . import config, db, geometry as geo, labels
 from .catalog import CATALOG
 from .common import ApiError, notify, utc
 from .inventory import (BOTTLE_SQL, WINE_FIELDS, new_serial, racks_of, settle_above, stored_bottles)
@@ -34,7 +34,7 @@ DRIFT_TOLERANCE = 2.5   # cm: smaller differences are detection noise, position 
 
 def provider_info() -> dict:
     return {"provider": config.VISION_PROVIDER, "endpoint": config.VISION_ENDPOINT if config.VISION_PROVIDER == "http" else None,
-            "missing_scans_to_remove": config.VISION_MISSING_SCANS}
+            "missing_scans_to_remove": config.VISION_MISSING_SCANS, "labels": labels.provider()}
 
 
 # ------------------------------------------------------------------ providers
@@ -392,26 +392,31 @@ def simulate_scan(user: dict, cid: int, event: str) -> dict:
 
 
 def read_label(user: dict, cid: int, body: dict) -> dict:
-    """Label photo -> wine details -> pending detection (same review queue as the camera).
-    Mock reader: picks a catalog wine with simulated OCR errors. A real vision model plugs in here."""
+    """Label photo -> wine details (labels.py) -> free spot suggestion -> pending detection, in the same
+    review queue as the camera. The owner confirms or corrects it, then places the bottle there."""
     if not body.get("image_b64"):
         raise ApiError(400, "image_b64 is required")
-    rnd = random.Random()
+    with db.tx() as c:   # check the cellar before spending an API request
+        if not db.one(c, "SELECT 1 FROM cellars WHERE id=? AND user_id=?", (cid, user["id"])):
+            raise ApiError(404, "Cellar not found")
+    read = labels.read(body["image_b64"])
     with db.tx() as c:
         cel = db.one(c, "SELECT * FROM cellars WHERE id=? AND user_id=?", (cid, user["id"]))
-        if not cel:
-            raise ApiError(404, "Cellar not found")
-        label, note, conf = _ocr(dict(rnd.choice(CATALOG)), rnd)
         bottles = stored_bottles(c, cel["id"])
-        spot = geo.find_free_spot(racks_of(c, cel["id"]), bottles, cel["width_cm"], lambda r: True)
+        # bottles waiting for confirmation hold their suggested spot too, so two photos never get the same one
+        pending = [json.loads(r["payload"]) for r in db.rows(
+            c, "SELECT payload FROM detections WHERE cellar_id=? AND status='pending'", (cel["id"],))]
+        held = bottles + [{"rack_id": p["rack_id"], "x": p["x"], "y": p["y"], "z": p["z"], "level": p.get("level", 0)}
+                          for p in pending if p.get("rack_id") is not None]
+        spot = geo.find_free_spot(racks_of(c, cel["id"]), held, cel["width_cm"], lambda r: True)
         if not spot:
             raise ApiError(409, "No free space")
         # the bottles already stored are reported as seen, so only the new one changes
         dets = [{"track_id": b["serial"], "position": {"x": b["x"], "y": b["y"], "z": b["z"]}} for b in bottles]
         dets.append({"position": {k: spot[k] for k in ("x", "y", "z")}, "orientation": "lying",
-                     "confidence": round(conf, 2), "label": label, "note": note})
+                     "confidence": round(read["confidence"], 2), "label": read["label"], "note": read["note"]})
         res = reconcile(c, user["id"], cel, dets, source="label-photo")
-    return {"new": res["new"], "provider": "mock"}
+    return {"new": res["new"], "provider": labels.provider()}
 
 
 def confirm_detection(user: dict, did: int, body: dict) -> dict:

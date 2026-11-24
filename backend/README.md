@@ -28,12 +28,12 @@ Production runs the same code in Docker against AWS RDS: see [`../deploy`](../de
 | `services.py` | Accounts, climate, notifications, recommendations, daily briefing, critic debate prompt |
 | `inventory.py` | Cellars, racks, bottles, search, storage recommendations |
 | `geometry.py` | Bottle positions in centimetres, stacking and gravity, free-spot search |
-| `vision.py` | Detection reconciliation (new / moved / removed / occluded), label photos, review queue |
+| `vision.py`, `labels.py` | Detection reconciliation (new / moved / removed / occluded), label photos (Amazon Rekognition or mock), review queue |
 | `devices.py` | Appliance pairing (6-digit code), device tokens, telemetry |
 | `tasting.py` | Sommelier tasting table: personas, memory, streamed multi-critic sessions |
 | `llm.py` | Client for OpenAI-compatible chat APIs, with mock fallback |
 | `live.py` | Live updates: tells a user's open clients over WebSocket (`/api/ws`) that something changed |
-| `market.py`, `news.py`, `catalog.py` | Price data, wine news feeds, reference wine catalogue |
+| `market.py`, `news.py`, `catalog.py` | Market prices (WineAPI.io, cached, refreshed at most daily; simulated without `WINEAPI_KEY`), wine news feeds, reference wine catalogue |
 | `simulator.py` | Simulated climate sensors and the daily briefing job |
 | `db.py` | Schema and database access for SQLite and PostgreSQL |
 | `security.py` | Password hashing and session tokens |
@@ -67,11 +67,13 @@ The API refuses to start if a migration is missing.
 
 ## Tests
 
-End-to-end test of the whole API (accounts, inventory, vision, devices, AI, briefing). It needs no extra packages.
+pytest suite in `tests/` (accounts, auth, inventory, geometry, vision, devices, AI, market, security). CI runs it on
+SQLite and PostgreSQL.
 
 ```bash
-python -m tests.test_api                                       # SQLite, temporary file
-TEST_DATABASE_URL=postgresql://... python -m tests.test_api    # PostgreSQL (the database is WIPED first)
+pip install -r requirements-dev.txt
+python -m pytest -v                                       # SQLite, temporary file
+TEST_DATABASE_URL=postgresql://... python -m pytest -v    # PostgreSQL (the database is WIPED first)
 ```
 
 Run it before committing backend changes. After editing the critic debate prompt in `services.py`, also run

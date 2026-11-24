@@ -666,7 +666,7 @@ def market_summary(user: dict) -> dict:
     return {
         "total": round(total, 2), "change_12m": round((total - total_then) / total_then * 100, 1) if total_then else 0,
         "count": len(bs), "bottles": rows_, "history": [{"date": k, "value": round(v, 2)} for k, v in sorted(agg.items())],
-        "currency": "USD", "source": "wine-searcher" if config.WINE_SEARCHER_API_KEY else "simulated",
+        "currency": "USD", "source": market.summary_source(bs),
     }
 
 

@@ -29,7 +29,14 @@ OPENAI_MODEL = env("OPENAI_MODEL", "gpt-4o-mini")
 VLLM_BASE_URL = env("VLLM_BASE_URL", "http://localhost:8001/v1")
 VLLM_BASE_MODEL = env("VLLM_BASE_MODEL", "Qwen/Qwen2.5-7B-Instruct")
 VLLM_API_KEY = env("VLLM_API_KEY")   # bearer token of the LoRA server / gateway; empty -> "EMPTY" (no auth)
-WINE_SEARCHER_API_KEY = env("WINE_SEARCHER_API_KEY")
+# Real market prices from WineAPI.io (empty key -> simulated prices). See market.py.
+WINEAPI_KEY = env("WINEAPI_KEY")
+WINEAPI_URL = env("WINEAPI_URL", "https://api.wineapi.io")
+PRICE_DAILY_LIMIT = int(env("PRICE_DAILY_LIMIT", "90"))   # requests per UTC day (plan: 100)
+# Label photos ("From photo"): mock | rekognition (Amazon Rekognition DetectText, AWS credentials
+# from the EC2 instance role). See labels.py.
+LABEL_PROVIDER = env("LABEL_PROVIDER", "mock").lower()
+AWS_REGION = env("AWS_REGION", "ap-southeast-2")
 NEWS_FEEDS = [u.strip() for u in env("NEWS_FEEDS", "").split(",") if u.strip()]
 SENSOR_INTERVAL = float(env("SENSOR_INTERVAL", "5"))
 # 0 -> no simulated readings (real cellar devices only); alerts and daily briefings still run

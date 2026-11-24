@@ -1,7 +1,7 @@
 """Framework-agnostic route table, mounted by main.py (FastAPI) and devserver.py (stdlib, used by the tests)."""
 from dataclasses import dataclass
 from typing import Any, Callable
-from . import accounts as acc, devices as dv, inventory as inv, legal, live, llm, mailer, services as s, tasting as t, vision as vi
+from . import accounts as acc, devices as dv, inventory as inv, legal, live, llm, mailer, market, services as s, tasting as t, vision as vi
 
 
 @dataclass
@@ -28,7 +28,7 @@ def _i(x) -> int:
 
 
 ROUTES: list[Route] = [
-    Route("GET", "/api/health", lambda c: {"status": "ok", "llm": llm.provider_info(), "vision": vi.provider_info(), "email": mailer.provider_info()}, auth="none"),
+    Route("GET", "/api/health", lambda c: {"status": "ok", "llm": llm.provider_info(), "vision": vi.provider_info(), "email": mailer.provider_info(), "prices": market.provider_info()}, auth="none"),
     # ---- auth / user (FR1)
     Route("GET", "/api/legal", lambda c: legal.info(), auth="none"),   # consent list + policy texts for sign-up
     Route("POST", "/api/auth/register", lambda c: s.register(c.body), auth="none"),

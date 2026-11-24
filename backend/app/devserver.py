@@ -6,7 +6,7 @@ import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qsl, urlsplit
 
-from . import db, simulator
+from . import db, market, simulator
 from .routes import ROUTES, run, sse
 from .services import ApiError
 
@@ -85,6 +85,7 @@ class Handler(BaseHTTPRequestHandler):
 def main(port: int = 8000):
     db.init()
     simulator.start()
+    market.start()
     srv = ThreadingHTTPServer(("0.0.0.0", port), Handler)
     print(f"dev server on http://localhost:{port}  (Ctrl+C to stop)")
     try:

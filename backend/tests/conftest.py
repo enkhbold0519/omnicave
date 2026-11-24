@@ -25,6 +25,8 @@ os.environ["SENSOR_INTERVAL"] = "0.5"
 os.environ["LLM_PROVIDER"] = "mock"
 os.environ["EMAIL_PROVIDER"] = "log"
 os.environ["EMAIL_VERIFICATION_REQUIRED"] = "0"
+# Never call the real price API from tests, even if backend/.env has a key.
+os.environ["WINEAPI_KEY"] = ""
 
 # Ignore DATABASE_URL from backend/.env.
 # PostgreSQL is used only when TEST_DATABASE_URL is explicitly set.
@@ -44,7 +46,7 @@ if test_database_url:
 
 
 # Import the application only AFTER setting environment variables.
-from app import config, db, mailer, simulator  # noqa: E402
+from app import config, db, mailer, market, simulator  # noqa: E402
 from app.devserver import Handler  # noqa: E402
 from http.server import ThreadingHTTPServer  # noqa: E402
 
@@ -84,6 +86,7 @@ def server():
 
     # Start sensor simulator.
     simulator.start()
+    market.start()
 
     # Start development server on an automatically selected port.
     http_server = ThreadingHTTPServer(
