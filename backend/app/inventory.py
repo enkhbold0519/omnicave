@@ -5,7 +5,7 @@ import random
 import secrets
 from datetime import date
 
-from . import db, geometry as geo, market
+from . import db, drinking, geometry as geo, market
 from .catalog import CATALOG
 from .common import ApiError, notify, utc
 
@@ -127,6 +127,7 @@ def bottle_out(b: dict, zones: list[dict] | None = None, latest: dict | None = N
         "source": b["source"], "confidence": b["confidence"], "added_at": b["added_at"], "status": b["status"],
         "wine": {k: b[k] for k in WINE_FIELDS} | {"id": b["wine_id"]},
         "window_status": window_status(b),
+        "drinking_advice": drinking.advice(b, date.today().year),
         "market": market.current(b),
     }
     if zones is not None:
@@ -264,11 +265,22 @@ def upsert_wine(c, w: dict) -> int:
     if w["color"] not in COLORS:
         raise ApiError(400, f"color must be one of {COLORS}")
     w["vintage"] = int(w["vintage"] or 0)
-    yr = w["vintage"] or date.today().year
-    w["drink_from"] = int(w["drink_from"] or yr + 2)
-    w["drink_to"] = int(w["drink_to"] or w["drink_from"] + 10)
+    ex = db.one(c, "SELECT id, drink_from, drink_to FROM wines WHERE name=? AND producer=? AND vintage=?",
+                (w["name"], w["producer"], w["vintage"]))
+    if ex:
+        w["drink_from"] = w["drink_from"] or ex["drink_from"]
+        w["drink_to"] = w["drink_to"] or ex["drink_to"]
+    if not w["drink_from"] or not w["drink_to"]:
+        start, end = drinking.estimate(w)
+        if w["drink_from"]:
+            end = int(w["drink_from"]) + end - start
+        elif w["drink_to"]:
+            start = min(start, int(w["drink_to"]))
+        w["drink_from"] = w["drink_from"] or start
+        w["drink_to"] = w["drink_to"] or end
+    w["drink_from"] = int(w["drink_from"])
+    w["drink_to"] = int(w["drink_to"])
     w["base_price"] = float(w["base_price"] or 50)
-    ex = db.one(c, "SELECT id FROM wines WHERE name=? AND producer=? AND vintage=?", (w["name"], w["producer"], w["vintage"]))
     if ex:
         c.execute(
             "UPDATE wines SET region=COALESCE(?,region), country=COALESCE(?,country), grape=COALESCE(?,grape), color=?, drink_from=?, drink_to=? WHERE id=?",

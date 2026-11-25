@@ -1,0 +1,3262 @@
+{
+"color=red": {
+"from": 6,
+"n_from": 6750,
+"to": 13,
+"n_to": 3704,
+"len": 8,
+"n_len": 1959
+},
+"color=sparkling": {
+"from": 9,
+"n_from": 68,
+"to": 11,
+"n_to": 30,
+"len": 8,
+"n_len": 11
+},
+"color=white": {
+"from": 3,
+"n_from": 1512,
+"to": 10,
+"n_to": 1024,
+"len": 10,
+"n_len": 287
+},
+"color|country=red|argentina": {
+"from": 5,
+"n_from": 7,
+"to": 9,
+"n_to": 215,
+"len": 8,
+"n_len": 7
+},
+"color|country=red|australia": {
+"from": 6,
+"n_from": 112,
+"to": 14,
+"n_to": 176,
+"len": 10,
+"n_len": 111
+},
+"color|country=red|austria": {
+"from": 5,
+"n_from": 18,
+"to": 14,
+"n_to": 19,
+"len": 8,
+"n_len": 18
+},
+"color|country=red|canada": {
+"to": 12,
+"n_to": 5
+},
+"color|country=red|chile": {
+"to": 9,
+"n_to": 107
+},
+"color|country=red|france": {
+"from": 5,
+"n_from": 3419,
+"to": 7,
+"n_to": 216,
+"len": 9,
+"n_len": 19
+},
+"color|country=red|germany": {
+"to": 8,
+"n_to": 17
+},
+"color|country=red|italy": {
+"from": 8,
+"n_from": 1562,
+"to": 15,
+"n_to": 1775,
+"len": 8,
+"n_len": 1223
+},
+"color|country=red|new zealand": {
+"from": 5,
+"n_from": 27,
+"to": 13,
+"n_to": 49,
+"len": 8,
+"n_len": 27
+},
+"color|country=red|portugal": {
+"from": 5,
+"n_from": 683,
+"to": 6,
+"n_to": 45
+},
+"color|country=red|south africa": {
+"from": 6,
+"n_from": 18,
+"to": 10,
+"n_to": 32,
+"len": 4,
+"n_len": 16
+},
+"color|country=red|spain": {
+"from": 7,
+"n_from": 43,
+"to": 13,
+"n_to": 317,
+"len": 11,
+"n_len": 40
+},
+"color|country=red|us": {
+"from": 7,
+"n_from": 855,
+"to": 15,
+"n_to": 727,
+"len": 7,
+"n_len": 492
+},
+"color|country=sparkling|england": {
+"from": 5,
+"n_from": 8,
+"to": 14,
+"n_to": 8,
+"len": 8,
+"n_len": 8
+},
+"color|country=sparkling|france": {
+"from": 10,
+"n_from": 55,
+"to": 10,
+"n_to": 9
+},
+"color|country=sparkling|spain": {
+"to": 8,
+"n_to": 5
+},
+"color|country=white|australia": {
+"from": 4,
+"n_from": 16,
+"to": 11,
+"n_to": 34,
+"len": 8,
+"n_len": 16
+},
+"color|country=white|austria": {
+"from": 4,
+"n_from": 96,
+"to": 14,
+"n_to": 111,
+"len": 10,
+"n_len": 96
+},
+"color|country=white|france": {
+"from": 4,
+"n_from": 1118,
+"to": 15,
+"n_to": 338,
+"len": 13,
+"n_len": 123
+},
+"color|country=white|germany": {
+"from": 5,
+"n_from": 9,
+"to": 5,
+"n_to": 306
+},
+"color|country=white|italy": {
+"to": 8,
+"n_to": 59
+},
+"color|country=white|new zealand": {
+"from": 4,
+"n_from": 9,
+"to": 10,
+"n_to": 14,
+"len": 6,
+"n_len": 9
+},
+"color|country=white|portugal": {
+"from": 2,
+"n_from": 200,
+"to": 3,
+"n_to": 8
+},
+"color|country=white|south africa": {
+"from": 5,
+"n_from": 8,
+"to": 9,
+"n_to": 16,
+"len": 5,
+"n_len": 5
+},
+"color|country=white|spain": {
+"to": 6,
+"n_to": 8
+},
+"color|country=white|us": {
+"from": 5,
+"n_from": 50,
+"to": 7,
+"n_to": 120,
+"len": 5,
+"n_len": 30
+},
+"color|grape=red|aglianico": {
+"from": 9,
+"n_from": 55,
+"to": 15,
+"n_to": 86,
+"len": 10,
+"n_len": 43
+},
+"color|grape=red|barbera": {
+"to": 6,
+"n_to": 56
+},
+"color|grape=red|bordeaux-style red blend": {
+"from": 6,
+"n_from": 2159,
+"to": 10,
+"n_to": 197,
+"len": 7,
+"n_len": 69
+},
+"color|grape=red|cabernet franc": {
+"from": 4,
+"n_from": 94,
+"to": 9,
+"n_to": 68,
+"len": 8,
+"n_len": 14
+},
+"color|grape=red|cabernet sauvignon": {
+"from": 9,
+"n_from": 387,
+"to": 15,
+"n_to": 415,
+"len": 7,
+"n_len": 269
+},
+"color|grape=red|cabernet sauvignon-merlot": {
+"from": 6,
+"n_from": 6,
+"to": 13,
+"n_to": 6
+},
+"color|grape=red|g-s-m": {
+"to": 10,
+"n_to": 6
+},
+"color|grape=red|gamay": {
+"from": 3,
+"n_from": 555,
+"to": 3,
+"n_to": 26
+},
+"color|grape=red|grenache": {
+"from": 5,
+"n_from": 15,
+"to": 12,
+"n_to": 34,
+"len": 10,
+"n_len": 12
+},
+"color|grape=red|lagrein": {
+"to": 7,
+"n_to": 7
+},
+"color|grape=red|malbec": {
+"from": 5,
+"n_from": 127,
+"to": 9,
+"n_to": 154,
+"len": 8,
+"n_len": 8
+},
+"color|grape=red|merlot": {
+"from": 6,
+"n_from": 82,
+"to": 10,
+"n_to": 37,
+"len": 6,
+"n_len": 18
+},
+"color|grape=red|monastrell": {
+"to": 8,
+"n_to": 7
+},
+"color|grape=red|montepulciano": {
+"to": 10,
+"n_to": 6
+},
+"color|grape=red|nebbiolo": {
+"from": 8,
+"n_from": 928,
+"to": 15,
+"n_to": 808,
+"len": 9,
+"n_len": 713
+},
+"color|grape=red|nerello mascalese": {
+"from": 5,
+"n_from": 11,
+"to": 10,
+"n_to": 25,
+"len": 7,
+"n_len": 10
+},
+"color|grape=red|nero d'avola": {
+"to": 7,
+"n_to": 38
+},
+"color|grape=red|petit verdot": {
+"from": 6,
+"n_from": 11,
+"to": 8,
+"n_to": 7
+},
+"color|grape=red|petite sirah": {
+"from": 8,
+"n_from": 68,
+"to": 14,
+"n_to": 28,
+"len": 8,
+"n_len": 15
+},
+"color|grape=red|pinot noir": {
+"from": 6,
+"n_from": 768,
+"to": 11,
+"n_to": 353,
+"len": 8,
+"n_len": 147
+},
+"color|grape=red|portuguese red": {
+"from": 5,
+"n_from": 652,
+"to": 6,
+"n_to": 44
+},
+"color|grape=red|sagrantino": {
+"from": 8,
+"n_from": 25,
+"to": 17,
+"n_to": 26,
+"len": 8,
+"n_len": 22
+},
+"color|grape=red|sangiovese": {
+"from": 8,
+"n_from": 533,
+"to": 13,
+"n_to": 694,
+"len": 8,
+"n_len": 425
+},
+"color|grape=red|syrah": {
+"from": 6,
+"n_from": 191,
+"to": 13,
+"n_to": 261,
+"len": 10,
+"n_len": 131
+},
+"color|grape=red|tempranillo": {
+"from": 7,
+"n_from": 44,
+"to": 13,
+"n_to": 264,
+"len": 11,
+"n_len": 37
+},
+"color|grape=red|tinta de toro": {
+"to": 11,
+"n_to": 31
+},
+"color|grape=red|zinfandel": {
+"from": 6,
+"n_from": 24,
+"to": 10,
+"n_to": 20,
+"len": 5,
+"n_len": 10
+},
+"color|grape=sparkling|champagne blend": {
+"from": 10,
+"n_from": 57,
+"to": 11,
+"n_to": 10
+},
+"color|grape=sparkling|sparkling blend": {
+"from": 5,
+"n_from": 9,
+"to": 10,
+"n_to": 20,
+"len": 8,
+"n_len": 8
+},
+"color|grape=white|albarino": {
+"from": 2,
+"n_from": 33
+},
+"color|grape=white|bordeaux-style white blend": {
+"from": 4,
+"n_from": 254,
+"to": 4,
+"n_to": 20
+},
+"color|grape=white|chardonnay": {
+"from": 4,
+"n_from": 580,
+"to": 10,
+"n_to": 178,
+"len": 7,
+"n_len": 63
+},
+"color|grape=white|chenin blanc": {
+"from": 3,
+"n_from": 36,
+"to": 6,
+"n_to": 11
+},
+"color|grape=white|fiano": {
+"to": 9,
+"n_to": 5
+},
+"color|grape=white|garganega": {
+"to": 6,
+"n_to": 7
+},
+"color|grape=white|marsanne": {
+"to": 6,
+"n_to": 6
+},
+"color|grape=white|melon": {
+"from": 2,
+"n_from": 15
+},
+"color|grape=white|muscat": {
+"to": 16,
+"n_to": 7
+},
+"color|grape=white|pinot blanc": {
+"from": 4,
+"n_from": 5,
+"to": 6,
+"n_to": 25,
+"len": 10,
+"n_len": 5
+},
+"color|grape=white|pinot gris": {
+"from": 5,
+"n_from": 25,
+"to": 13,
+"n_to": 68,
+"len": 13,
+"n_len": 25
+},
+"color|grape=white|portuguese white": {
+"from": 2,
+"n_from": 154
+},
+"color|grape=white|riesling": {
+"from": 4,
+"n_from": 174,
+"to": 11,
+"n_to": 563,
+"len": 13,
+"n_len": 163
+},
+"color|grape=white|roussanne": {
+"to": 9,
+"n_to": 7
+},
+"color|grape=white|sauvignon blanc": {
+"from": 3,
+"n_from": 203,
+"to": 9,
+"n_to": 43,
+"len": 10,
+"n_len": 20
+},
+"color|grape=white|verdicchio": {
+"to": 7,
+"n_to": 19
+},
+"color|grape=white|vermentino": {
+"from": 2,
+"n_from": 6
+},
+"color|grape=white|viognier": {
+"from": 3,
+"n_from": 5,
+"to": 7,
+"n_to": 15
+},
+"color|grape=white|white blend": {
+"from": 3,
+"n_from": 15,
+"to": 7,
+"n_to": 30
+},
+"color|grape|country=red|aglianico|italy": {
+"from": 8,
+"n_from": 52,
+"to": 15,
+"n_to": 86,
+"len": 10,
+"n_len": 43
+},
+"color|grape|country=red|barbera|italy": {
+"to": 6,
+"n_to": 56
+},
+"color|grape|country=red|bordeaux-style red blend|argentina": {
+"to": 10,
+"n_to": 26
+},
+"color|grape|country=red|bordeaux-style red blend|australia": {
+"to": 12,
+"n_to": 7
+},
+"color|grape|country=red|bordeaux-style red blend|chile": {
+"to": 11,
+"n_to": 5
+},
+"color|grape|country=red|bordeaux-style red blend|france": {
+"from": 6,
+"n_from": 2052,
+"to": 6,
+"n_to": 77
+},
+"color|grape|country=red|bordeaux-style red blend|new zealand": {
+"from": 5,
+"n_from": 5,
+"to": 13,
+"n_to": 10,
+"len": 8,
+"n_len": 5
+},
+"color|grape|country=red|bordeaux-style red blend|south africa": {
+"from": 6,
+"n_from": 5,
+"to": 12,
+"n_to": 9,
+"len": 5,
+"n_len": 5
+},
+"color|grape|country=red|bordeaux-style red blend|us": {
+"from": 9,
+"n_from": 91,
+"to": 16,
+"n_to": 60,
+"len": 6,
+"n_len": 54
+},
+"color|grape|country=red|cabernet franc|argentina": {
+"to": 8,
+"n_to": 19
+},
+"color|grape|country=red|cabernet franc|chile": {
+"to": 9,
+"n_to": 7
+},
+"color|grape|country=red|cabernet franc|france": {
+"from": 4,
+"n_from": 71,
+"to": 5,
+"n_to": 5
+},
+"color|grape|country=red|cabernet franc|italy": {
+"to": 12,
+"n_to": 9
+},
+"color|grape|country=red|cabernet franc|us": {
+"from": 6,
+"n_from": 17,
+"to": 10,
+"n_to": 24,
+"len": 6,
+"n_len": 8
+},
+"color|grape|country=red|cabernet sauvignon|argentina": {
+"to": 8,
+"n_to": 28
+},
+"color|grape|country=red|cabernet sauvignon|australia": {
+"from": 6,
+"n_from": 29,
+"to": 14,
+"n_to": 52,
+"len": 10,
+"n_len": 28
+},
+"color|grape|country=red|cabernet sauvignon|chile": {
+"to": 10,
+"n_to": 58
+},
+"color|grape|country=red|cabernet sauvignon|france": {
+"from": 5,
+"n_from": 7
+},
+"color|grape|country=red|cabernet sauvignon|italy": {
+"to": 7,
+"n_to": 7
+},
+"color|grape|country=red|cabernet sauvignon|portugal": {
+"from": 5,
+"n_from": 5
+},
+"color|grape|country=red|cabernet sauvignon|south africa": {
+"from": 6,
+"n_from": 8,
+"to": 10,
+"n_to": 9,
+"len": 4,
+"n_len": 6
+},
+"color|grape|country=red|cabernet sauvignon|spain": {
+"to": 13,
+"n_to": 6
+},
+"color|grape|country=red|cabernet sauvignon|us": {
+"from": 10,
+"n_from": 328,
+"to": 15,
+"n_to": 252,
+"len": 5,
+"n_len": 225
+},
+"color|grape|country=red|gamay|france": {
+"from": 3,
+"n_from": 555,
+"to": 3,
+"n_to": 25
+},
+"color|grape|country=red|grenache|australia": {
+"from": 4,
+"n_from": 5,
+"to": 14,
+"n_to": 9,
+"len": 10,
+"n_len": 5
+},
+"color|grape|country=red|grenache|france": {
+"to": 10,
+"n_to": 6
+},
+"color|grape|country=red|grenache|spain": {
+"to": 8,
+"n_to": 8
+},
+"color|grape|country=red|grenache|us": {
+"from": 5,
+"n_from": 8,
+"to": 14,
+"n_to": 9,
+"len": 10,
+"n_len": 5
+},
+"color|grape|country=red|lagrein|italy": {
+"to": 7,
+"n_to": 6
+},
+"color|grape|country=red|malbec|argentina": {
+"from": 4,
+"n_from": 6,
+"to": 9,
+"n_to": 136,
+"len": 8,
+"n_len": 6
+},
+"color|grape|country=red|malbec|chile": {
+"to": 8,
+"n_to": 9
+},
+"color|grape|country=red|malbec|france": {
+"from": 5,
+"n_from": 116
+},
+"color|grape|country=red|malbec|us": {
+"from": 7,
+"n_from": 5,
+"to": 12,
+"n_to": 6
+},
+"color|grape|country=red|merlot|france": {
+"from": 5,
+"n_from": 51
+},
+"color|grape|country=red|merlot|italy": {
+"from": 5,
+"n_from": 7,
+"to": 10,
+"n_to": 11,
+"len": 7,
+"n_len": 6
+},
+"color|grape|country=red|merlot|us": {
+"from": 7,
+"n_from": 21,
+"to": 10,
+"n_to": 16,
+"len": 5,
+"n_len": 12
+},
+"color|grape|country=red|monastrell|spain": {
+"to": 6,
+"n_to": 6
+},
+"color|grape|country=red|montepulciano|italy": {
+"to": 10,
+"n_to": 5
+},
+"color|grape|country=red|nebbiolo|italy": {
+"from": 8,
+"n_from": 923,
+"to": 15,
+"n_to": 803,
+"len": 9,
+"n_len": 708
+},
+"color|grape|country=red|nebbiolo|us": {
+"from": 6,
+"n_from": 5,
+"to": 20,
+"n_to": 5,
+"len": 11,
+"n_len": 5
+},
+"color|grape|country=red|nerello mascalese|italy": {
+"from": 5,
+"n_from": 11,
+"to": 10,
+"n_to": 25,
+"len": 7,
+"n_len": 10
+},
+"color|grape|country=red|nero d'avola|italy": {
+"to": 7,
+"n_to": 38
+},
+"color|grape|country=red|petite sirah|us": {
+"from": 8,
+"n_from": 68,
+"to": 14,
+"n_to": 28,
+"len": 8,
+"n_len": 15
+},
+"color|grape|country=red|pinot noir|australia": {
+"to": 11,
+"n_to": 11
+},
+"color|grape|country=red|pinot noir|austria": {
+"from": 5,
+"n_from": 18,
+"to": 14,
+"n_to": 18,
+"len": 8,
+"n_len": 18
+},
+"color|grape|country=red|pinot noir|france": {
+"from": 6,
+"n_from": 542,
+"to": 8,
+"n_to": 42,
+"len": 7,
+"n_len": 7
+},
+"color|grape|country=red|pinot noir|germany": {
+"to": 8,
+"n_to": 17
+},
+"color|grape|country=red|pinot noir|new zealand": {
+"from": 4,
+"n_from": 11,
+"to": 11,
+"n_to": 27,
+"len": 7,
+"n_len": 11
+},
+"color|grape|country=red|pinot noir|us": {
+"from": 5,
+"n_from": 189,
+"to": 11,
+"n_to": 228,
+"len": 8,
+"n_len": 108
+},
+"color|grape|country=red|portuguese red|portugal": {
+"from": 5,
+"n_from": 652,
+"to": 6,
+"n_to": 43
+},
+"color|grape|country=red|sagrantino|italy": {
+"from": 8,
+"n_from": 25,
+"to": 17,
+"n_to": 26,
+"len": 8,
+"n_len": 22
+},
+"color|grape|country=red|sangiovese|italy": {
+"from": 8,
+"n_from": 530,
+"to": 13,
+"n_to": 688,
+"len": 8,
+"n_len": 424
+},
+"color|grape|country=red|sangiovese|us": {
+"to": 10,
+"n_to": 6
+},
+"color|grape|country=red|syrah|australia": {
+"from": 6,
+"n_from": 67,
+"to": 15,
+"n_to": 91,
+"len": 10,
+"n_len": 67
+},
+"color|grape|country=red|syrah|chile": {
+"to": 9,
+"n_to": 21
+},
+"color|grape|country=red|syrah|france": {
+"from": 6,
+"n_from": 19,
+"to": 10,
+"n_to": 52,
+"len": 10,
+"n_len": 11
+},
+"color|grape|country=red|syrah|italy": {
+"to": 8,
+"n_to": 14
+},
+"color|grape|country=red|syrah|new zealand": {
+"from": 5,
+"n_from": 8,
+"to": 13,
+"n_to": 9,
+"len": 8,
+"n_len": 8
+},
+"color|grape|country=red|syrah|portugal": {
+"from": 4,
+"n_from": 15
+},
+"color|grape|country=red|syrah|south africa": {
+"to": 10,
+"n_to": 8
+},
+"color|grape|country=red|syrah|us": {
+"from": 6,
+"n_from": 77,
+"to": 15,
+"n_to": 60,
+"len": 10,
+"n_len": 40
+},
+"color|grape|country=red|tempranillo|spain": {
+"from": 7,
+"n_from": 35,
+"to": 13,
+"n_to": 257,
+"len": 11,
+"n_len": 33
+},
+"color|grape|country=red|tempranillo|us": {
+"from": 7,
+"n_from": 9,
+"to": 12,
+"n_to": 6
+},
+"color|grape|country=red|tinta de toro|spain": {
+"to": 11,
+"n_to": 31
+},
+"color|grape|country=red|zinfandel|us": {
+"from": 6,
+"n_from": 24,
+"to": 10,
+"n_to": 20,
+"len": 5,
+"n_len": 10
+},
+"color|grape|country=sparkling|champagne blend|france": {
+"from": 10,
+"n_from": 54,
+"to": 10,
+"n_to": 7
+},
+"color|grape|country=sparkling|sparkling blend|england": {
+"from": 4,
+"n_from": 5,
+"to": 12,
+"n_to": 5,
+"len": 8,
+"n_len": 5
+},
+"color|grape|country=sparkling|sparkling blend|spain": {
+"to": 8,
+"n_to": 5
+},
+"color|grape|country=white|albarino|portugal": {
+"from": 2,
+"n_from": 33
+},
+"color|grape|country=white|bordeaux-style white blend|france": {
+"from": 4,
+"n_from": 251,
+"to": 4,
+"n_to": 19
+},
+"color|grape|country=white|chardonnay|australia": {
+"from": 4,
+"n_from": 6,
+"to": 10,
+"n_to": 18,
+"len": 8,
+"n_len": 6
+},
+"color|grape|country=white|chardonnay|austria": {
+"to": 14,
+"n_to": 7
+},
+"color|grape|country=white|chardonnay|france": {
+"from": 4,
+"n_from": 512,
+"to": 12,
+"n_to": 54,
+"len": 10,
+"n_len": 14
+},
+"color|grape|country=white|chardonnay|new zealand": {
+"from": 4,
+"n_from": 7,
+"to": 12,
+"n_to": 11,
+"len": 7,
+"n_len": 7
+},
+"color|grape|country=white|chardonnay|south africa": {
+"to": 9,
+"n_to": 6
+},
+"color|grape|country=white|chardonnay|us": {
+"from": 5,
+"n_from": 41,
+"to": 10,
+"n_to": 70,
+"len": 5,
+"n_len": 26
+},
+"color|grape|country=white|chenin blanc|france": {
+"from": 3,
+"n_from": 34,
+"to": 5,
+"n_to": 6
+},
+"color|grape|country=white|chenin blanc|south africa": {
+"to": 12,
+"n_to": 5
+},
+"color|grape|country=white|fiano|italy": {
+"to": 9,
+"n_to": 5
+},
+"color|grape|country=white|garganega|italy": {
+"to": 6,
+"n_to": 7
+},
+"color|grape|country=white|marsanne|france": {
+"to": 5,
+"n_to": 5
+},
+"color|grape|country=white|melon|france": {
+"from": 2,
+"n_from": 15
+},
+"color|grape|country=white|muscat|france": {
+"to": 18,
+"n_to": 6
+},
+"color|grape|country=white|pinot blanc|austria": {
+"from": 4,
+"n_from": 5,
+"to": 14,
+"n_to": 6,
+"len": 10,
+"n_len": 5
+},
+"color|grape|country=white|pinot blanc|germany": {
+"to": 5,
+"n_to": 14
+},
+"color|grape|country=white|pinot gris|france": {
+"from": 5,
+"n_from": 24,
+"to": 15,
+"n_to": 45,
+"len": 13,
+"n_len": 24
+},
+"color|grape|country=white|pinot gris|germany": {
+"to": 5,
+"n_to": 6
+},
+"color|grape|country=white|pinot gris|us": {
+"to": 4,
+"n_to": 14
+},
+"color|grape|country=white|portuguese white|portugal": {
+"from": 2,
+"n_from": 154
+},
+"color|grape|country=white|riesling|australia": {
+"from": 3,
+"n_from": 10,
+"to": 11,
+"n_to": 16,
+"len": 9,
+"n_len": 10
+},
+"color|grape|country=white|riesling|austria": {
+"from": 4,
+"n_from": 67,
+"to": 18,
+"n_to": 73,
+"len": 12,
+"n_len": 67
+},
+"color|grape|country=white|riesling|france": {
+"from": 3,
+"n_from": 83,
+"to": 18,
+"n_to": 167,
+"len": 15,
+"n_len": 82
+},
+"color|grape|country=white|riesling|germany": {
+"from": 5,
+"n_from": 9,
+"to": 5,
+"n_to": 278
+},
+"color|grape|country=white|riesling|us": {
+"to": 7,
+"n_to": 26
+},
+"color|grape|country=white|sauvignon blanc|austria": {
+"from": 4,
+"n_from": 18,
+"to": 14,
+"n_to": 21,
+"len": 10,
+"n_len": 18
+},
+"color|grape|country=white|sauvignon blanc|france": {
+"from": 3,
+"n_from": 180,
+"to": 4,
+"n_to": 11
+},
+"color|grape|country=white|sauvignon blanc|germany": {
+"to": 6,
+"n_to": 5
+},
+"color|grape|country=white|verdicchio|italy": {
+"to": 7,
+"n_to": 19
+},
+"color|grape|country=white|vermentino|france": {
+"from": 2,
+"n_from": 6
+},
+"color|grape|country=white|viognier|france": {
+"to": 8,
+"n_to": 14
+},
+"color|grape|country=white|white blend|france": {
+"from": 2,
+"n_from": 8,
+"to": 4,
+"n_to": 5
+},
+"color|grape|country=white|white blend|italy": {
+"to": 8,
+"n_to": 15
+},
+"color|grape|country=white|white blend|spain": {
+"to": 7,
+"n_to": 5
+},
+"color|grape|country|province=red|aglianico|italy|southern italy": {
+"from": 8,
+"n_from": 52,
+"to": 15,
+"n_to": 86,
+"len": 10,
+"n_len": 43
+},
+"color|grape|country|province=red|barbera|italy|piedmont": {
+"to": 6,
+"n_to": 56
+},
+"color|grape|country|province=red|bordeaux-style red blend|argentina|mendoza province": {
+"to": 10,
+"n_to": 25
+},
+"color|grape|country|province=red|bordeaux-style red blend|france|bordeaux": {
+"from": 6,
+"n_from": 2031,
+"to": 6,
+"n_to": 77
+},
+"color|grape|country|province=red|bordeaux-style red blend|france|southwest france": {
+"from": 4,
+"n_from": 21
+},
+"color|grape|country|province=red|bordeaux-style red blend|new zealand|hawke's bay": {
+"from": 5,
+"n_from": 5,
+"to": 13,
+"n_to": 10,
+"len": 8,
+"n_len": 5
+},
+"color|grape|country|province=red|bordeaux-style red blend|us|california": {
+"from": 10,
+"n_from": 44,
+"to": 15,
+"n_to": 45,
+"len": 6,
+"n_len": 42
+},
+"color|grape|country|province=red|bordeaux-style red blend|us|washington": {
+"from": 9,
+"n_from": 45,
+"to": 16,
+"n_to": 13,
+"len": 6,
+"n_len": 12
+},
+"color|grape|country|province=red|cabernet franc|argentina|mendoza province": {
+"to": 8,
+"n_to": 18
+},
+"color|grape|country|province=red|cabernet franc|france|loire valley": {
+"from": 4,
+"n_from": 67,
+"to": 5,
+"n_to": 5
+},
+"color|grape|country|province=red|cabernet franc|italy|tuscany": {
+"to": 12,
+"n_to": 9
+},
+"color|grape|country|province=red|cabernet franc|us|california": {
+"from": 6,
+"n_from": 13,
+"to": 13,
+"n_to": 11,
+"len": 6,
+"n_len": 8
+},
+"color|grape|country|province=red|cabernet franc|us|new york": {
+"to": 8,
+"n_to": 13
+},
+"color|grape|country|province=red|cabernet sauvignon|argentina|mendoza province": {
+"to": 8,
+"n_to": 28
+},
+"color|grape|country|province=red|cabernet sauvignon|australia|south australia": {
+"from": 5,
+"n_from": 18,
+"to": 14,
+"n_to": 31,
+"len": 10,
+"n_len": 18
+},
+"color|grape|country|province=red|cabernet sauvignon|australia|western australia": {
+"from": 7,
+"n_from": 10,
+"to": 15,
+"n_to": 19,
+"len": 12,
+"n_len": 9
+},
+"color|grape|country|province=red|cabernet sauvignon|chile|cachapoal valley": {
+"to": 9,
+"n_to": 7
+},
+"color|grape|country|province=red|cabernet sauvignon|chile|colchagua valley": {
+"to": 10,
+"n_to": 10
+},
+"color|grape|country|province=red|cabernet sauvignon|chile|maipo valley": {
+"to": 9,
+"n_to": 28
+},
+"color|grape|country|province=red|cabernet sauvignon|chile|puente alto": {
+"to": 10,
+"n_to": 6
+},
+"color|grape|country|province=red|cabernet sauvignon|france|bordeaux": {
+"from": 5,
+"n_from": 5
+},
+"color|grape|country|province=red|cabernet sauvignon|italy|tuscany": {
+"to": 7,
+"n_to": 5
+},
+"color|grape|country|province=red|cabernet sauvignon|south africa|stellenbosch": {
+"from": 6,
+"n_from": 7,
+"to": 10,
+"n_to": 7,
+"len": 4,
+"n_len": 5
+},
+"color|grape|country|province=red|cabernet sauvignon|us|california": {
+"from": 10,
+"n_from": 252,
+"to": 15,
+"n_to": 234,
+"len": 5,
+"n_len": 209
+},
+"color|grape|country|province=red|cabernet sauvignon|us|washington": {
+"from": 8,
+"n_from": 72,
+"to": 16,
+"n_to": 17,
+"len": 7,
+"n_len": 15
+},
+"color|grape|country|province=red|gamay|france|beaujolais": {
+"from": 3,
+"n_from": 555,
+"to": 3,
+"n_to": 25
+},
+"color|grape|country|province=red|grenache|australia|south australia": {
+"from": 4,
+"n_from": 5,
+"to": 14,
+"n_to": 9,
+"len": 10,
+"n_len": 5
+},
+"color|grape|country|province=red|grenache|france|rhne valley": {
+"to": 10,
+"n_to": 6
+},
+"color|grape|country|province=red|grenache|spain|northern spain": {
+"to": 10,
+"n_to": 6
+},
+"color|grape|country|province=red|grenache|us|california": {
+"from": 4,
+"n_from": 5,
+"to": 14,
+"n_to": 8
+},
+"color|grape|country|province=red|lagrein|italy|northeastern italy": {
+"to": 7,
+"n_to": 6
+},
+"color|grape|country|province=red|malbec|argentina|mendoza province": {
+"from": 4,
+"n_from": 6,
+"to": 9,
+"n_to": 127,
+"len": 8,
+"n_len": 6
+},
+"color|grape|country|province=red|malbec|argentina|other": {
+"to": 8,
+"n_to": 9
+},
+"color|grape|country|province=red|malbec|france|bordeaux": {
+"from": 5,
+"n_from": 6
+},
+"color|grape|country|province=red|malbec|france|southwest france": {
+"from": 5,
+"n_from": 108
+},
+"color|grape|country|province=red|malbec|us|california": {
+"from": 7,
+"n_from": 5
+},
+"color|grape|country|province=red|merlot|france|bordeaux": {
+"from": 5,
+"n_from": 49
+},
+"color|grape|country|province=red|merlot|italy|tuscany": {
+"from": 6,
+"n_from": 6,
+"to": 10,
+"n_to": 10,
+"len": 7,
+"n_len": 6
+},
+"color|grape|country|province=red|merlot|us|california": {
+"from": 8,
+"n_from": 10,
+"to": 14,
+"n_to": 11,
+"len": 5,
+"n_len": 9
+},
+"color|grape|country|province=red|merlot|us|washington": {
+"from": 6,
+"n_from": 9
+},
+"color|grape|country|province=red|monastrell|spain|levante": {
+"to": 6,
+"n_to": 6
+},
+"color|grape|country|province=red|montepulciano|italy|central italy": {
+"to": 10,
+"n_to": 5
+},
+"color|grape|country|province=red|nebbiolo|italy|lombardy": {
+"from": 8,
+"n_from": 20,
+"to": 15,
+"n_to": 32,
+"len": 10,
+"n_len": 18
+},
+"color|grape|country|province=red|nebbiolo|italy|piedmont": {
+"from": 8,
+"n_from": 903,
+"to": 15,
+"n_to": 770,
+"len": 9,
+"n_len": 690
+},
+"color|grape|country|province=red|nebbiolo|us|california": {
+"from": 6,
+"n_from": 5,
+"to": 20,
+"n_to": 5,
+"len": 11,
+"n_len": 5
+},
+"color|grape|country|province=red|nerello mascalese|italy|sicily sardinia": {
+"from": 5,
+"n_from": 11,
+"to": 10,
+"n_to": 25,
+"len": 7,
+"n_len": 10
+},
+"color|grape|country|province=red|nero d'avola|italy|sicily sardinia": {
+"to": 7,
+"n_to": 38
+},
+"color|grape|country|province=red|petite sirah|us|california": {
+"from": 8,
+"n_from": 67,
+"to": 14,
+"n_to": 28,
+"len": 8,
+"n_len": 15
+},
+"color|grape|country|province=red|pinot noir|australia|victoria": {
+"to": 12,
+"n_to": 6
+},
+"color|grape|country|province=red|pinot noir|austria|niedersterreich": {
+"from": 5,
+"n_from": 6,
+"to": 12,
+"n_to": 6,
+"len": 6,
+"n_len": 6
+},
+"color|grape|country|province=red|pinot noir|austria|thermenregion": {
+"from": 6,
+"n_from": 7,
+"to": 15,
+"n_to": 7,
+"len": 8,
+"n_len": 7
+},
+"color|grape|country|province=red|pinot noir|france|alsace": {
+"from": 3,
+"n_from": 6,
+"to": 10,
+"n_to": 9,
+"len": 7,
+"n_len": 6
+},
+"color|grape|country|province=red|pinot noir|france|burgundy": {
+"from": 6,
+"n_from": 492,
+"to": 8,
+"n_to": 31
+},
+"color|grape|country|province=red|pinot noir|france|champagne": {
+"from": 11,
+"n_from": 9
+},
+"color|grape|country|province=red|pinot noir|france|loire valley": {
+"from": 4,
+"n_from": 34
+},
+"color|grape|country|province=red|pinot noir|new zealand|central otago": {
+"to": 12,
+"n_to": 10
+},
+"color|grape|country|province=red|pinot noir|new zealand|marlborough": {
+"to": 10,
+"n_to": 6
+},
+"color|grape|country|province=red|pinot noir|us|california": {
+"from": 6,
+"n_from": 111,
+"to": 11,
+"n_to": 95,
+"len": 10,
+"n_len": 56
+},
+"color|grape|country|province=red|pinot noir|us|new york": {
+"to": 7,
+"n_to": 8
+},
+"color|grape|country|province=red|pinot noir|us|oregon": {
+"from": 5,
+"n_from": 75,
+"to": 12,
+"n_to": 125,
+"len": 8,
+"n_len": 52
+},
+"color|grape|country|province=red|portuguese red|portugal|alentejano": {
+"from": 4,
+"n_from": 119
+},
+"color|grape|country|province=red|portuguese red|portugal|alentejo": {
+"from": 5,
+"n_from": 11
+},
+"color|grape|country|province=red|portuguese red|portugal|bairrada": {
+"from": 4,
+"n_from": 10
+},
+"color|grape|country|province=red|portuguese red|portugal|beira interior": {
+"from": 6,
+"n_from": 6
+},
+"color|grape|country|province=red|portuguese red|portugal|do": {
+"from": 5,
+"n_from": 59,
+"to": 7,
+"n_to": 6
+},
+"color|grape|country|province=red|portuguese red|portugal|douro": {
+"from": 5,
+"n_from": 288,
+"to": 6,
+"n_to": 25
+},
+"color|grape|country|province=red|portuguese red|portugal|lisboa": {
+"from": 4,
+"n_from": 62
+},
+"color|grape|country|province=red|portuguese red|portugal|pennsula de setbal": {
+"from": 4,
+"n_from": 10
+},
+"color|grape|country|province=red|portuguese red|portugal|tejo": {
+"from": 4,
+"n_from": 70
+},
+"color|grape|country|province=red|portuguese red|portugal|trs-os-montes": {
+"from": 4,
+"n_from": 6
+},
+"color|grape|country|province=red|sagrantino|italy|central italy": {
+"from": 8,
+"n_from": 25,
+"to": 17,
+"n_to": 26,
+"len": 8,
+"n_len": 22
+},
+"color|grape|country|province=red|sangiovese|italy|central italy": {
+"to": 6,
+"n_to": 16
+},
+"color|grape|country|province=red|sangiovese|italy|tuscany": {
+"from": 8,
+"n_from": 530,
+"to": 13,
+"n_to": 672,
+"len": 8,
+"n_len": 424
+},
+"color|grape|country|province=red|sangiovese|us|california": {
+"to": 10,
+"n_to": 6
+},
+"color|grape|country|province=red|syrah|australia|south australia": {
+"from": 6,
+"n_from": 62,
+"to": 15,
+"n_to": 84,
+"len": 10,
+"n_len": 62
+},
+"color|grape|country|province=red|syrah|australia|victoria": {
+"from": 6,
+"n_from": 5,
+"to": 18,
+"n_to": 6,
+"len": 13,
+"n_len": 5
+},
+"color|grape|country|province=red|syrah|chile|marchigue": {
+"to": 9,
+"n_to": 5
+},
+"color|grape|country|province=red|syrah|france|rhne valley": {
+"from": 6,
+"n_from": 17,
+"to": 10,
+"n_to": 52,
+"len": 10,
+"n_len": 11
+},
+"color|grape|country|province=red|syrah|italy|tuscany": {
+"to": 9,
+"n_to": 9
+},
+"color|grape|country|province=red|syrah|new zealand|hawke's bay": {
+"from": 5,
+"n_from": 7,
+"to": 13,
+"n_to": 8,
+"len": 8,
+"n_len": 7
+},
+"color|grape|country|province=red|syrah|portugal|tejo": {
+"from": 4,
+"n_from": 6
+},
+"color|grape|country|province=red|syrah|us|california": {
+"from": 5,
+"n_from": 42,
+"to": 15,
+"n_to": 46,
+"len": 11,
+"n_len": 31
+},
+"color|grape|country|province=red|syrah|us|oregon": {
+"from": 9,
+"n_from": 12,
+"to": 12,
+"n_to": 7
+},
+"color|grape|country|province=red|syrah|us|washington": {
+"from": 7,
+"n_from": 23,
+"to": 15,
+"n_to": 7,
+"len": 7,
+"n_len": 5
+},
+"color|grape|country|province=red|tempranillo|spain|northern spain": {
+"from": 7,
+"n_from": 35,
+"to": 13,
+"n_to": 257,
+"len": 11,
+"n_len": 33
+},
+"color|grape|country|province=red|tempranillo|us|california": {
+"from": 7,
+"n_from": 7
+},
+"color|grape|country|province=red|tinta de toro|spain|northern spain": {
+"to": 11,
+"n_to": 31
+},
+"color|grape|country|province=red|zinfandel|us|california": {
+"from": 7,
+"n_from": 23,
+"to": 10,
+"n_to": 19,
+"len": 5,
+"n_len": 9
+},
+"color|grape|country|province=sparkling|champagne blend|france|champagne": {
+"from": 10,
+"n_from": 54,
+"to": 10,
+"n_to": 7
+},
+"color|grape|country|province=sparkling|sparkling blend|england|england": {
+"from": 4,
+"n_from": 5,
+"to": 12,
+"n_to": 5,
+"len": 8,
+"n_len": 5
+},
+"color|grape|country|province=sparkling|sparkling blend|spain|catalonia": {
+"to": 8,
+"n_to": 5
+},
+"color|grape|country|province=white|albarino|portugal|minho": {
+"from": 2,
+"n_from": 7
+},
+"color|grape|country|province=white|albarino|portugal|vinho verde": {
+"from": 2,
+"n_from": 19
+},
+"color|grape|country|province=white|bordeaux-style white blend|france|bordeaux": {
+"from": 4,
+"n_from": 240,
+"to": 4,
+"n_to": 19
+},
+"color|grape|country|province=white|bordeaux-style white blend|france|southwest france": {
+"from": 4,
+"n_from": 11
+},
+"color|grape|country|province=white|chardonnay|australia|victoria": {
+"to": 10,
+"n_to": 6
+},
+"color|grape|country|province=white|chardonnay|australia|western australia": {
+"from": 4,
+"n_from": 5,
+"to": 12,
+"n_to": 8,
+"len": 7,
+"n_len": 5
+},
+"color|grape|country|province=white|chardonnay|france|burgundy": {
+"from": 4,
+"n_from": 491,
+"to": 13,
+"n_to": 50,
+"len": 10,
+"n_len": 14
+},
+"color|grape|country|province=white|chardonnay|france|champagne": {
+"from": 8,
+"n_from": 16
+},
+"color|grape|country|province=white|chardonnay|us|california": {
+"from": 5,
+"n_from": 23,
+"to": 10,
+"n_to": 20,
+"len": 5,
+"n_len": 15
+},
+"color|grape|country|province=white|chardonnay|us|new york": {
+"to": 5,
+"n_to": 17
+},
+"color|grape|country|province=white|chardonnay|us|oregon": {
+"from": 4,
+"n_from": 13,
+"to": 10,
+"n_to": 30,
+"len": 6,
+"n_len": 9
+},
+"color|grape|country|province=white|chenin blanc|france|loire valley": {
+"from": 3,
+"n_from": 34,
+"to": 5,
+"n_to": 6
+},
+"color|grape|country|province=white|fiano|italy|southern italy": {
+"to": 9,
+"n_to": 5
+},
+"color|grape|country|province=white|garganega|italy|veneto": {
+"to": 6,
+"n_to": 7
+},
+"color|grape|country|province=white|marsanne|france|rhne valley": {
+"to": 5,
+"n_to": 5
+},
+"color|grape|country|province=white|melon|france|loire valley": {
+"from": 2,
+"n_from": 14
+},
+"color|grape|country|province=white|muscat|france|alsace": {
+"to": 18,
+"n_to": 6
+},
+"color|grape|country|province=white|pinot blanc|germany|pfalz": {
+"to": 6,
+"n_to": 5
+},
+"color|grape|country|province=white|pinot gris|france|alsace": {
+"from": 5,
+"n_from": 24,
+"to": 15,
+"n_to": 45,
+"len": 13,
+"n_len": 24
+},
+"color|grape|country|province=white|pinot gris|us|oregon": {
+"to": 4,
+"n_to": 10
+},
+"color|grape|country|province=white|portuguese white|portugal|alentejano": {
+"from": 2,
+"n_from": 32
+},
+"color|grape|country|province=white|portuguese white|portugal|do": {
+"from": 2,
+"n_from": 11
+},
+"color|grape|country|province=white|portuguese white|portugal|douro": {
+"from": 2,
+"n_from": 62
+},
+"color|grape|country|province=white|portuguese white|portugal|lisboa": {
+"from": 2,
+"n_from": 26
+},
+"color|grape|country|province=white|portuguese white|portugal|tejo": {
+"from": 2,
+"n_from": 11
+},
+"color|grape|country|province=white|portuguese white|portugal|vinho verde": {
+"from": 2,
+"n_from": 6
+},
+"color|grape|country|province=white|riesling|australia|south australia": {
+"from": 4,
+"n_from": 5,
+"to": 11,
+"n_to": 10,
+"len": 8,
+"n_len": 5
+},
+"color|grape|country|province=white|riesling|austria|kamptal": {
+"from": 4,
+"n_from": 16,
+"to": 22,
+"n_to": 17,
+"len": 15,
+"n_len": 16
+},
+"color|grape|country|province=white|riesling|austria|kremstal": {
+"from": 3,
+"n_from": 15,
+"to": 14,
+"n_to": 19,
+"len": 10,
+"n_len": 15
+},
+"color|grape|country|province=white|riesling|austria|wachau": {
+"from": 4,
+"n_from": 29,
+"to": 19,
+"n_to": 29,
+"len": 15,
+"n_len": 29
+},
+"color|grape|country|province=white|riesling|france|alsace": {
+"from": 3,
+"n_from": 83,
+"to": 18,
+"n_to": 167,
+"len": 15,
+"n_len": 82
+},
+"color|grape|country|province=white|riesling|germany|mosel": {
+"from": 5,
+"n_from": 5,
+"to": 5,
+"n_to": 168
+},
+"color|grape|country|province=white|riesling|germany|nahe": {
+"to": 6,
+"n_to": 16
+},
+"color|grape|country|province=white|riesling|germany|pfalz": {
+"to": 6,
+"n_to": 17
+},
+"color|grape|country|province=white|riesling|germany|rheingau": {
+"to": 6,
+"n_to": 32
+},
+"color|grape|country|province=white|riesling|germany|rheinhessen": {
+"to": 5,
+"n_to": 38
+},
+"color|grape|country|province=white|riesling|us|new york": {
+"to": 5,
+"n_to": 16
+},
+"color|grape|country|province=white|riesling|us|oregon": {
+"to": 15,
+"n_to": 9
+},
+"color|grape|country|province=white|sauvignon blanc|austria|sdsteiermark": {
+"from": 4,
+"n_from": 12,
+"to": 14,
+"n_to": 14,
+"len": 10,
+"n_len": 12
+},
+"color|grape|country|province=white|sauvignon blanc|austria|vulkanland steiermark": {
+"from": 5,
+"n_from": 5,
+"to": 15,
+"n_to": 6,
+"len": 10,
+"n_len": 5
+},
+"color|grape|country|province=white|sauvignon blanc|france|bordeaux": {
+"from": 2,
+"n_from": 9
+},
+"color|grape|country|province=white|sauvignon blanc|france|loire valley": {
+"from": 3,
+"n_from": 167,
+"to": 4,
+"n_to": 11
+},
+"color|grape|country|province=white|verdicchio|italy|central italy": {
+"to": 7,
+"n_to": 19
+},
+"color|grape|country|province=white|viognier|france|rhne valley": {
+"to": 8,
+"n_to": 14
+},
+"color|grape|country|province=white|white blend|france|southwest france": {
+"from": 2,
+"n_from": 6
+},
+"color|grape|country|province=white|white blend|spain|northern spain": {
+"to": 7,
+"n_to": 5
+},
+"color|grape|country|region=red|aglianico|italy|aglianico del vulture": {
+"from": 7,
+"n_from": 5,
+"to": 10,
+"n_to": 13,
+"len": 8,
+"n_len": 5
+},
+"color|grape|country|region=red|aglianico|italy|irpinia": {
+"to": 6,
+"n_to": 11
+},
+"color|grape|country|region=red|aglianico|italy|taurasi": {
+"from": 10,
+"n_from": 41,
+"to": 18,
+"n_to": 57,
+"len": 10,
+"n_len": 35
+},
+"color|grape|country|region=red|barbera|italy|barbera d'alba superiore": {
+"to": 6,
+"n_to": 6
+},
+"color|grape|country|region=red|barbera|italy|barbera d'asti": {
+"to": 4,
+"n_to": 20
+},
+"color|grape|country|region=red|barbera|italy|barbera d'asti superiore": {
+"to": 6,
+"n_to": 17
+},
+"color|grape|country|region=red|barbera|italy|nizza": {
+"to": 9,
+"n_to": 6
+},
+"color|grape|country|region=red|bordeaux-style red blend|argentina|mendoza": {
+"to": 10,
+"n_to": 16
+},
+"color|grape|country|region=red|bordeaux-style red blend|argentina|uco valley": {
+"to": 10,
+"n_to": 7
+},
+"color|grape|country|region=red|bordeaux-style red blend|france|bergerac": {
+"from": 4,
+"n_from": 10
+},
+"color|grape|country|region=red|bordeaux-style red blend|france|blaye ctes de bordeaux": {
+"from": 5,
+"n_from": 128
+},
+"color|grape|country|region=red|bordeaux-style red blend|france|bordeaux": {
+"from": 3,
+"n_from": 151
+},
+"color|grape|country|region=red|bordeaux-style red blend|france|bordeaux suprieur": {
+"from": 4,
+"n_from": 164,
+"to": 4,
+"n_to": 8
+},
+"color|grape|country|region=red|bordeaux-style red blend|france|cadillac ctes de bordeaux": {
+"from": 5,
+"n_from": 52
+},
+"color|grape|country|region=red|bordeaux-style red blend|france|canon-fronsac": {
+"from": 7,
+"n_from": 6
+},
+"color|grape|country|region=red|bordeaux-style red blend|france|castillon ctes de bordeaux": {
+"from": 5,
+"n_from": 71
+},
+"color|grape|country|region=red|bordeaux-style red blend|france|ctes de bergerac": {
+"from": 5,
+"n_from": 5
+},
+"color|grape|country|region=red|bordeaux-style red blend|france|ctes de bordeaux": {
+"from": 5,
+"n_from": 18
+},
+"color|grape|country|region=red|bordeaux-style red blend|france|ctes de bourg": {
+"from": 5,
+"n_from": 39
+},
+"color|grape|country|region=red|bordeaux-style red blend|france|francs ctes de bordeaux": {
+"from": 5,
+"n_from": 9
+},
+"color|grape|country|region=red|bordeaux-style red blend|france|fronsac": {
+"from": 6,
+"n_from": 23
+},
+"color|grape|country|region=red|bordeaux-style red blend|france|graves": {
+"from": 5,
+"n_from": 52
+},
+"color|grape|country|region=red|bordeaux-style red blend|france|haut-mdoc": {
+"from": 6,
+"n_from": 200,
+"to": 7,
+"n_to": 5
+},
+"color|grape|country|region=red|bordeaux-style red blend|france|lalande de pomerol": {
+"from": 5,
+"n_from": 43
+},
+"color|grape|country|region=red|bordeaux-style red blend|france|listrac-mdoc": {
+"from": 7,
+"n_from": 36
+},
+"color|grape|country|region=red|bordeaux-style red blend|france|lussac saint-milion": {
+"from": 6,
+"n_from": 14
+},
+"color|grape|country|region=red|bordeaux-style red blend|france|margaux": {
+"from": 7,
+"n_from": 94
+},
+"color|grape|country|region=red|bordeaux-style red blend|france|mdoc": {
+"from": 6,
+"n_from": 173,
+"to": 6,
+"n_to": 7
+},
+"color|grape|country|region=red|bordeaux-style red blend|france|montagne-saint-milion": {
+"from": 5,
+"n_from": 24
+},
+"color|grape|country|region=red|bordeaux-style red blend|france|moulis-en-mdoc": {
+"from": 7,
+"n_from": 32
+},
+"color|grape|country|region=red|bordeaux-style red blend|france|pauillac": {
+"from": 7,
+"n_from": 75,
+"to": 9,
+"n_to": 6
+},
+"color|grape|country|region=red|bordeaux-style red blend|france|pessac-lognan": {
+"from": 7,
+"n_from": 77
+},
+"color|grape|country|region=red|bordeaux-style red blend|france|pomerol": {
+"from": 7,
+"n_from": 57,
+"to": 8,
+"n_to": 7
+},
+"color|grape|country|region=red|bordeaux-style red blend|france|puisseguin saint-milion": {
+"from": 6,
+"n_from": 26
+},
+"color|grape|country|region=red|bordeaux-style red blend|france|saint-estphe": {
+"from": 8,
+"n_from": 88
+},
+"color|grape|country|region=red|bordeaux-style red blend|france|saint-georges-saint-milion": {
+"from": 5,
+"n_from": 7
+},
+"color|grape|country|region=red|bordeaux-style red blend|france|saint-julien": {
+"from": 7,
+"n_from": 60
+},
+"color|grape|country|region=red|bordeaux-style red blend|france|saint-milion": {
+"from": 7,
+"n_from": 301,
+"to": 8,
+"n_to": 10
+},
+"color|grape|country|region=red|bordeaux-style red blend|new zealand|hawke's bay": {
+"from": 5,
+"n_from": 5,
+"to": 13,
+"n_to": 10,
+"len": 8,
+"n_len": 5
+},
+"color|grape|country|region=red|bordeaux-style red blend|us|columbia valley wa": {
+"from": 8,
+"n_from": 15
+},
+"color|grape|country|region=red|bordeaux-style red blend|us|napa valley": {
+"from": 10,
+"n_from": 25,
+"to": 15,
+"n_to": 24,
+"len": 6,
+"n_len": 24
+},
+"color|grape|country|region=red|bordeaux-style red blend|us|paso robles": {
+"to": 20,
+"n_to": 5
+},
+"color|grape|country|region=red|bordeaux-style red blend|us|red mountain": {
+"from": 8,
+"n_from": 10
+},
+"color|grape|country|region=red|bordeaux-style red blend|us|walla walla valley wa": {
+"from": 9,
+"n_from": 17,
+"to": 18,
+"n_to": 7,
+"len": 6,
+"n_len": 7
+},
+"color|grape|country|region=red|cabernet franc|argentina|mendoza": {
+"to": 7,
+"n_to": 11
+},
+"color|grape|country|region=red|cabernet franc|france|bourgueil": {
+"from": 3,
+"n_from": 7
+},
+"color|grape|country|region=red|cabernet franc|france|chinon": {
+"from": 4,
+"n_from": 32
+},
+"color|grape|country|region=red|cabernet franc|france|saint-nicolas-de-bourgueil": {
+"from": 4,
+"n_from": 12
+},
+"color|grape|country|region=red|cabernet franc|france|saumur-champigny": {
+"from": 4,
+"n_from": 11
+},
+"color|grape|country|region=red|cabernet franc|italy|toscana": {
+"to": 12,
+"n_to": 8
+},
+"color|grape|country|region=red|cabernet franc|us|north fork of long island": {
+"to": 8,
+"n_to": 10
+},
+"color|grape|country|region=red|cabernet sauvignon|argentina|lujn de cuyo": {
+"to": 9,
+"n_to": 5
+},
+"color|grape|country|region=red|cabernet sauvignon|argentina|mendoza": {
+"to": 8,
+"n_to": 13
+},
+"color|grape|country|region=red|cabernet sauvignon|australia|margaret river": {
+"from": 7,
+"n_from": 8,
+"to": 14,
+"n_to": 16,
+"len": 13,
+"n_len": 7
+},
+"color|grape|country|region=red|cabernet sauvignon|australia|mclaren vale": {
+"from": 5,
+"n_from": 7,
+"to": 14,
+"n_to": 13,
+"len": 10,
+"n_len": 7
+},
+"color|grape|country|region=red|cabernet sauvignon|chile|cachapoal valley": {
+"to": 9,
+"n_to": 7
+},
+"color|grape|country|region=red|cabernet sauvignon|chile|colchagua valley": {
+"to": 10,
+"n_to": 10
+},
+"color|grape|country|region=red|cabernet sauvignon|chile|maipo valley": {
+"to": 9,
+"n_to": 28
+},
+"color|grape|country|region=red|cabernet sauvignon|chile|puente alto": {
+"to": 10,
+"n_to": 6
+},
+"color|grape|country|region=red|cabernet sauvignon|south africa|stellenbosch": {
+"from": 6,
+"n_from": 7,
+"to": 10,
+"n_to": 7,
+"len": 4,
+"n_len": 5
+},
+"color|grape|country|region=red|cabernet sauvignon|us|alexander valley": {
+"from": 10,
+"n_from": 5,
+"to": 15,
+"n_to": 5,
+"len": 5,
+"n_len": 5
+},
+"color|grape|country|region=red|cabernet sauvignon|us|columbia valley wa": {
+"from": 8,
+"n_from": 29
+},
+"color|grape|country|region=red|cabernet sauvignon|us|diamond mountain district": {
+"from": 10,
+"n_from": 8,
+"to": 15,
+"n_to": 8,
+"len": 5,
+"n_len": 8
+},
+"color|grape|country|region=red|cabernet sauvignon|us|happy canyon of santa barbara": {
+"from": 5,
+"n_from": 6,
+"to": 15,
+"n_to": 7,
+"len": 11,
+"n_len": 6
+},
+"color|grape|country|region=red|cabernet sauvignon|us|horse heaven hills": {
+"from": 9,
+"n_from": 5
+},
+"color|grape|country|region=red|cabernet sauvignon|us|howell mountain": {
+"from": 10,
+"n_from": 9,
+"to": 15,
+"n_to": 10,
+"len": 5,
+"n_len": 8
+},
+"color|grape|country|region=red|cabernet sauvignon|us|livermore valley": {
+"from": 7,
+"n_from": 18
+},
+"color|grape|country|region=red|cabernet sauvignon|us|napa valley": {
+"from": 10,
+"n_from": 65,
+"to": 15,
+"n_to": 64,
+"len": 5,
+"n_len": 62
+},
+"color|grape|country|region=red|cabernet sauvignon|us|oak knoll district": {
+"from": 10,
+"n_from": 6
+},
+"color|grape|country|region=red|cabernet sauvignon|us|oakville": {
+"from": 10,
+"n_from": 26,
+"to": 15,
+"n_to": 28,
+"len": 5,
+"n_len": 26
+},
+"color|grape|country|region=red|cabernet sauvignon|us|paso robles": {
+"from": 4,
+"n_from": 5,
+"to": 20,
+"n_to": 5,
+"len": 16,
+"n_len": 5
+},
+"color|grape|country|region=red|cabernet sauvignon|us|red hills": {
+"from": 8,
+"n_from": 6
+},
+"color|grape|country|region=red|cabernet sauvignon|us|red mountain": {
+"from": 9,
+"n_from": 19
+},
+"color|grape|country|region=red|cabernet sauvignon|us|rutherford": {
+"from": 10,
+"n_from": 16,
+"to": 15,
+"n_to": 16,
+"len": 5,
+"n_len": 16
+},
+"color|grape|country|region=red|cabernet sauvignon|us|st helena": {
+"from": 10,
+"n_from": 18,
+"to": 19,
+"n_to": 17,
+"len": 10,
+"n_len": 17
+},
+"color|grape|country|region=red|cabernet sauvignon|us|stags leap district": {
+"from": 10,
+"n_from": 11,
+"to": 15,
+"n_to": 11,
+"len": 5,
+"n_len": 11
+},
+"color|grape|country|region=red|cabernet sauvignon|us|walla walla valley wa": {
+"from": 9,
+"n_from": 13
+},
+"color|grape|country|region=red|cabernet sauvignon|us|yountville": {
+"from": 10,
+"n_from": 5,
+"to": 20,
+"n_to": 5,
+"len": 10,
+"n_len": 5
+},
+"color|grape|country|region=red|gamay|france|beaujolais-villages": {
+"from": 2,
+"n_from": 14
+},
+"color|grape|country|region=red|gamay|france|brouilly": {
+"from": 2,
+"n_from": 37
+},
+"color|grape|country|region=red|gamay|france|chiroubles": {
+"from": 2,
+"n_from": 11
+},
+"color|grape|country|region=red|gamay|france|chnas": {
+"from": 3,
+"n_from": 24
+},
+"color|grape|country|region=red|gamay|france|cte de brouilly": {
+"from": 3,
+"n_from": 28
+},
+"color|grape|country|region=red|gamay|france|fleurie": {
+"from": 3,
+"n_from": 80
+},
+"color|grape|country|region=red|gamay|france|julinas": {
+"from": 3,
+"n_from": 50
+},
+"color|grape|country|region=red|gamay|france|morgon": {
+"from": 3,
+"n_from": 143,
+"to": 3,
+"n_to": 5
+},
+"color|grape|country|region=red|gamay|france|moulin--vent": {
+"from": 3,
+"n_from": 107,
+"to": 4,
+"n_to": 9
+},
+"color|grape|country|region=red|gamay|france|rgni": {
+"from": 2,
+"n_from": 14
+},
+"color|grape|country|region=red|gamay|france|saint-amour": {
+"from": 2,
+"n_from": 46
+},
+"color|grape|country|region=red|grenache|australia|mclaren vale": {
+"from": 4,
+"n_from": 5,
+"to": 16,
+"n_to": 6,
+"len": 10,
+"n_len": 5
+},
+"color|grape|country|region=red|lagrein|italy|alto adige": {
+"to": 7,
+"n_to": 6
+},
+"color|grape|country|region=red|malbec|argentina|la consulta": {
+"to": 12,
+"n_to": 6
+},
+"color|grape|country|region=red|malbec|argentina|lujn de cuyo": {
+"to": 9,
+"n_to": 13
+},
+"color|grape|country|region=red|malbec|argentina|mendoza": {
+"to": 9,
+"n_to": 58
+},
+"color|grape|country|region=red|malbec|argentina|tupungato": {
+"to": 9,
+"n_to": 11
+},
+"color|grape|country|region=red|malbec|argentina|uco valley": {
+"to": 10,
+"n_to": 28
+},
+"color|grape|country|region=red|malbec|france|cahors": {
+"from": 5,
+"n_from": 104
+},
+"color|grape|country|region=red|merlot|france|blaye ctes de bordeaux": {
+"from": 5,
+"n_from": 9
+},
+"color|grape|country|region=red|merlot|france|bordeaux suprieur": {
+"from": 4,
+"n_from": 6
+},
+"color|grape|country|region=red|merlot|france|fronsac": {
+"from": 5,
+"n_from": 5
+},
+"color|grape|country|region=red|merlot|france|saint-milion": {
+"from": 7,
+"n_from": 5
+},
+"color|grape|country|region=red|merlot|italy|toscana": {
+"from": 6,
+"n_from": 5,
+"to": 11,
+"n_to": 8,
+"len": 7,
+"n_len": 5
+},
+"color|grape|country|region=red|merlot|us|walla walla valley wa": {
+"from": 6,
+"n_from": 6
+},
+"color|grape|country|region=red|nebbiolo|italy|barbaresco": {
+"from": 7,
+"n_from": 230,
+"to": 16,
+"n_to": 210,
+"len": 10,
+"n_len": 194
+},
+"color|grape|country|region=red|nebbiolo|italy|barolo": {
+"from": 8,
+"n_from": 655,
+"to": 15,
+"n_to": 537,
+"len": 8,
+"n_len": 479
+},
+"color|grape|country|region=red|nebbiolo|italy|coste della sesia": {
+"from": 8,
+"n_from": 5,
+"to": 18,
+"n_to": 6
+},
+"color|grape|country|region=red|nebbiolo|italy|gattinara": {
+"from": 8,
+"n_from": 5,
+"to": 18,
+"n_to": 5,
+"len": 9,
+"n_len": 5
+},
+"color|grape|country|region=red|nebbiolo|italy|lessona": {
+"from": 6,
+"n_from": 6,
+"to": 20,
+"n_to": 6,
+"len": 13,
+"n_len": 6
+},
+"color|grape|country|region=red|nebbiolo|italy|sforzato di valtellina": {
+"from": 8,
+"n_from": 5,
+"to": 15,
+"n_to": 6,
+"len": 8,
+"n_len": 5
+},
+"color|grape|country|region=red|nebbiolo|italy|valtellina superiore": {
+"from": 7,
+"n_from": 15,
+"to": 17,
+"n_to": 25,
+"len": 10,
+"n_len": 13
+},
+"color|grape|country|region=red|nerello mascalese|italy|etna": {
+"from": 6,
+"n_from": 8,
+"to": 12,
+"n_to": 14,
+"len": 7,
+"n_len": 7
+},
+"color|grape|country|region=red|nerello mascalese|italy|terre siciliane": {
+"to": 11,
+"n_to": 8
+},
+"color|grape|country|region=red|nero d'avola|italy|sicilia": {
+"to": 7,
+"n_to": 27
+},
+"color|grape|country|region=red|petite sirah|us|lake county": {
+"from": 8,
+"n_from": 6
+},
+"color|grape|country|region=red|petite sirah|us|livermore valley": {
+"from": 7,
+"n_from": 11
+},
+"color|grape|country|region=red|petite sirah|us|lodi": {
+"from": 7,
+"n_from": 5
+},
+"color|grape|country|region=red|petite sirah|us|red hills": {
+"from": 7,
+"n_from": 7
+},
+"color|grape|country|region=red|petite sirah|us|sierra foothills": {
+"from": 8,
+"n_from": 9
+},
+"color|grape|country|region=red|petite sirah|us|yorkville highlands": {
+"from": 7,
+"n_from": 5
+},
+"color|grape|country|region=red|pinot noir|austria|niedersterreich": {
+"from": 5,
+"n_from": 6,
+"to": 12,
+"n_to": 6,
+"len": 6,
+"n_len": 6
+},
+"color|grape|country|region=red|pinot noir|austria|thermenregion": {
+"from": 6,
+"n_from": 7,
+"to": 15,
+"n_to": 7,
+"len": 8,
+"n_len": 7
+},
+"color|grape|country|region=red|pinot noir|france|aloxe-corton": {
+"from": 4,
+"n_from": 8
+},
+"color|grape|country|region=red|pinot noir|france|alsace": {
+"from": 3,
+"n_from": 6,
+"to": 10,
+"n_to": 9,
+"len": 7,
+"n_len": 6
+},
+"color|grape|country|region=red|pinot noir|france|beaune": {
+"from": 8,
+"n_from": 47
+},
+"color|grape|country|region=red|pinot noir|france|bourgogne": {
+"from": 3,
+"n_from": 11
+},
+"color|grape|country|region=red|pinot noir|france|bourgogne hautes ctes de beaune": {
+"from": 3,
+"n_from": 6
+},
+"color|grape|country|region=red|pinot noir|france|bourgogne hautes ctes de nuits": {
+"from": 4,
+"n_from": 7
+},
+"color|grape|country|region=red|pinot noir|france|chambolle-musigny": {
+"from": 7,
+"n_from": 16
+},
+"color|grape|country|region=red|pinot noir|france|champagne": {
+"from": 11,
+"n_from": 9
+},
+"color|grape|country|region=red|pinot noir|france|clos de vougeot": {
+"from": 9,
+"n_from": 7
+},
+"color|grape|country|region=red|pinot noir|france|corton": {
+"from": 9,
+"n_from": 7
+},
+"color|grape|country|region=red|pinot noir|france|echzeaux": {
+"from": 10,
+"n_from": 5
+},
+"color|grape|country|region=red|pinot noir|france|gevrey-chambertin": {
+"from": 7,
+"n_from": 49
+},
+"color|grape|country|region=red|pinot noir|france|givry": {
+"from": 5,
+"n_from": 16
+},
+"color|grape|country|region=red|pinot noir|france|ladoix": {
+"from": 5,
+"n_from": 5
+},
+"color|grape|country|region=red|pinot noir|france|mercurey": {
+"from": 5,
+"n_from": 67
+},
+"color|grape|country|region=red|pinot noir|france|monthlie": {
+"from": 5,
+"n_from": 6
+},
+"color|grape|country|region=red|pinot noir|france|morey-saint-denis": {
+"from": 9,
+"n_from": 7
+},
+"color|grape|country|region=red|pinot noir|france|nuits-st -georges": {
+"from": 6,
+"n_from": 35
+},
+"color|grape|country|region=red|pinot noir|france|pernand-vergelesses": {
+"from": 6,
+"n_from": 7
+},
+"color|grape|country|region=red|pinot noir|france|pommard": {
+"from": 7,
+"n_from": 38
+},
+"color|grape|country|region=red|pinot noir|france|saint-aubin": {
+"from": 6,
+"n_from": 5
+},
+"color|grape|country|region=red|pinot noir|france|sancerre": {
+"from": 4,
+"n_from": 33
+},
+"color|grape|country|region=red|pinot noir|france|santenay": {
+"from": 6,
+"n_from": 27
+},
+"color|grape|country|region=red|pinot noir|france|savigny-ls-beaune": {
+"from": 6,
+"n_from": 26
+},
+"color|grape|country|region=red|pinot noir|france|volnay": {
+"from": 7,
+"n_from": 20
+},
+"color|grape|country|region=red|pinot noir|france|vosne-romane": {
+"from": 8,
+"n_from": 18
+},
+"color|grape|country|region=red|pinot noir|new zealand|central otago": {
+"to": 12,
+"n_to": 10
+},
+"color|grape|country|region=red|pinot noir|new zealand|marlborough": {
+"to": 10,
+"n_to": 6
+},
+"color|grape|country|region=red|pinot noir|us|anderson valley": {
+"from": 6,
+"n_from": 24,
+"to": 9,
+"n_to": 18
+},
+"color|grape|country|region=red|pinot noir|us|chehalem mountains": {
+"to": 9,
+"n_to": 9
+},
+"color|grape|country|region=red|pinot noir|us|dundee hills": {
+"from": 6,
+"n_from": 11,
+"to": 14,
+"n_to": 25,
+"len": 8,
+"n_len": 8
+},
+"color|grape|country|region=red|pinot noir|us|eola-amity hills": {
+"from": 5,
+"n_from": 9,
+"to": 13,
+"n_to": 18,
+"len": 10,
+"n_len": 8
+},
+"color|grape|country|region=red|pinot noir|us|finger lakes": {
+"to": 7,
+"n_to": 6
+},
+"color|grape|country|region=red|pinot noir|us|mcminnville": {
+"from": 4,
+"n_from": 5,
+"to": 15,
+"n_to": 7
+},
+"color|grape|country|region=red|pinot noir|us|mendocino ridge": {
+"from": 6,
+"n_from": 6,
+"to": 10,
+"n_to": 5
+},
+"color|grape|country|region=red|pinot noir|us|ribbon ridge": {
+"from": 4,
+"n_from": 5,
+"to": 13,
+"n_to": 6
+},
+"color|grape|country|region=red|pinot noir|us|russian river valley": {
+"from": 7,
+"n_from": 21,
+"to": 10,
+"n_to": 18,
+"len": 5,
+"n_len": 18
+},
+"color|grape|country|region=red|pinot noir|us|santa lucia highlands": {
+"from": 4,
+"n_from": 7,
+"to": 16,
+"n_to": 7,
+"len": 13,
+"n_len": 7
+},
+"color|grape|country|region=red|pinot noir|us|sonoma coast": {
+"from": 6,
+"n_from": 13,
+"to": 10,
+"n_to": 5
+},
+"color|grape|country|region=red|pinot noir|us|sta rita hills": {
+"from": 4,
+"n_from": 11,
+"to": 16,
+"n_to": 12,
+"len": 11,
+"n_len": 11
+},
+"color|grape|country|region=red|pinot noir|us|willamette valley": {
+"from": 4,
+"n_from": 23,
+"to": 10,
+"n_to": 44,
+"len": 8,
+"n_len": 18
+},
+"color|grape|country|region=red|pinot noir|us|yamhill-carlton": {
+"from": 5,
+"n_from": 15,
+"to": 14,
+"n_to": 10,
+"len": 8,
+"n_len": 8
+},
+"color|grape|country|region=red|portuguese red|portugal|alentejano": {
+"from": 4,
+"n_from": 119
+},
+"color|grape|country|region=red|portuguese red|portugal|alentejo": {
+"from": 5,
+"n_from": 11
+},
+"color|grape|country|region=red|portuguese red|portugal|bairrada": {
+"from": 4,
+"n_from": 10
+},
+"color|grape|country|region=red|portuguese red|portugal|beira interior": {
+"from": 6,
+"n_from": 6
+},
+"color|grape|country|region=red|portuguese red|portugal|do": {
+"from": 5,
+"n_from": 59,
+"to": 7,
+"n_to": 6
+},
+"color|grape|country|region=red|portuguese red|portugal|douro": {
+"from": 5,
+"n_from": 288,
+"to": 6,
+"n_to": 25
+},
+"color|grape|country|region=red|portuguese red|portugal|lisboa": {
+"from": 4,
+"n_from": 62
+},
+"color|grape|country|region=red|portuguese red|portugal|pennsula de setbal": {
+"from": 4,
+"n_from": 10
+},
+"color|grape|country|region=red|portuguese red|portugal|tejo": {
+"from": 4,
+"n_from": 70
+},
+"color|grape|country|region=red|portuguese red|portugal|trs-os-montes": {
+"from": 4,
+"n_from": 6
+},
+"color|grape|country|region=red|sagrantino|italy|montefalco sagrantino": {
+"from": 8,
+"n_from": 25,
+"to": 17,
+"n_to": 26,
+"len": 8,
+"n_len": 22
+},
+"color|grape|country|region=red|sangiovese|italy|brunello di montalcino": {
+"from": 8,
+"n_from": 467,
+"to": 15,
+"n_to": 451,
+"len": 7,
+"n_len": 363
+},
+"color|grape|country|region=red|sangiovese|italy|chianti classico": {
+"from": 6,
+"n_from": 29,
+"to": 10,
+"n_to": 83,
+"len": 9,
+"n_len": 29
+},
+"color|grape|country|region=red|sangiovese|italy|chianti rufina": {
+"to": 9,
+"n_to": 9
+},
+"color|grape|country|region=red|sangiovese|italy|morellino di scansano": {
+"to": 6,
+"n_to": 6
+},
+"color|grape|country|region=red|sangiovese|italy|romagna": {
+"to": 6,
+"n_to": 16
+},
+"color|grape|country|region=red|sangiovese|italy|rosso di montalcino": {
+"from": 4,
+"n_from": 5,
+"to": 5,
+"n_to": 63
+},
+"color|grape|country|region=red|sangiovese|italy|toscana": {
+"to": 11,
+"n_to": 12
+},
+"color|grape|country|region=red|sangiovese|italy|vino nobile di montepulciano": {
+"from": 7,
+"n_from": 16,
+"to": 13,
+"n_to": 25,
+"len": 10,
+"n_len": 15
+},
+"color|grape|country|region=red|syrah|australia|barossa": {
+"from": 6,
+"n_from": 9,
+"to": 16,
+"n_to": 13,
+"len": 12,
+"n_len": 9
+},
+"color|grape|country|region=red|syrah|australia|barossa valley": {
+"from": 6,
+"n_from": 13,
+"to": 18,
+"n_to": 17,
+"len": 13,
+"n_len": 13
+},
+"color|grape|country|region=red|syrah|australia|clare valley": {
+"from": 6,
+"n_from": 7,
+"to": 14,
+"n_to": 7,
+"len": 8,
+"n_len": 7
+},
+"color|grape|country|region=red|syrah|australia|mclaren vale": {
+"from": 6,
+"n_from": 25,
+"to": 14,
+"n_to": 30,
+"len": 9,
+"n_len": 25
+},
+"color|grape|country|region=red|syrah|australia|south australia": {
+"to": 14,
+"n_to": 7
+},
+"color|grape|country|region=red|syrah|chile|marchigue": {
+"to": 9,
+"n_to": 5
+},
+"color|grape|country|region=red|syrah|france|cornas": {
+"to": 15,
+"n_to": 6
+},
+"color|grape|country|region=red|syrah|france|crozes-hermitage": {
+"to": 10,
+"n_to": 9
+},
+"color|grape|country|region=red|syrah|france|cte rtie": {
+"from": 6,
+"n_from": 8,
+"to": 12,
+"n_to": 17,
+"len": 10,
+"n_len": 5
+},
+"color|grape|country|region=red|syrah|france|hermitage": {
+"from": 7,
+"n_from": 5,
+"to": 14,
+"n_to": 9
+},
+"color|grape|country|region=red|syrah|france|saint-joseph": {
+"to": 12,
+"n_to": 6
+},
+"color|grape|country|region=red|syrah|italy|toscana": {
+"to": 12,
+"n_to": 5
+},
+"color|grape|country|region=red|syrah|new zealand|hawke's bay": {
+"from": 5,
+"n_from": 7,
+"to": 13,
+"n_to": 8,
+"len": 8,
+"n_len": 7
+},
+"color|grape|country|region=red|syrah|portugal|tejo": {
+"from": 4,
+"n_from": 6
+},
+"color|grape|country|region=red|syrah|us|ballard canyon": {
+"from": 4,
+"n_from": 6,
+"to": 15,
+"n_to": 8,
+"len": 14,
+"n_len": 6
+},
+"color|grape|country|region=red|syrah|us|santa barbara county": {
+"from": 5,
+"n_from": 6,
+"to": 15,
+"n_to": 6,
+"len": 10,
+"n_len": 6
+},
+"color|grape|country|region=red|syrah|us|walla walla valley or": {
+"from": 9,
+"n_from": 11
+},
+"color|grape|country|region=red|syrah|us|walla walla valley wa": {
+"from": 7,
+"n_from": 13
+},
+"color|grape|country|region=red|tempranillo|spain|cigales": {
+"to": 10,
+"n_to": 5
+},
+"color|grape|country|region=red|tempranillo|spain|ribera del duero": {
+"from": 6,
+"n_from": 22,
+"to": 14,
+"n_to": 119,
+"len": 12,
+"n_len": 22
+},
+"color|grape|country|region=red|tempranillo|spain|rioja": {
+"from": 8,
+"n_from": 10,
+"to": 14,
+"n_to": 117,
+"len": 13,
+"n_len": 8
+},
+"color|grape|country|region=red|tempranillo|spain|toro": {
+"to": 11,
+"n_to": 7
+},
+"color|grape|country|region=red|tempranillo|spain|vino de la tierra de castilla y len": {
+"to": 12,
+"n_to": 6
+},
+"color|grape|country|region=red|tinta de toro|spain|toro": {
+"to": 11,
+"n_to": 31
+},
+"color|grape|country|region=red|zinfandel|us|amador county": {
+"from": 7,
+"n_from": 6
+},
+"color|grape|country|region=sparkling|champagne blend|france|champagne": {
+"from": 10,
+"n_from": 54,
+"to": 10,
+"n_to": 7
+},
+"color|grape|country|region=sparkling|sparkling blend|england|england": {
+"from": 4,
+"n_from": 5,
+"to": 12,
+"n_to": 5,
+"len": 8,
+"n_len": 5
+},
+"color|grape|country|region=white|albarino|portugal|minho": {
+"from": 2,
+"n_from": 7
+},
+"color|grape|country|region=white|albarino|portugal|vinho verde": {
+"from": 2,
+"n_from": 19
+},
+"color|grape|country|region=white|bordeaux-style white blend|france|barsac": {
+"from": 6,
+"n_from": 10
+},
+"color|grape|country|region=white|bordeaux-style white blend|france|bergerac sec": {
+"from": 2,
+"n_from": 6
+},
+"color|grape|country|region=white|bordeaux-style white blend|france|bordeaux blanc": {
+"from": 2,
+"n_from": 50
+},
+"color|grape|country|region=white|bordeaux-style white blend|france|entre-deux-mers": {
+"from": 2,
+"n_from": 14
+},
+"color|grape|country|region=white|bordeaux-style white blend|france|graves": {
+"from": 3,
+"n_from": 32
+},
+"color|grape|country|region=white|bordeaux-style white blend|france|loupiac": {
+"from": 5,
+"n_from": 8
+},
+"color|grape|country|region=white|bordeaux-style white blend|france|pessac-lognan": {
+"from": 6,
+"n_from": 49,
+"to": 6,
+"n_to": 8
+},
+"color|grape|country|region=white|bordeaux-style white blend|france|sauternes": {
+"from": 8,
+"n_from": 56
+},
+"color|grape|country|region=white|chardonnay|australia|margaret river": {
+"to": 13,
+"n_to": 7
+},
+"color|grape|country|region=white|chardonnay|france|beaune": {
+"from": 6,
+"n_from": 10,
+"to": 17,
+"n_to": 5
+},
+"color|grape|country|region=white|chardonnay|france|bourgogne hautes ctes de nuits": {
+"from": 2,
+"n_from": 6
+},
+"color|grape|country|region=white|chardonnay|france|btard-montrachet": {
+"from": 8,
+"n_from": 6
+},
+"color|grape|country|region=white|chardonnay|france|chablis": {
+"from": 4,
+"n_from": 76
+},
+"color|grape|country|region=white|chardonnay|france|champagne": {
+"from": 8,
+"n_from": 16
+},
+"color|grape|country|region=white|chardonnay|france|chassagne-montrachet": {
+"from": 6,
+"n_from": 45,
+"to": 9,
+"n_to": 8
+},
+"color|grape|country|region=white|chardonnay|france|corton-charlemagne": {
+"from": 7,
+"n_from": 15
+},
+"color|grape|country|region=white|chardonnay|france|mcon la roche vineuse": {
+"from": 3,
+"n_from": 5
+},
+"color|grape|country|region=white|chardonnay|france|mercurey": {
+"from": 4,
+"n_from": 13
+},
+"color|grape|country|region=white|chardonnay|france|meursault": {
+"from": 5,
+"n_from": 42,
+"to": 15,
+"n_to": 8
+},
+"color|grape|country|region=white|chardonnay|france|montagny": {
+"from": 4,
+"n_from": 14
+},
+"color|grape|country|region=white|chardonnay|france|pernand-vergelesses": {
+"from": 4,
+"n_from": 8
+},
+"color|grape|country|region=white|chardonnay|france|pouilly-fuiss": {
+"from": 3,
+"n_from": 77
+},
+"color|grape|country|region=white|chardonnay|france|puligny-montrachet": {
+"from": 5,
+"n_from": 41,
+"to": 14,
+"n_to": 9
+},
+"color|grape|country|region=white|chardonnay|france|rully": {
+"from": 3,
+"n_from": 7
+},
+"color|grape|country|region=white|chardonnay|france|saint-aubin": {
+"from": 5,
+"n_from": 16
+},
+"color|grape|country|region=white|chardonnay|france|saint-vran": {
+"from": 3,
+"n_from": 30
+},
+"color|grape|country|region=white|chardonnay|france|santenay": {
+"from": 4,
+"n_from": 14
+},
+"color|grape|country|region=white|chardonnay|france|vir-cless": {
+"from": 3,
+"n_from": 5
+},
+"color|grape|country|region=white|chardonnay|us|carneros": {
+"from": 5,
+"n_from": 5
+},
+"color|grape|country|region=white|chardonnay|us|dundee hills": {
+"to": 10,
+"n_to": 12
+},
+"color|grape|country|region=white|chardonnay|us|finger lakes": {
+"to": 5,
+"n_to": 7
+},
+"color|grape|country|region=white|chardonnay|us|north fork of long island": {
+"to": 5,
+"n_to": 8
+},
+"color|grape|country|region=white|chardonnay|us|willamette valley": {
+"from": 4,
+"n_from": 7,
+"to": 10,
+"n_to": 8,
+"len": 6,
+"n_len": 5
+},
+"color|grape|country|region=white|chenin blanc|france|vouvray": {
+"from": 3,
+"n_from": 22
+},
+"color|grape|country|region=white|fiano|italy|fiano di avellino": {
+"to": 9,
+"n_to": 5
+},
+"color|grape|country|region=white|garganega|italy|soave classico": {
+"to": 8,
+"n_to": 6
+},
+"color|grape|country|region=white|melon|france|muscadet svre et maine": {
+"from": 2,
+"n_from": 14
+},
+"color|grape|country|region=white|muscat|france|alsace": {
+"to": 18,
+"n_to": 6
+},
+"color|grape|country|region=white|pinot blanc|germany|pfalz": {
+"to": 6,
+"n_to": 5
+},
+"color|grape|country|region=white|pinot gris|france|alsace": {
+"from": 5,
+"n_from": 24,
+"to": 15,
+"n_to": 45,
+"len": 13,
+"n_len": 24
+},
+"color|grape|country|region=white|pinot gris|us|willamette valley": {
+"to": 4,
+"n_to": 7
+},
+"color|grape|country|region=white|portuguese white|portugal|alentejano": {
+"from": 2,
+"n_from": 32
+},
+"color|grape|country|region=white|portuguese white|portugal|do": {
+"from": 2,
+"n_from": 11
+},
+"color|grape|country|region=white|portuguese white|portugal|douro": {
+"from": 2,
+"n_from": 62
+},
+"color|grape|country|region=white|portuguese white|portugal|lisboa": {
+"from": 2,
+"n_from": 26
+},
+"color|grape|country|region=white|portuguese white|portugal|tejo": {
+"from": 2,
+"n_from": 11
+},
+"color|grape|country|region=white|portuguese white|portugal|vinho verde": {
+"from": 2,
+"n_from": 6
+},
+"color|grape|country|region=white|riesling|australia|eden valley": {
+"to": 11,
+"n_to": 6
+},
+"color|grape|country|region=white|riesling|austria|kamptal": {
+"from": 4,
+"n_from": 16,
+"to": 22,
+"n_to": 17,
+"len": 15,
+"n_len": 16
+},
+"color|grape|country|region=white|riesling|austria|kremstal": {
+"from": 3,
+"n_from": 15,
+"to": 14,
+"n_to": 19,
+"len": 10,
+"n_len": 15
+},
+"color|grape|country|region=white|riesling|austria|wachau": {
+"from": 4,
+"n_from": 29,
+"to": 19,
+"n_to": 29,
+"len": 15,
+"n_len": 29
+},
+"color|grape|country|region=white|riesling|france|alsace": {
+"from": 3,
+"n_from": 83,
+"to": 18,
+"n_to": 167,
+"len": 15,
+"n_len": 82
+},
+"color|grape|country|region=white|riesling|germany|mosel": {
+"from": 5,
+"n_from": 5,
+"to": 5,
+"n_to": 168
+},
+"color|grape|country|region=white|riesling|germany|nahe": {
+"to": 6,
+"n_to": 16
+},
+"color|grape|country|region=white|riesling|germany|pfalz": {
+"to": 6,
+"n_to": 17
+},
+"color|grape|country|region=white|riesling|germany|rheingau": {
+"to": 6,
+"n_to": 32
+},
+"color|grape|country|region=white|riesling|germany|rheinhessen": {
+"to": 5,
+"n_to": 38
+},
+"color|grape|country|region=white|riesling|us|finger lakes": {
+"to": 5,
+"n_to": 14
+},
+"color|grape|country|region=white|sauvignon blanc|austria|sdsteiermark": {
+"from": 4,
+"n_from": 12,
+"to": 14,
+"n_to": 14,
+"len": 10,
+"n_len": 12
+},
+"color|grape|country|region=white|sauvignon blanc|austria|vulkanland steiermark": {
+"from": 5,
+"n_from": 5,
+"to": 15,
+"n_to": 6,
+"len": 10,
+"n_len": 5
+},
+"color|grape|country|region=white|sauvignon blanc|france|pouilly-fum": {
+"from": 3,
+"n_from": 50
+},
+"color|grape|country|region=white|sauvignon blanc|france|sancerre": {
+"from": 3,
+"n_from": 111,
+"to": 4,
+"n_to": 8
+},
+"color|grape|country|region=white|verdicchio|italy|verdicchio dei castelli di jesi classico": {
+"to": 10,
+"n_to": 7
+},
+"color|grape|country|region=white|verdicchio|italy|verdicchio dei castelli di jesi classico superiore": {
+"to": 6,
+"n_to": 11
+},
+"color|grape|country|region=white|viognier|france|condrieu": {
+"to": 8,
+"n_to": 13
+},
+"color|grape|country|region=white|white blend|spain|rioja": {
+"to": 7,
+"n_to": 5
+}
+}
