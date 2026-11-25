@@ -323,14 +323,14 @@ These requirements describe the target appliance. The prototype implements label
     \item \textbf{Amazon RDS for PostgreSQL}
 \logofig{rds}{Amazon RDS} The database runs on a managed Amazon RDS instance (PostgreSQL 17, db.t4g.micro) rather than on the EC2 server. RDS handles storage, minor-version patching, and automated daily backups (kept for seven days), and the instance is not publicly accessible: only the EC2 server inside the same virtual private cloud can connect to it. Because the EC2 server keeps no data of its own, it can be rebuilt or replaced at any time without data loss.
     \item \textbf{Amazon Rekognition}
-\logofig{rekognition}{Amazon Rekognition} Amazon Rekognition's text detection (DetectText) reads the text on a wine label photographed with the mobile app. The backend sends the photo with the AWS SDK, using the EC2 instance's IAM role instead of stored access keys, and matches the detected words against its wine catalog. Using a managed service keeps image analysis in the cloud, in line with the thin-client design, and requires no model hosting.
+\logofig{rekognition}{Amazon Rekognition} Amazon Rekognition's text detection (DetectText) reads the text on a wine label photographed with the mobile app. The backend sends the photo with the AWS SDK, using the EC2 instance's IAM role instead of stored access keys; the LLM turns the detected lines into wine details, which are matched against the wine catalog. Using a managed service keeps image analysis in the cloud, in line with the thin-client design, and requires no model hosting.
     \item \textbf{WineAPI.io:} Market prices come from the WineAPI.io REST API (public beta). To stay within the free plan of 100 requests per day, the backend refreshes each wine at most once a day in the background and caches the result in the database.
     \item \textbf{Vercel}
 \logofig{vercel}{Vercel} Vercel is selected to host the React-based integrated display because it specializes in deploying frontend web applications and supports Vite projects without additional configuration. Its GitHub integration automatically builds and deploys the application when changes are pushed, and creates preview deployments for branches so that interface changes can be reviewed before merging. The deployed display retrieves inventory, cellar status, environmental readings, and AI results from the FastAPI backend. Hosting the frontend separately allows it to be developed and deployed independently of the backend.
     \item \textbf{RunPod GPU Cloud and vLLM (Sommelier Model Serving)}
-\logofig{runpod}{RunPod} While the commercial system is intended to run inside the LG Datacenter, the prototype rents a GPU on RunPod only when needed (training and demo sessions). The open-weight Qwen2.5-7B-Instruct model is served by vLLM~\cite{vllm} together with four LoRA adapters~\cite{lora}, one per sommelier; vLLM selects the adapter per request, which implements server-side LoRA swapping without reloading the base model. A small gateway in front of vLLM adds the retrieved evidence for the wine (scores, prices, drinking windows, crowd ranks) to each prompt. The adapters were trained on the same platform in about two hours on one A100 GPU. Token streaming gives a first token in about 1 second through the RunPod proxy.
+\logofig{runpod}{RunPod} While the commercial system is intended to run inside the LG Datacenter, the prototype rents a GPU on RunPod only when needed (training and demo sessions). The open-weight Qwen2.5-7B-Instruct model is served by vLLM~\cite{vllm} together with four LoRA adapters~\cite{lora}, one per sommelier; vLLM selects the adapter per request, which implements server-side LoRA swapping without reloading the base model. A small gateway in front of vLLM adds the retrieved evidence for the wine (scores, prices, drinking windows, crowd ranks) to each prompt. The same base model, without an adapter, reads label text, writes the drinking-window notes, and writes the briefing's AI note. The adapters were trained on the same platform in about two hours on one A100 GPU. Token streaming gives a first token in about 1 second through the RunPod proxy.
     \item \textbf{Mock Provider (Development and Fallback):} During development, and whenever the GPU server is off, the backend answers with a built-in mock provider so that every client remains usable without any paid service.
-    \item \textbf{Architectural Decoupling:} All LLM providers (the mock provider and vLLM) are accessed through one backend interface selected by a configuration value. Moving from the prototype to a commercial LG Datacenter LLM therefore requires only a configuration change, not a refactoring of the backend logic.
+    \item \textbf{Architectural Decoupling:} All LLM providers (the mock provider, vLLM, and an OpenAI-compatible cloud API) are accessed through one backend interface selected by a configuration value. Moving from the prototype to a commercial LG Datacenter LLM therefore requires only a configuration change, not a refactoring of the backend logic.
 \end{enumerate}
 
 \subsubsection{Development Tools}
@@ -480,7 +480,7 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
 \hline iOS Application Developer & Naomi K. Fossaberg & Develop the native SwiftUI iOS application and connect it to the shared backend, including authentication, inventory, climate, sommelier debate streaming, notifications, and its test suite. \\
 \hline Backend, Display \& Cloud Developer & Enkhbold Myagmarjav & Design and implement the FastAPI backend, the React/TypeScript door display, the native Android application, and the AWS deployment (EC2, RDS, Caddy). \\
 \hline Mobile Prototype \& Testing & Chiang Jun Han & Build the first companion-app prototype; write the automated backend and Android tests and the continuous integration pipeline. \\
-\hline AI Developer & Sungbin Bae & Build the sommelier AI: evidence retrieval, teacher-generated training data, LoRA training and evaluation on Qwen2.5-7B, and the vLLM serving gateway. \\
+\hline AI Developer & Sungbin Bae & Build the AI features on Qwen2.5-7B: the sommelier LoRAs (evidence retrieval, teacher-generated data, training, evaluation, serving gateway), LLM label reading, drinking-window estimates and notes, and the briefing's AI note. \\
 \hline
 \end{tabularx}
 \end{minipage}\par\smallskip
@@ -765,7 +765,7 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
     \begin{itemize}
         \item Description: Allows users to request a curated wine list based on specific requirements.
         \item Feature: A wine list generator provides input fields for target budget, flavor profile, occasion, or event theme.
-        \item Action: After submitting the selected constraints, the system filters available wines and generates a customized wine list.
+        \item Action: After submitting the selected constraints, the system filters available wines and generates a customized wine list. In the prototype this runs in the backend only; the apps do not offer the form yet (Section~\ref{sec:limitations}).
     \end{itemize}
 
     \item Inventory and External Wine Recommendations
@@ -793,7 +793,7 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
     \begin{itemize}
         \item Description: Simulates interactive debates~\cite{debate} and expert evaluations among four fictional wine sommeliers~\cite{roleplay} (Victor Hale, Livia Moretti, Marcus Reed, and Jordan Reyes), each with a different scoring philosophy, regarding a selected wine.
         \item Feature: Integrates a centralized cloud LLM (e.g., LG Datacenter) equipped with server-side dynamic Low-Rank Adaptation (LoRA) swapping, so that each sommelier keeps its own style and scoring scale without straining the appliance's local hardware.
-        \item Action: When a wine is registered or actively selected via the touch display, the backend selects each sommelier's LoRA adapter per turn on the GPU server, orchestrates the multi-agent debate, and streams the interactive conversation in real-time to the transparent display.
+        \item Action: When a wine is selected via the touch display, the backend selects each sommelier's LoRA adapter per turn on the GPU server, orchestrates the multi-agent debate, and streams the interactive conversation in real-time to the transparent display.
     \end{itemize}
 
     \item Daily Wine News Briefing
@@ -1082,7 +1082,7 @@ Fig.~\ref{fig:architecture} shows the system. It follows a thin-appliance, smart
     \item \textbf{Cellar appliance:} the door display (a web application on webOS) and the edge agent, which pairs the cellar with an account and sends sensor readings and cellar scans. Neither runs AI models locally.
     \item \textbf{Cloud backend (AWS):} one FastAPI service that holds all business logic and data (Amazon RDS for PostgreSQL) and is shared by every client.
     \item \textbf{Mobile applications:} native Android and iOS apps that use the same API as the door.
-    \item \textbf{AI and data services:} the sommelier models (an AI gateway and vLLM with four LoRA adapters on a RunPod GPU), Amazon Rekognition for reading label photos, and WineAPI.io for market prices. Only the backend calls them; clients never do, so keys and credentials stay on the server.
+    \item \textbf{AI and data services:} the AI models (an AI gateway and vLLM serving Qwen2.5-7B with four sommelier LoRA adapters on a RunPod GPU; the base model also reads labels and writes the drinking and briefing notes), Amazon Rekognition for reading label photos, and WineAPI.io for market prices. Only the backend calls them; clients never do, so keys and credentials stay on the server.
 \end{itemize}
 
 
@@ -1278,9 +1278,9 @@ The repository is one monorepo (Table~\ref{tab:directories}); Tables~\ref{tab:di
 \textbf{Functionality.}
 \begin{enumerate}
     \item \textbf{Cellar:} a to-scale door view and a rotatable 3D view of racks and bottles, with the climate of each zone; Find highlights one bottle in both views.
-    \item \textbf{Inventory:} search across cellars with filters, bottle details with drinking window and value, manual add, edit, move, open, and remove.
+    \item \textbf{Inventory:} search across cellars with filters, bottle details with drinking window, its AI note, and value, manual add, edit, move, open, and remove.
     \item \textbf{Recognition review:} new bottles from label photos or scans wait for the owner to confirm or correct them.
-    \item \textbf{Sommeliers, briefing, and value:} the sommelier tasting table and the owner's own sommeliers, the daily briefing, and the collection value.
+    \item \textbf{Sommeliers, briefing, and value:} the sommelier tasting table and the owner's own sommeliers, the daily briefing with its AI note, and the collection value.
     \item \textbf{Always-on door:} a fixed 1080$\times$1920 portrait canvas, scaled and rotated for landscape panels, with black backgrounds because black pixels are see-through on a transparent OLED; a screen saver and a night mode.
     \item \textbf{Offline:} the last data is cached and changes made offline are queued and sent once the connection returns.
 \end{enumerate}
@@ -1360,7 +1360,9 @@ The repository is one monorepo (Table~\ref{tab:directories}); Tables~\ref{tab:di
 \textbf{Technologies.} Python standard library (OpenCV only for the optional webcam).
 
 \subsection{Module 5: AI Engine}
-\textbf{Purpose.} All AI features run on one open-weight model, Qwen2.5-7B-Instruct~\cite{qwen25}, on a cloud GPU: the sommeliers with their own adapters, and label reading, drinking-window notes, and the news briefing on the base model. Each answer is grounded in retrieved evidence and checked by rules before it is shown; without the GPU server, every feature falls back to a fixed answer. The sommeliers come first: let four sommeliers with clearly different judgment debate any bottle on the door, while every fact they state (scores, prices, drinking windows, crowd ranks) comes from real data. In OmniCave, a \emph{sommelier} is an AI character the owner can seat at a tasting or ask anything about the cellar. The four built-in sommeliers each judge wine like a different kind of critic, and owners can create their own. Together they turn the cellar from storage into a place to taste and decide.
+\textbf{Purpose.} All AI features run on one open-weight model, Qwen2.5-7B-Instruct~\cite{qwen25}, on a cloud GPU: the sommeliers with their own adapters, and label reading, drinking-window notes, and the news briefing on the base model. Each answer is grounded in retrieved evidence and checked by rules before it is shown; without the GPU server, every feature falls back to a fixed answer.
+
+\textbf{Sommeliers.} Four sommeliers with clearly different judgment debate any bottle on the door, while every fact they state (scores, prices, drinking windows, crowd ranks) comes from real data. In OmniCave, a \emph{sommelier} is an AI character the owner can seat at a tasting or ask anything about the cellar. The four built-in sommeliers each judge wine like a different kind of critic, and owners can create their own. Together they turn the cellar from storage into a place to taste and decide.
 
 \textbf{Design decision: adapters, not prompts.} We first gave each sommelier's philosophy to the base model as a prompt. It wrote fluent text, but every sommelier fell back to the same generic voice: only 0--28\% of answers passed all checks, and three of the four sommeliers never used their own scoring scale (Table~\ref{tab:lora-eval}). A larger cloud model would cost more per request and still drift. Instead, each sommelier is a small LoRA adapter~\cite{lora} on one shared Qwen2.5-7B-Instruct base~\cite{qwen25}: the adapter carries the sommelier's voice and way of arguing, and the facts are retrieved at answer time~\cite{rag}, which keeps the model from inventing them~\cite{hallucination}. Table~\ref{tab:critics} lists the four sommeliers.
 
