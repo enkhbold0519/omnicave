@@ -87,6 +87,29 @@ apps -> backend (EC2) -> gateway.py (pod :8001) -> vLLM + 4 LoRAs (pod :8000)
    SSE streaming is not buffered (answers must arrive word by word). Keep the API key in the backend only, never
    in the apps. The pod address changes with every new pod, so `VLLM_BASE_URL` has to be set again each time.
 
+## Drinking-window estimates and notes (`backend/app/drinking.py`, 2026-11-25)
+Ground truth: the drink windows that reviews state, parsed from all 81k reviews by `drink_data.py`. The
+OpenML mirror lost the dash in ranges ("Drink 20192031"). This gives 13,561 wines, 2,841 of them with both years.
+Split by producer 80/20: `data/drink_{train,eval}.jsonl`.
+
+| Step | File | Result on 2,730 held-out wines (year 2026) |
+| --- | --- | --- |
+| Old rule, vintage +2 to +12 | | start MAE 3.85 y, status match 69.2 % |
+| Aging table (served) | `drink_table.py` -> `backend/app/aging_table.json` | start MAE 1.27 y, status 87.5 % |
+| Qwen base + table evidence | `drink_llm.py predict` | copies the table (87.3 %) |
+| LoRA `drink-window` (A40, 29 min) | `drink_llm.py data` + `train.py` | start 1.20 y, end MAE 4.91 -> 3.98 y, status 84.2 %; **not served** |
+| Explanation, Qwen base + RAG (served) | `drink_notes.py` -> `aroma_table.json`, `drink_explain.py` | 137/137 pass `check_explanation()` |
+
+- The table's end year is start + window length (both-year reviews only). "Drink now through X" is written
+  for wines that are ready now, so the "to" median alone is biased short.
+- Known gap: fortified wines, sweet wines and top Bordeaux. Port is missing from the data, and Bordeaux is mostly
+  cheap wines (Léoville Barton gets 2019–2026, while the catalog says 2028–2050). The LoRA did not fix this.
+- Mature-stage keywords are thin, because most reviews are written at release. Cells fall back to grape or color level.
+- LoRA weights are kept for the record only: `adapters/drink-window.tgz` (local, sha256 `8d6a670c…`). The train log is
+  in `logs/drink-window_train_log.json`.
+- Rebuild: `python drink_data.py && python drink_table.py && python drink_notes.py` (needs the arff in
+  `data/raw/`), then `python eval_drinking.py`.
+
 ## Rebuild from scratch (measured: about 2 h on an A100, $4.45)
 ```bash
 python build_xwines.py && python build_pool.py          # local, needs data/raw (see PLAN.md for sources)
