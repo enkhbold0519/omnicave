@@ -9,7 +9,7 @@ import statistics
 from datetime import date, datetime, timedelta, timezone
 from typing import Iterator
 
-from . import accounts, config, db, drinking, geometry as geo, inventory, llm, market, news, security
+from . import accounts, config, db, drinking, geometry as geo, inventory, llm, market, news, news_brief, security
 from .catalog import CATALOG
 from .common import ApiError, notify, utc
 from .inventory import WINE_FIELDS, COLORS, BOTTLE_SQL  # noqa: F401  (re-exported)
@@ -644,6 +644,17 @@ def briefing(user: dict) -> dict:
     summary = f"{len(win['ready'])} bottles at peak, {len(win['approaching'])} approaching. Top story: {scored[0]['title'] if scored else '—'}"
     return {"date": date.today().isoformat(), "news": scored[:8], "news_is_sample": sample,
             "insights": insights, "summary": summary, "briefing_time": user["briefing_time"]}
+
+
+def briefing_ai(user: dict) -> dict:
+    """The model-written part of the briefing (news_brief.py). {"text": None} when there is none today."""
+    items, sample = news.get_news()
+    with db.tx() as c:
+        bs = [dict(b, location=_loc(b)) for b in _all_bottles(c, user["id"])]
+        prof = consumption_profile(c, user["id"])
+    out = news_brief.generate(user["id"], items, bs, prof)
+    return {"date": date.today().isoformat(), "news_is_sample": sample,
+            "text": out["text"] if out else None, "refs": out["refs"] if out else []}
 
 
 def market_summary(user: dict) -> dict:

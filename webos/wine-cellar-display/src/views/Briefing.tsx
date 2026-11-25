@@ -8,6 +8,8 @@ interface Brief {
   date: string; summary: string; insights: string[]; news_is_sample: boolean; briefing_time: string
   news: { title: string; link: string; summary: string; source: string; relevance: number; matched: string[] }[]
 }
+/** GET /api/briefing/ai: today's news tied to the owner's bottles, written by the LLM (text null without one). */
+interface AiBrief { text: string | null; refs: { n: number; title: string; link: string; source: string }[] }
 interface Windows { ready: Bottle[]; approaching: Bottle[]; past_peak: Bottle[]; year: number }
 interface Market { total: number; change_12m: number }
 interface Props { cellarId: number | null; onOpen: (b: Bottle) => void; onValue: () => void }
@@ -18,6 +20,7 @@ export default function Briefing({ cellarId, onOpen, onValue }: Props) {
   const { data: win } = usePoll<Windows>('/api/recommendations/windows', 5 * 60_000)
   const { data: env } = usePoll<{ zones: EnvZone[] }>(cellarId ? `/api/cellars/${cellarId}/environment?minutes=1440` : null, 5 * 60_000)
   const { data: mkt } = usePoll<Market>('/api/market/summary', 10 * 60_000)
+  const { data: ai } = usePoll<AiBrief>('/api/briefing/ai', 30 * 60_000)
   const [openNews, setOpenNews] = useState<number | null>(null)
   const [allNews, setAllNews] = useState(false)
   if (!b || !win) return <div className="view muted">Preparing your briefing…</div>
@@ -40,6 +43,14 @@ export default function Briefing({ cellarId, onOpen, onValue }: Props) {
       <header className="brief-top">
         <h2>Briefing{stale && <span className="muted small"> · offline</span>}</h2>
         <p className="brief-headline">{headline}</p>
+        {ai?.text && (
+          <div className="brief-ai">
+            <p className="fg-2">{ai.text}</p>
+            <ol className="muted small">
+              {ai.refs.map(r => <li key={r.n} value={r.n}>{r.title}</li>)}
+            </ol>
+          </div>
+        )}
         {mkt && (
           <button className="brief-value" onClick={onValue}>
             Collection {money(mkt.total)} <span className={mkt.change_12m >= 0 ? 'up' : 'down'}>{mkt.change_12m >= 0 ? '▲' : '▼'} {pct(mkt.change_12m)}</span> this year →

@@ -104,6 +104,7 @@ ROUTES: list[Route] = [
     Route("POST", "/api/ai/table", lambda c: t.ai_table(c.user, c.body), stream=True),
     # ---- briefing (FR6) & market (FR7)
     Route("GET", "/api/briefing", lambda c: s.briefing(c.user)),
+    Route("GET", "/api/briefing/ai", lambda c: s.briefing_ai(c.user)),
     Route("GET", "/api/market/summary", lambda c: s.market_summary(c.user)),
 ]
 
