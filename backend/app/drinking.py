@@ -212,7 +212,7 @@ def check_explanation(text: str, wine: dict, year: int, ev: dict) -> list[str]:
     for k in ("producer", "name", "region"):   # "Villa I Cipressi" is a name, not first person
         if wine.get(k):
             own = own.replace(str(wine[k]), " ")
-    if re.search(r"\b(I|I'm|I'd|my|we)\b", own):
+    if re.search(r"\b(I|I'm|I'd|I'll)\b", own) or re.search(r"\b(me|my|mine|we|our)\b", own, re.I):
         problems.append("first person")
     if len(re.findall(r"[.!?](?:\s|$)", text.strip() + " ")) > 4 or len(text) > 600:
         problems.append("too long")

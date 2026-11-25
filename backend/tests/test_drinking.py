@@ -49,6 +49,8 @@ def test_explanation_checker():
     assert "notes not in evidence" in drinking.check_explanation(f"Ready now, with {invented}.", BAROLO, 2026, ev)[0]
     assert drinking.check_explanation("Ready now; peak in 2033.", BAROLO, 2026, ev)[0].startswith("other years")
     assert drinking.check_explanation("I would open it now.", BAROLO, 2026, ev) == ["first person"]
+    assert drinking.check_explanation("My pick: open it now.", BAROLO, 2026, ev) == ["first person"]
+    assert drinking.check_explanation("Ready now, unlike some US Pinot Noir.", BAROLO, 2026, ev) == []
     named = dict(BAROLO, producer="Villa I Cipressi")   # "I" inside a name is not first person
     assert drinking.check_explanation("Villa I Cipressi Barolo is ready now.", named, 2026, ev) == []
 
