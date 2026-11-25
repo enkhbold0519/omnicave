@@ -25,6 +25,11 @@ def test_pick_keeps_cellar_news_with_matching_bottles():
     assert all("Hops" not in a["title"] for a in arts)
 
 
+def test_country_alone_does_not_tie_a_story_to_a_bottle():
+    only_country = [{"title": "France sets new export rules", "summary": "Trade news.", "link": "", "source": "x"}]
+    assert nb.pick(only_country, BOTTLES, PROFILE, 2026) == []
+
+
 def test_check_grounding():
     arts = nb.pick(NEWS, BOTTLES, PROFILE, 2026)
     ok = ("Barolo is drawing collectors [1]; your G.D. Vajra Barolo 2018 is still young until 2027. "
@@ -47,11 +52,11 @@ def test_generate_uses_model_only_when_it_passes(monkeypatch):
     seen = {}
     monkeypatch.setattr(nb.llm, "stream_chat", lambda msgs, *a, **k: seen.update(msgs=msgs, k=k) or iter(["My pick [1]."]))
     assert nb.generate(1, NEWS, BOTTLES, PROFILE, 2026) is None
-    assert seen["k"].get("adapter") is None and "your_bottles" in seen["msgs"][1]["content"]
+    assert seen["k"].get("adapter") is None and "owner's bottle: G.D. Vajra Barolo 2018" in seen["msgs"][1]["content"]
     good = "Barolo is drawing collectors [1]; your G.D. Vajra Barolo 2018 is still young."
     monkeypatch.setattr(nb.llm, "stream_chat", lambda *a, **k: iter([good]))
     out = nb.generate(1, NEWS, BOTTLES, PROFILE, 2026)
-    assert out["text"] == good and [r["n"] for r in out["refs"]] == [1, 2]
+    assert out["text"] == good and [r["n"] for r in out["refs"]] == [1]   # only cited sources
     monkeypatch.setattr(nb.llm, "stream_chat", lambda *a, **k: (_ for _ in ()).throw(AssertionError("cached")))
     assert nb.generate(1, NEWS, BOTTLES, PROFILE, 2026)["text"] == good
     assert nb.generate(1, [NEWS[1]], BOTTLES, PROFILE, 2026) is None   # no cellar news today

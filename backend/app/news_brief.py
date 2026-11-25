@@ -24,22 +24,35 @@ BANNED = ["robert parker", "parker", "wine spectator", "spectator", "wine advoca
           "wineenthusiast", "decanter", "vinepair", "vivino", "cellartracker", "james suckling", "jancis", "jeb dunnuck"]
 SYSTEM = (
     "You write the wine cellar's short daily briefing for its owner. Neutral, factual voice: no persona, no "
-    "first person, no names of publications, critics or websites. 2-4 sentences in English. Connect today's "
+    "first person, no names of publications, critics or websites. 2-3 sentences in English. Connect today's "
     "news to the owner's own bottles: say which bottle a story concerns and whether it is ready, still young "
-    "or should be opened soon. Use ONLY facts from the articles and bottles given. Cite each article you use "
-    "as [n] with its number. Mention no year or percentage that is not in the data.")
+    "or past its window. Use ONLY facts from the articles and bottles given. Mention no year or percentage "
+    "that is not in the data. EVERY sentence ends with the number of the article it uses in square brackets, "
+    "for example: \"Piedmont growers expect a strong year, and the Vajra Barolo 2018 is still young [1].\"")
 
 _cache: dict[tuple, dict] = {}
 
 
-def keywords(bottles: list[dict], profile: dict) -> dict[str, float]:
-    """Cellar keywords with weights: every bottle counts once, favourites from drinking history count extra."""
-    kw: dict[str, float] = {}
-    for b in bottles:
-        for k in [b.get("region"), b.get("country"), b.get("producer"), *str(b.get("grape") or "").split(",")]:
+SPECIFIC = ("region", "producer", "grape")   # a country alone ("France") is too broad to tie a story to a bottle
+
+
+def terms(b: dict) -> dict[str, str]:
+    """A bottle's keywords -> the field they come from."""
+    out = {}
+    for f in ("country", *SPECIFIC):
+        for k in str(b.get(f) or "").split(",") if f == "grape" else [b.get(f)]:
             k = (k or "").strip()
             if len(k) > 2:
-                kw[k] = kw.get(k, 0) + 1
+                out[k] = f
+    return out
+
+
+def keywords(bottles: list[dict], profile: dict) -> dict[str, float]:
+    """Cellar keywords with weights: one per bottle (a country counts half), drinking-history favourites +2."""
+    kw: dict[str, float] = {}
+    for b in bottles:
+        for k, f in terms(b).items():
+            kw[k] = kw.get(k, 0) + (0.5 if f == "country" else 1)
     for key in ("regions", "grapes"):
         for k, _ in profile.get(key, []):
             if k in kw:
@@ -61,17 +74,23 @@ def pick(items: list[dict], bottles: list[dict], profile: dict, year: int) -> li
     scored = []
     for it in items:
         text = f"{it['title']} {it['summary']}".lower()
-        hits = [k for k in kw if k.lower() in text]
-        if not hits:
-            continue
-        matched = [b for b in bottles if any(h.lower() in str(b.get(f) or "").lower()
-                                             for h in hits for f in ("region", "country", "producer", "grape"))]
+        hits = [k for k in kw if re.search(rf"(?<![a-z]){re.escape(k.lower())}(?![a-z])", text)]
+        # the bottles this story is about: they share a region, producer or grape with it
+        # (a region or producer named in the story ties it to a bottle more than a shared grape)
+        ranked = []
+        for b in bottles:
+            t = terms(b)
+            score = sum(3 if t.get(h) in ("region", "producer") else 1 if t.get(h) == "grape" else 0 for h in hits)
+            if score:
+                ranked.append((score, b))
         seen, uniq = set(), []
-        for b in matched:
+        for _, b in sorted(ranked, key=lambda x: -x[0]):
             key = (b["producer"], b["name"], b["vintage"])
             if key not in seen:
                 seen.add(key)
                 uniq.append(b)
+        if not uniq:
+            continue
         scored.append((sum(kw[h] for h in hits), it, hits, uniq[:BOTTLES_PER_ARTICLE]))
     scored.sort(key=lambda x: -x[0])
     out = []
@@ -85,11 +104,12 @@ def pick(items: list[dict], bottles: list[dict], profile: dict, year: int) -> li
 
 
 def messages(articles: list[dict], year: int) -> list[dict]:
-    data = {"current_year": year,
-            "articles": [{"n": a["n"], "title": a["title"], "summary": a["summary"], "your_bottles": a["bottles"]}
-                         for a in articles]}
-    return [{"role": "system", "content": SYSTEM},
-            {"role": "user", "content": json.dumps(data, ensure_ascii=False)}]
+    lines = [f"Current year: {year}", "Today's articles and the owner's bottles they concern:"]
+    for a in articles:
+        lines.append(f"[{a['n']}] {a['title']}. {a['summary']}")
+        for b in a["bottles"]:
+            lines.append(f"    owner's bottle: {b['wine']}, drinking window {b['window']}, {b['status']}")
+    return [{"role": "system", "content": SYSTEM}, {"role": "user", "content": "\n".join(lines)}]
 
 
 def check(text: str, articles: list[dict], year: int) -> list[str]:
@@ -135,5 +155,7 @@ def generate(user_id: int, items: list[dict], bottles: list[dict], profile: dict
         reply = "".join(llm.stream_chat(messages(articles, year), "", temperature=0, max_tokens=220)).strip()
         if not reply or check(reply, articles, year):
             return None   # not cached: tried again on the next request (e.g. once the pod is up)
-        _cache[key] = {"text": reply, "refs": [{k: a[k] for k in ("n", "title", "link", "source")} for a in articles]}
+        cited = {int(n) for n in re.findall(r"\[(\d+)\]", reply)}
+        _cache[key] = {"text": reply, "refs": [{k: a[k] for k in ("n", "title", "link", "source")}
+                                               for a in articles if a["n"] in cited]}
     return _cache[key]
