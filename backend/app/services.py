@@ -9,7 +9,7 @@ import statistics
 from datetime import date, datetime, timedelta, timezone
 from typing import Iterator
 
-from . import accounts, config, db, geometry as geo, inventory, llm, market, news, news_brief, security
+from . import accounts, config, db, drinking, geometry as geo, inventory, llm, market, news, news_brief, security
 from .catalog import CATALOG
 from .common import ApiError, notify, utc
 from .inventory import WINE_FIELDS, COLORS, BOTTLE_SQL  # noqa: F401  (re-exported)
@@ -679,6 +679,14 @@ def market_summary(user: dict) -> dict:
         "count": len(bs), "bottles": rows_, "history": [{"date": k, "value": round(v, 2)} for k, v in sorted(agg.items())],
         "currency": "USD", "source": market.summary_source(bs),
     }
+
+
+def bottle_drinking_note(user: dict, bid: int) -> dict:
+    """The detail card's drinking-window note (model-written when an LLM is configured, else the fixed line)."""
+    b = inventory.get_bottle(user, bid)
+    w = b["wine"]
+    return {"bottle_id": bid, "window": {"from": w["drink_from"], "to": w["drink_to"]},
+            **drinking.explanation(w, date.today().year)}
 
 
 def bottle_price_history(user: dict, bid: int) -> dict:

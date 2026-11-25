@@ -1,0 +1,1182 @@
+{
+"_vocab": {
+"notes": [
+"acacia",
+"almond",
+"anise",
+"apple",
+"apricot",
+"bacon",
+"beeswax",
+"black cherry",
+"black pepper",
+"black plum",
+"black tea",
+"blackberry",
+"blackcurrant",
+"blueberry",
+"brioche",
+"butter",
+"butterscotch",
+"caramel",
+"cassis",
+"cedar",
+"chalk",
+"cherry",
+"chocolate",
+"cinnamon",
+"citrus",
+"clove",
+"cocoa",
+"coffee",
+"cranberry",
+"cream",
+"cut grass",
+"dark chocolate",
+"dried cherry",
+"dried herbs",
+"espresso",
+"eucalyptus",
+"fennel",
+"fig",
+"flint",
+"forest floor",
+"game",
+"garrigue",
+"ginger",
+"grapefruit",
+"graphite",
+"gravel",
+"green apple",
+"green pepper",
+"hazelnut",
+"honey",
+"honeysuckle",
+"iron",
+"kirsch",
+"lavender",
+"leather",
+"lemon",
+"licorice",
+"lime",
+"mango",
+"marmalade",
+"melon",
+"mint",
+"mocha",
+"mushroom",
+"nectarine",
+"nutmeg",
+"olive",
+"orange peel",
+"passion fruit",
+"peach",
+"pear",
+"petrol",
+"pineapple",
+"plum",
+"pomegranate",
+"prune",
+"quince",
+"raisin",
+"raspberry",
+"red cherry",
+"redcurrant",
+"rose petal",
+"saffron",
+"sage",
+"saline",
+"slate",
+"smoke",
+"strawberry",
+"tar",
+"thyme",
+"toast",
+"tobacco",
+"toffee",
+"truffle",
+"vanilla",
+"violet",
+"wet stone",
+"white flowers",
+"white peach",
+"white pepper"
+],
+"style": [
+"bright acidity",
+"concentrated",
+"crisp acidity",
+"dense",
+"elegant",
+"fine tannins",
+"firm tannins",
+"fresh acidity",
+"juicy",
+"lean",
+"long finish",
+"oak",
+"opulent",
+"plush",
+"polished",
+"racy",
+"rich",
+"ripe tannins",
+"silky",
+"structured",
+"supple",
+"velvety tannins"
+],
+"banned_names": [
+"robert parker",
+"parker",
+"luca maroni",
+"maroni",
+"wine spectator",
+"spectator",
+"wine advocate",
+"wineenthusiast",
+"wine enthusiast",
+"vivino",
+"cellartracker",
+"james suckling",
+"jancis"
+]
+},
+"color=red": {
+"n_young": 31125,
+"n_mature": 369,
+"young": [
+"pomegranate",
+"fennel",
+"cedar",
+"orange peel",
+"sage",
+"green pepper"
+],
+"mature": [
+"flint",
+"raisin",
+"fig",
+"prune",
+"mushroom",
+"dried cherry"
+]
+},
+"color=sparkling": {
+"n_young": 662,
+"n_mature": 210,
+"young": [
+"honeysuckle",
+"chalk",
+"beeswax",
+"lime",
+"melon",
+"white peach"
+],
+"mature": [
+"coffee",
+"graphite",
+"mushroom",
+"honey",
+"brioche",
+"hazelnut"
+]
+},
+"color=white": {
+"n_young": 12571,
+"n_mature": 375,
+"young": [
+"slate",
+"lime",
+"butter",
+"green apple",
+"anise",
+"grapefruit"
+],
+"mature": [
+"coffee",
+"acacia",
+"beeswax",
+"hazelnut",
+"marmalade",
+"honey"
+]
+},
+"color|country=red|argentina": {
+"n_young": 725,
+"n_mature": 49,
+"young": [
+"clove",
+"cherry",
+"mint",
+"plum"
+],
+"mature": [
+"fig",
+"licorice",
+"raisin",
+"mocha",
+"tobacco",
+"coffee"
+]
+},
+"color|country=red|france": {
+"n_young": 5651,
+"n_mature": 60,
+"young": [
+"blackberry"
+],
+"mature": [
+"red cherry",
+"cherry"
+]
+},
+"color|country=red|italy": {
+"n_young": 4045,
+"n_mature": 44,
+"young": [
+"clove",
+"cherry",
+"cranberry",
+"black pepper"
+],
+"mature": [
+"flint",
+"tar",
+"toast",
+"black plum",
+"prune",
+"truffle"
+]
+},
+"color|country=red|portugal": {
+"n_young": 1061,
+"n_mature": 76,
+"young": [
+"blackberry"
+],
+"mature": [
+"plum"
+]
+},
+"color|country=red|spain": {
+"n_young": 899,
+"n_mature": 28,
+"young": [
+"clove"
+],
+"mature": [
+"raisin",
+"tobacco",
+"prune",
+"vanilla",
+"chocolate"
+]
+},
+"color|country=red|us": {
+"n_young": 16459,
+"n_mature": 85,
+"young": [
+"smoke",
+"cassis",
+"violet",
+"citrus",
+"forest floor",
+"mocha"
+],
+"mature": [
+"dried cherry",
+"mushroom",
+"mint",
+"espresso",
+"leather",
+"thyme"
+]
+},
+"color|country=sparkling|france": {
+"n_young": 124,
+"n_mature": 46,
+"young": [
+"lemon",
+"lime",
+"strawberry",
+"green apple",
+"melon",
+"citrus"
+],
+"mature": [
+"toast"
+]
+},
+"color|country=sparkling|italy": {
+"n_young": 222,
+"n_mature": 74,
+"young": [
+"green apple",
+"melon",
+"honeysuckle",
+"white peach",
+"pear",
+"beeswax"
+],
+"mature": [
+"coffee",
+"graphite",
+"apricot",
+"toast",
+"cherry",
+"brioche"
+]
+},
+"color|country=sparkling|spain": {
+"n_young": 72,
+"n_mature": 24,
+"young": [
+"citrus",
+"peach",
+"raspberry",
+"apricot",
+"vanilla",
+"lemon"
+],
+"mature": [
+"mushroom",
+"nectarine"
+]
+},
+"color|country=sparkling|us": {
+"n_young": 154,
+"n_mature": 50,
+"young": [
+"lime",
+"chalk",
+"melon",
+"saline",
+"honeysuckle",
+"raspberry"
+],
+"mature": [
+"hazelnut",
+"ginger",
+"almond",
+"wet stone",
+"peach",
+"brioche"
+]
+},
+"color|country=white|france": {
+"n_young": 2962,
+"n_mature": 155,
+"young": [
+"hazelnut",
+"cream",
+"flint"
+],
+"mature": [
+"marmalade",
+"almond",
+"honey",
+"lemon",
+"toast",
+"apricot"
+]
+},
+"color|country=white|italy": {
+"n_young": 643,
+"n_mature": 94,
+"young": [
+"melon",
+"green apple",
+"pineapple",
+"honeysuckle",
+"grapefruit",
+"saline"
+],
+"mature": [
+"fig",
+"caramel",
+"honey",
+"hazelnut",
+"toast",
+"coffee"
+]
+},
+"color|country=white|portugal": {
+"n_young": 277,
+"n_mature": 29,
+"young": [
+"lemon",
+"melon",
+"lime"
+],
+"mature": [
+"toast",
+"apricot"
+]
+},
+"color|country=white|us": {
+"n_young": 5546,
+"n_mature": 28,
+"young": [
+"citrus",
+"green apple",
+"apple",
+"melon",
+"apricot",
+"butter"
+],
+"mature": [
+"grapefruit",
+"vanilla",
+"peach"
+]
+},
+"color|grape=red|cabernet sauvignon": {
+"n_young": 4844,
+"n_mature": 22,
+"young": [
+"black cherry",
+"clove",
+"sage",
+"tobacco"
+],
+"mature": [
+"dried cherry",
+"leather",
+"vanilla"
+]
+},
+"color|grape=red|malbec": {
+"n_young": 862,
+"n_mature": 43,
+"young": [
+"cherry",
+"clove",
+"black pepper",
+"cranberry",
+"mint",
+"orange peel"
+],
+"mature": [
+"raisin",
+"prune",
+"cassis",
+"licorice",
+"coffee",
+"tobacco"
+]
+},
+"color|grape=red|nebbiolo": {
+"n_young": 1661,
+"n_mature": 27,
+"young": [
+"mocha",
+"pomegranate",
+"clove",
+"eucalyptus",
+"cranberry",
+"cherry"
+],
+"mature": [
+"flint",
+"tar",
+"toast",
+"dried cherry",
+"forest floor",
+"violet"
+]
+},
+"color|grape=red|pinot noir": {
+"n_young": 7151,
+"n_mature": 61,
+"young": [
+"forest floor",
+"pomegranate",
+"sage",
+"blueberry",
+"black cherry",
+"nutmeg"
+],
+"mature": [
+"dark chocolate",
+"leather",
+"mint",
+"chocolate",
+"thyme",
+"plum"
+]
+},
+"color|grape=red|portuguese red": {
+"n_young": 1011,
+"n_mature": 71,
+"young": [
+"blackberry"
+],
+"mature": [
+"plum"
+]
+},
+"color|grape=red|syrah": {
+"n_young": 2135,
+"n_mature": 19,
+"young": [
+"plum",
+"violet",
+"smoke",
+"cherry"
+],
+"mature": [
+"leather",
+"blueberry",
+"vanilla"
+]
+},
+"color|grape=red|tempranillo": {
+"n_young": 874,
+"n_mature": 25,
+"young": [
+"leather",
+"clove"
+],
+"mature": [
+"raisin",
+"prune",
+"tobacco",
+"blackberry",
+"vanilla",
+"plum"
+]
+},
+"color|grape=sparkling|champagne blend": {
+"n_young": 123,
+"n_mature": 42,
+"young": [
+"lemon",
+"citrus",
+"melon",
+"green apple",
+"brioche",
+"apricot"
+],
+"mature": [
+"toast"
+]
+},
+"color|grape=sparkling|sparkling blend": {
+"n_young": 325,
+"n_mature": 168,
+"young": [
+"chalk",
+"lime",
+"strawberry",
+"melon",
+"plum",
+"raspberry"
+],
+"mature": [
+"acacia",
+"mushroom",
+"honey",
+"coffee",
+"graphite",
+"almond"
+]
+},
+"color|grape=white|bordeaux-style white blend": {
+"n_young": 544,
+"n_mature": 18,
+"young": [
+"apple"
+],
+"mature": [
+"marmalade",
+"honey",
+"lemon"
+]
+},
+"color|grape=white|chardonnay": {
+"n_young": 5044,
+"n_mature": 64,
+"young": [
+"peach",
+"lime",
+"melon",
+"butter",
+"pineapple",
+"honeysuckle"
+],
+"mature": [
+"acacia",
+"hazelnut",
+"almond",
+"honey",
+"white peach",
+"citrus"
+]
+},
+"color|grape=white|melon": {
+"n_young": 66,
+"n_mature": 16,
+"young": [
+"lemon",
+"apple",
+"grapefruit"
+],
+"mature": [
+"melon"
+]
+},
+"color|grape=white|pinot gris": {
+"n_young": 1212,
+"n_mature": 18,
+"young": [
+"melon",
+"lime",
+"apple",
+"grapefruit",
+"lemon",
+"green apple"
+],
+"mature": [
+"pear",
+"citrus"
+]
+},
+"color|grape=white|portuguese white": {
+"n_young": 211,
+"n_mature": 27,
+"young": [
+"lemon",
+"melon",
+"lime"
+],
+"mature": [
+"toast",
+"apricot"
+]
+},
+"color|grape=white|riesling": {
+"n_young": 2221,
+"n_mature": 65,
+"young": [
+"slate",
+"melon",
+"grapefruit",
+"lime",
+"white peach",
+"peach"
+],
+"mature": [
+"apple",
+"lemon",
+"citrus",
+"pear",
+"honey"
+]
+},
+"color|grape=white|sauvignon blanc": {
+"n_young": 1630,
+"n_mature": 18,
+"young": [
+"lime",
+"pineapple",
+"melon",
+"lemon",
+"citrus"
+],
+"mature": [
+"vanilla",
+"grapefruit"
+]
+},
+"color|grape=white|white blend": {
+"n_young": 376,
+"n_mature": 83,
+"young": [
+"green apple",
+"citrus",
+"lime",
+"grapefruit",
+"saline",
+"melon"
+],
+"mature": [
+"caramel",
+"fig",
+"hazelnut",
+"honey",
+"coffee",
+"acacia"
+]
+},
+"color|grape|country=red|malbec|argentina": {
+"n_young": 302,
+"n_mature": 41,
+"young": [
+"clove",
+"mint",
+"olive",
+"cherry",
+"plum"
+],
+"mature": [
+"licorice",
+"tobacco",
+"raisin",
+"coffee",
+"prune",
+"chocolate"
+]
+},
+"color|grape|country=red|nebbiolo|italy": {
+"n_young": 1639,
+"n_mature": 24,
+"young": [
+"cranberry",
+"mocha",
+"pomegranate",
+"cherry",
+"clove",
+"eucalyptus"
+],
+"mature": [
+"flint",
+"toast",
+"forest floor",
+"violet",
+"black cherry",
+"tobacco"
+]
+},
+"color|grape|country=red|pinot noir|us": {
+"n_young": 5484,
+"n_mature": 42,
+"young": [
+"forest floor",
+"citrus",
+"pomegranate",
+"sage",
+"black cherry",
+"cherry"
+],
+"mature": [
+"leather",
+"mint",
+"plum",
+"thyme",
+"cranberry",
+"strawberry"
+]
+},
+"color|grape|country=red|portuguese red|portugal": {
+"n_young": 1008,
+"n_mature": 71,
+"young": [
+"blackberry"
+],
+"mature": [
+"plum"
+]
+},
+"color|grape|country=red|syrah|us": {
+"n_young": 1265,
+"n_mature": 15,
+"young": [
+"plum",
+"violet",
+"lavender",
+"smoke"
+],
+"mature": [
+"leather",
+"blackberry"
+]
+},
+"color|grape|country=red|tempranillo|spain": {
+"n_young": 627,
+"n_mature": 25,
+"young": [
+"clove"
+],
+"mature": [
+"tobacco",
+"raisin",
+"prune",
+"blackberry",
+"vanilla"
+]
+},
+"color|grape|country=sparkling|champagne blend|france": {
+"n_young": 87,
+"n_mature": 42,
+"young": [
+"citrus"
+],
+"mature": [
+"toast"
+]
+},
+"color|grape|country=sparkling|sparkling blend|italy": {
+"n_young": 23,
+"n_mature": 74,
+"young": [
+"strawberry",
+"grapefruit",
+"white peach",
+"pear",
+"pomegranate",
+"citrus"
+],
+"mature": [
+"honey",
+"acacia",
+"toast",
+"coffee",
+"graphite",
+"apple"
+]
+},
+"color|grape|country=sparkling|sparkling blend|spain": {
+"n_young": 71,
+"n_mature": 24,
+"young": [
+"citrus",
+"peach",
+"raspberry",
+"apricot",
+"vanilla",
+"lemon"
+],
+"mature": [
+"mushroom",
+"nectarine"
+]
+},
+"color|grape|country=sparkling|sparkling blend|us": {
+"n_young": 140,
+"n_mature": 50,
+"young": [
+"lime",
+"chalk",
+"melon",
+"honeysuckle",
+"plum",
+"strawberry"
+],
+"mature": [
+"almond",
+"hazelnut",
+"ginger",
+"brioche",
+"green apple",
+"peach"
+]
+},
+"color|grape|country=white|bordeaux-style white blend|france": {
+"n_young": 527,
+"n_mature": 18,
+"young": [
+"apple"
+],
+"mature": [
+"marmalade",
+"honey",
+"lemon"
+]
+},
+"color|grape|country=white|chardonnay|france": {
+"n_young": 1205,
+"n_mature": 27,
+"young": [
+"pear",
+"apricot"
+],
+"mature": [
+"lemon"
+]
+},
+"color|grape|country=white|chardonnay|italy": {
+"n_young": 47,
+"n_mature": 20,
+"young": [
+"melon",
+"pineapple",
+"peach",
+"cedar",
+"butterscotch"
+],
+"mature": [
+"hazelnut",
+"toast",
+"apple",
+"white peach",
+"vanilla",
+"pear"
+]
+},
+"color|grape|country=white|melon|france": {
+"n_young": 66,
+"n_mature": 16,
+"young": [
+"lemon",
+"apple",
+"grapefruit"
+],
+"mature": [
+"melon"
+]
+},
+"color|grape|country=white|portuguese white|portugal": {
+"n_young": 211,
+"n_mature": 27,
+"young": [
+"lemon",
+"melon",
+"lime"
+],
+"mature": [
+"toast",
+"apricot"
+]
+},
+"color|grape|country=white|riesling|france": {
+"n_young": 176,
+"n_mature": 51,
+"young": [
+"passion fruit",
+"pineapple",
+"lime",
+"game",
+"peach"
+],
+"mature": [
+"honey",
+"apple",
+"lemon",
+"citrus"
+]
+},
+"color|grape|country=white|white blend|italy": {
+"n_young": 118,
+"n_mature": 35,
+"young": [
+"melon",
+"green apple",
+"citrus",
+"saline",
+"lemon",
+"pineapple"
+],
+"mature": [
+"fig",
+"caramel",
+"honey",
+"hazelnut",
+"vanilla",
+"coffee"
+]
+},
+"color|grape|country|province=red|malbec|argentina|mendoza province": {
+"n_young": 270,
+"n_mature": 36,
+"young": [
+"cherry",
+"clove",
+"olive",
+"mint",
+"plum"
+],
+"mature": [
+"licorice",
+"tobacco",
+"raisin",
+"coffee",
+"chocolate",
+"cassis"
+]
+},
+"color|grape|country|province=red|pinot noir|us|california": {
+"n_young": 3757,
+"n_mature": 22,
+"young": [
+"forest floor",
+"pomegranate",
+"sage",
+"cherry"
+],
+"mature": [
+"mint",
+"plum",
+"thyme",
+"raspberry",
+"strawberry",
+"cranberry"
+]
+},
+"color|grape|country|province=red|tempranillo|spain|northern spain": {
+"n_young": 564,
+"n_mature": 25,
+"young": [
+"clove"
+],
+"mature": [
+"tobacco",
+"raisin",
+"prune",
+"blackberry",
+"vanilla"
+]
+},
+"color|grape|country|province=sparkling|champagne blend|france|champagne": {
+"n_young": 85,
+"n_mature": 42,
+"young": [
+"citrus"
+],
+"mature": [
+"toast"
+]
+},
+"color|grape|country|province=sparkling|sparkling blend|spain|catalonia": {
+"n_young": 65,
+"n_mature": 24,
+"young": [
+"citrus",
+"raspberry",
+"peach",
+"vanilla"
+],
+"mature": [
+"mushroom",
+"nectarine"
+]
+},
+"color|grape|country|province=sparkling|sparkling blend|us|california": {
+"n_young": 77,
+"n_mature": 40,
+"young": [
+"chalk",
+"nectarine",
+"lime",
+"honeysuckle",
+"pear",
+"grapefruit"
+],
+"mature": [
+"almond",
+"hazelnut",
+"ginger",
+"wet stone",
+"peach",
+"green apple"
+]
+},
+"color|grape|country|province=white|bordeaux-style white blend|france|bordeaux": {
+"n_young": 518,
+"n_mature": 15,
+"young": [
+"apple"
+],
+"mature": [
+"honey"
+]
+},
+"color|grape|country|province=white|melon|france|loire valley": {
+"n_young": 65,
+"n_mature": 16,
+"young": [
+"lemon",
+"apple",
+"grapefruit"
+],
+"mature": [
+"melon"
+]
+},
+"color|grape|country|province=white|riesling|france|alsace": {
+"n_young": 176,
+"n_mature": 51,
+"young": [
+"passion fruit",
+"pineapple",
+"lime",
+"game",
+"peach"
+],
+"mature": [
+"honey",
+"apple",
+"lemon",
+"citrus"
+]
+},
+"color|grape|country|region=red|malbec|argentina|mendoza": {
+"n_young": 167,
+"n_mature": 22,
+"young": [
+"plum",
+"cherry",
+"clove"
+],
+"mature": [
+"raisin",
+"chocolate",
+"blackberry",
+"cassis"
+]
+},
+"color|grape|country|region=sparkling|champagne blend|france|champagne": {
+"n_young": 85,
+"n_mature": 42,
+"young": [
+"citrus"
+],
+"mature": [
+"toast"
+]
+},
+"color|grape|country|region=sparkling|sparkling blend|spain|cava": {
+"n_young": 57,
+"n_mature": 22,
+"young": [
+"citrus",
+"vanilla",
+"peach",
+"pear",
+"lemon"
+],
+"mature": [
+"nectarine",
+"melon"
+]
+},
+"color|grape|country|region=white|melon|france|muscadet svre et maine": {
+"n_young": 56,
+"n_mature": 15,
+"young": [
+"lemon",
+"grapefruit",
+"apple"
+],
+"mature": [
+"melon"
+]
+},
+"color|grape|country|region=white|riesling|france|alsace": {
+"n_young": 176,
+"n_mature": 51,
+"young": [
+"passion fruit",
+"pineapple",
+"lime",
+"game",
+"peach"
+],
+"mature": [
+"honey",
+"apple",
+"lemon",
+"citrus"
+]
+}
+}

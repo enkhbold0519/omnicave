@@ -64,6 +64,7 @@ ROUTES: list[Route] = [
     Route("PATCH", "/api/bottles/{bid}", lambda c: inv.update_bottle(c.user, _i(c.path["bid"]), c.body)),
     Route("DELETE", "/api/bottles/{bid}", lambda c: inv.remove_bottle(c.user, _i(c.path["bid"]), c.query.get("reason", "removed"))),
     Route("GET", "/api/bottles/{bid}/price-history", lambda c: s.bottle_price_history(c.user, _i(c.path["bid"]))),
+    Route("GET", "/api/bottles/{bid}/drinking-note", lambda c: s.bottle_drinking_note(c.user, _i(c.path["bid"]))),
     Route("POST", "/api/recommendations/storage", lambda c: inv.recommend_storage(c.user, c.body)),
     # ---- Vision AI (FR2)
     Route("POST", "/api/cellars/{cid}/vision/scan", lambda c: vi.simulate_scan(c.user, _i(c.path["cid"]), c.body.get("event", "random"))),

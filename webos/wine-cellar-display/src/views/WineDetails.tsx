@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { api, cachedGet } from '../api'
 import { useStream } from '../useStream'
-import type { Bottle, Color } from '../types'
+import type { Bottle, Color, DrinkingNote } from '../types'
 import Debate from '../components/Debate'
 import StreamOutput from '../components/StreamOutput'
 import { LineChart } from '../components/Charts'
@@ -30,6 +30,8 @@ export default function WineDetails({ bottle, onClose, onFind, onMove, onEdit, o
   const [confirm, setConfirm] = useState<null | 'consumed' | 'removed'>(null)
   const [open, setOpen] = useState<null | 'debate' | 'pairing' | 'price'>(null)
   const [hist, setHist] = useState<{ date: string; price: number }[] | null>(null)
+  // drinking-window note: the fixed line from the bottle at once, the model's note when the backend has one
+  const [note, setNote] = useState<DrinkingNote | null>(null)
   const debate = useStream()
   const pairing = useStream()
   const sel = bottles.find(b => b.id === selId) ?? bottle
@@ -48,6 +50,13 @@ export default function WineDetails({ bottle, onClose, onFind, onMove, onEdit, o
     // paper FR9: selecting a wine on the door starts the sommeliers' discussion
     void debate.run('/api/ai/table', { topic: { kind: 'wine', bottle_id: bottle.id } })
   }, [bottle.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    let live = true
+    setNote(null)
+    api<DrinkingNote>('GET', `/api/bottles/${selId}/drinking-note`).then(n => { if (live) setNote(n) }).catch(() => {})
+    return () => { live = false }
+  }, [selId])
 
   const toggle = (k: 'debate' | 'pairing' | 'price') => {
     const next = open === k ? null : k
@@ -83,6 +92,7 @@ export default function WineDetails({ bottle, onClose, onFind, onMove, onEdit, o
           <WindowBadge s={sel.window_status} />
           {w.drink_from && w.drink_to && <span className="fg-2">Best {w.drink_from}–{w.drink_to}</span>}
         </div>
+        {(note?.text ?? sel.drinking_advice) && <p className="fg-2">{note?.text ?? sel.drinking_advice}</p>}
       </div>
 
       <section>

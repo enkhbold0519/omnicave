@@ -38,6 +38,7 @@ export interface Bottle {
   added_at: string
   wine: Wine
   window_status: 'ready' | 'young' | 'past-peak'
+  drinking_advice?: string | null
   market: Market
   zone?: { id: number; name: string; latest: Reading | null } | null
   warnings?: string[]
@@ -195,3 +196,11 @@ export type StreamEvent =
   | { type: 'turn_end'; persona: string }
   | { type: 'error'; message: string }
   | { type: 'done' }
+
+/** GET /api/bottles/{id}/drinking-note: model-written when the backend has an LLM, else the fixed line. */
+export interface DrinkingNote {
+  bottle_id: number
+  window: { from: number | null; to: number | null }
+  text: string | null
+  source: 'model' | 'template'
+}
