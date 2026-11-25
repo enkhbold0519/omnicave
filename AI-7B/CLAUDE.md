@@ -46,6 +46,16 @@ Local only (gitignored): `adapters/`, `data/` (raw downloads in `data/raw/`, poo
 `logs/`. The data is on Sungbin's PC and is not published, because it is built from research-only reviews. Rebuild it
 if needed (see below).
 
+## Demo pod with a network volume (`pod/demo_up.sh`)
+For demos, use one pod with a network volume on `/workspace` and **Stop** it between sessions, instead of
+terminating it. The pod id, and so the proxy URL, stays the same, and the venv, model cache, LoRAs,
+`data/pool.jsonl` and the gateway key all live on the volume. Bootstrap once with
+`git clone --depth 1 https://github.com/enkhbold0519/omnicave /workspace/omnicave/repo`, then copy `pool.jsonl` to
+`/workspace/omnicave/data/`. After each Start, run `bash /workspace/omnicave/repo/AI-7B/pod/demo_up.sh`. The first
+run takes about 10 minutes, later runs about 2. It serves the gateway on port 8888. The backend `.env` is
+`VLLM_BASE_URL=https://<pod-id>-8888.proxy.runpod.net/v1` and `VLLM_API_KEY=` the contents of
+`/workspace/omnicave/gateway_key`, and it is set once.
+
 ## Serve the LoRAs on a RunPod pod (what "Sungbin starts the pod" means)
 1. Pod: RunPod PyTorch template, container disk >= 40 GB, TCP 22 exposed. Register an SSH public key in RunPod
    first. The build ran on an A100. A 24 GB GPU (A5000, $0.27/h) should fit the bf16 7B model (~15 GB) plus 4 LoRAs,
