@@ -77,7 +77,7 @@ Seoul, Republic of Korea\\
 \maketitle
 \raggedbottom
 \begin{abstract}
-The premium home appliance sector increasingly competes on artificial intelligence (AI) and user experience (UX) rather than hardware specifications. Yet commercial wine cellars remain passive climate-control units, and third-party cellar apps require manual tracking with no link between the physical racks and the digital record. This paper presents OmniCave, a cloud-powered wine cellar management system designed for transparent display doors. Each bottle's label is read once when it is stored, using Amazon Rekognition and a catalog match; the system suggests a free position, tracks every bottle in centimeter coordinates, and reconciles successive cellar scans into inventory changes, including freely stacked bottles. Four fictional AI sommeliers, each a Low-Rank Adaptation (LoRA) adapter on a shared Qwen2.5-7B model served by vLLM, debate any bottle using retrieved evidence. On unseen wines, 98--100\% of the adapters' answers pass every check (the sommelier's own scoring scale, the expected length, and facts taken only from the evidence), against 0--28\% for the base model with the same prompt and evidence. The door display, an Android app, and an iOS app share one cloud backend and stay synchronized over WebSocket, so the appliance runs as a thin client within the cellar's thermal and memory limits.
+The premium home appliance sector increasingly competes on artificial intelligence (AI) and user experience (UX) rather than hardware specifications. Yet commercial wine cellars remain passive climate-control units, and third-party cellar apps require manual tracking with no link between the physical racks and the digital record. This paper presents OmniCave, a cloud-powered wine cellar management system designed for transparent display doors. Each bottle's label is read once when it is stored: Amazon Rekognition reads the text and an LLM turns it into wine details, so bottles outside the catalog are read too; the system suggests a free position, tracks every bottle in centimeter coordinates, and reconciles successive cellar scans into inventory changes, including freely stacked bottles. Four fictional AI sommeliers, each a Low-Rank Adaptation (LoRA) adapter on a shared Qwen2.5-7B model served by vLLM, debate any bottle using retrieved evidence. On unseen wines, 98--100\% of the adapters' answers pass every check (the sommelier's own scoring scale, the expected length, and facts taken only from the evidence), against 0--28\% for the base model with the same prompt and evidence. The same base model also reads label text, explains each bottle's drinking window, and writes a news briefing tied to the owner's bottles, and every model answer is checked against its evidence before it is shown. The door display, an Android app, and an iOS app share one cloud backend and stay synchronized over WebSocket, so the appliance runs as a thin client within the cellar's thermal and memory limits.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -120,7 +120,7 @@ The primary target demographic for luxury wine cellars consists of high-net-wort
 An analysis of existing wine management software (e.g., Vivino~\cite{vivino}, CellarTracker~\cite{cellartracker}) and proprietary cellar tracking apps reveals distinct functional limitations when applied to high-end collections:
 \begin{itemize}
     \item \textbf{Absence of Spatial Awareness:} Most commercial applications function merely as flat digital ledgers or list-based inventories. They lack a robust spatial mapping mechanism that correlates a specific bottle's data with its exact physical coordinates (e.g., specific racks and rows) within the cellar, inevitably forcing users to manually search through shelves.
-    \item \textbf{Static Data without Environmental Context:} Existing software operates completely independently of the cellar's internal hardware sensors. Consequently, they cannot factor real-time environmental data---such as multi-zone temperature differences---into their aging algorithms or serving readiness calculations.
+    \item \textbf{Static Data without Environmental Context:} Existing software operates completely independently of the cellar's internal hardware sensors. Consequently, they cannot relate a bottle to the conditions in which it is actually stored, such as the temperature and humidity of its zone.
     \item \textbf{Reactive and Monotone User Experience:} Current tools are inherently reactive, requiring users to explicitly query the database to check a wine's optimal drinking window or food pairing suitability. Furthermore, they rely on static text reviews, lacking the proactive intelligence and dynamic, expert-level engagement necessary to autonomously curate an immersive experience.
 \end{itemize}
 
@@ -129,9 +129,9 @@ To overcome these limitations, this paper proposes a cloud-powered, AI-driven wi
 
 The key contributions of this work are summarized as follows:
 \begin{itemize}
-    \item \textbf{Label Recognition and Centimeter-Level Spatial Mapping:} Reads each bottle's label and vintage once, when the bottle is stored (Amazon Rekognition text detection matched against a wine catalog), suggests a free position, and asks the owner to confirm. Bottles are tracked in centimeter coordinates rather than rigid slots, including bottles stacked on top of one another, and a reconciliation engine turns successive cellar scans into new, moved, removed, and hidden bottles.
+    \item \textbf{Label Recognition and Centimeter-Level Spatial Mapping:} Reads each bottle's label and vintage once, when the bottle is stored (Amazon Rekognition text detection, turned into wine details by the LLM and matched against a wine catalog), suggests a free position, and asks the owner to confirm. Bottles are tracked in centimeter coordinates rather than rigid slots, including bottles stacked on top of one another, and a reconciliation engine turns successive cellar scans into new, moved, removed, and hidden bottles.
     \item \textbf{Cloud-Backed Multi-Agent LLM Architecture:} Replaces resource-constrained edge computing with a high-performance cloud backend (LG Datacenter). This paradigm shift allows the system to deploy massive, state-of-the-art Large Language Models (LLMs) without imposing any thermal, processing, or memory constraints on the cellar appliance itself. The cloud architecture orchestrates multi-agent dialogues among four sommeliers, each a LoRA adapter trained on verified, evidence-grounded data: on unseen wines the adapters keep their sommelier's scoring scale and grounded facts in 98--100\% of answers, against 0--28\% for prompting alone, at a training cost of under five dollars.
-    \item \textbf{AI-Driven UX Enhancement:} Transcending basic touch interactions, the cloud-integrated AI engine drastically elevates the overall user experience. By analyzing multidimensional real-time data, the system proactively offers a broad spectrum of personalized management features---such as optimal drinking window alerts and dynamic food pairings---transforming passive wine storage into an actively managed ecosystem.
+    \item \textbf{AI-Driven UX Enhancement:} Transcending basic touch interactions, the cloud-integrated AI engine drastically elevates the overall user experience. From the owner's cellar, history, and preferences, the system proactively offers personalized features---drinking windows estimated from 13,561 windows stated in wine reviews, with a short note on how each bottle tastes now and later; a daily news briefing tied to the owner's bottles; and food pairings---transforming passive wine storage into an actively managed ecosystem.
     \item \textbf{Multi-Device Distributed Scalability:} Establishes a synchronized system architecture that seamlessly unifies multiple physical cellar units under a single user profile. Leveraging cloud centralization, it guarantees real-time synchronization between the mobile application and the appliance, eradicating tracking discrepancies.
 \end{itemize}
 
@@ -190,6 +190,7 @@ These requirements describe the target appliance. The prototype implements label
     \item The system shall allow a user to input specific constraints, such as a target budget, flavor profile, or event theme, to request a curated wine list.
     \item The system shall automatically generate and display a customized wine list that satisfies the user-defined parameters, utilizing both the existing cellar inventory and a reference wine catalog for potential new purchases.
     \item The system shall recommend suitable storage locations for newly added bottles.
+    \item The system shall estimate a drinking window for bottles that have none and explain, in neutral language grounded in evidence, how the wine tastes now and how it will develop.
     \item The system shall recommend wines via natural language queries processed by the cloud-based LLM.
 \end{itemize}
 
@@ -198,6 +199,7 @@ These requirements describe the target appliance. The prototype implements label
     \item The system shall aggregate daily wine news from external RSS feeds (e.g., Decanter and VinePair).
     \item The system shall personalize the aggregated news content by cross-referencing it with the user's specific cellar inventory, highlighting articles relevant to their owned regions, grapes, or producers.
     \item The system shall automatically curate and display a ``Daily Wine Briefing'' on the cellar's front display, including inventory-specific insights (e.g., wines reaching their peak, humidity stability).
+    \item The system shall summarize the most relevant articles in a short AI note that links them to the owner's bottles and cites its sources; a note that fails the evidence check is not shown.
 \end{itemize}
 
 \subsubsection{Market Value Integration}
@@ -217,7 +219,7 @@ These requirements describe the target appliance. The prototype implements label
 \subsubsection{Cloud-Powered Multi-Agent LLM Dialogue System}
 \begin{itemize}
     \item The system shall integrate a cloud-hosted Multi-Agent Large Language Model (LLM) framework, configured with multiple distinct fictional sommeliers, each judging wine by a different scoring philosophy (e.g., 100-point power scores, a fruit-quality index, value grades, and crowd ranks). Real critics are not impersonated.
-    \item The system shall automatically send an API request to the cloud backend to trigger a simulated multi-agent dialogue whenever a new wine is registered to the cellar inventory or actively selected by the user via the touch display.
+    \item The system shall automatically send an API request to the cloud backend to trigger a simulated multi-agent dialogue whenever a wine is selected by the user via the touch display.
     \item The system shall retrieve and visualize interactive, chat-style debates on the front display in real-time, showcasing diverse analytical perspectives, tasting notes, and aging predictions for the selected wine.
     \item The system shall personalize the sommeliers' conversations and recommendations by adding a summary of the user's synchronized cellar data (inventory, consumption history, and saved preferences) to each request.
     \item \textbf{Cloud Base Model Operation:} The system shall utilize a centralized Large Language Model (LLM) hosted on a cloud GPU server as the foundational reasoning engine, run at full 16-bit precision rather than aggressively quantized for an appliance.
@@ -583,8 +585,8 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
     \item Wine Label Recognition
     \begin{itemize}
         \item Description: Extracts wine information from a photo of the bottle's label using cloud image recognition.
-        \item Feature: Amazon Rekognition detects the text lines on the label. The backend matches them against its wine catalog (at least 60\% of the producer and wine-name words must appear, with tolerance for misread letters) and takes the vintage from a year printed on the label; the catalog supplies the region, grape variety, and drinking window.
-        \item Action: The recognized details are shown for verification before the bottle is registered. When no catalog wine matches, the review form opens with empty fields and the text that was read, so the owner can fill them in.
+        \item Feature: Amazon Rekognition detects the text lines on the label. The LLM (the base model, without an adapter) turns them into producer, name, vintage, region, country, color, and grape, fixing misread letters and ignoring lines such as the bottle size or a founding year. The backend matches these details against its wine catalog (at least 60\% of the producer and wine-name words must appear, with tolerance for misread letters); a catalog wine supplies the drinking window.
+        \item Action: The recognized details are shown for verification before the bottle is registered. A wine outside the catalog keeps the details the LLM read. Without the GPU server, the text is matched against the catalog directly, and unmatched wines open with empty fields and the text that was read.
     \end{itemize}
 
     \item Automatic Bottle Registration
@@ -741,7 +743,7 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
     \item Optimal Drinking Window Recommendations
     \begin{itemize}
         \item Description: Identifies bottles that have reached their recommended drinking window.
-        \item Feature: The wine information page displays the estimated drinking window and indicates whether a bottle is ready to drink.
+        \item Feature: The wine information page displays the drinking window, indicates whether a bottle is ready to drink, and adds a short note on how the wine tastes now and later. Catalog wines keep their own window; other wines get one from an aging table built from the windows stated in 13,561 reviews (by color, grape, country, and region).
         \item Action: The system compares the current date with the available drinking-window information and recommends bottles that have reached their optimal drinking period.
     \end{itemize}
 
@@ -798,7 +800,7 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
     \begin{itemize}
         \item Description: Provides users with daily updates and news related to wine, wine storage, and wine preservation.
         \item Feature: A daily briefing section displays wine news ranked by how many of the owner's producers, regions, and grapes they mention, together with cellar insights (bottles at their peak, humidity stability, collection value).
-        \item Action: The system retrieves news from external RSS feeds, ranks it against the owner's inventory, and presents the latest briefing on the front display.
+        \item Action: The system retrieves news from external RSS feeds, ranks it against the owner's inventory, and presents the latest briefing on the front display. Under the headline, the LLM writes a short note that links the top three stories to the owner's bottles, citing them as [1], [2]; a note that fails the evidence check is left out.
     \end{itemize}
 \end{itemize}
 
@@ -862,9 +864,9 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
 
     \item Automated Multi-Agent Dialogue Triggering
     \begin{itemize}
-        \item Description: Automatically initiates a multi-sommelier debate whenever a user adds a new bottle or selects an existing bottle on the cellar's touch display.
-        \item Feature: An event-driven dialogue dispatcher monitors user interface inputs and inventory registration events.
-        \item Action: Upon detecting a bottle registration event or touch screen selection, the dispatcher extracts the bottle ID and wine metadata and sends an API request to the cloud backend to initiate multi-agent dialogue generation.
+        \item Description: Automatically initiates a multi-sommelier debate whenever a user selects a bottle on the cellar's touch display.
+        \item Feature: The wine details page starts the debate when a bottle is selected.
+        \item Action: Upon a touch screen selection, the display sends the bottle ID to the cloud backend to initiate multi-agent dialogue generation.
     \end{itemize}
 
     \item Interactive Multi-Agent Debate Visualization
@@ -1116,7 +1118,7 @@ The repository is one monorepo (Table~\ref{tab:directories}); Tables~\ref{tab:di
 \hline \texttt{webos/edge/} & Edge agent (appliance link to the cloud) \\
 \hline \texttt{mobile/Kotlin/} & Android application \\
 \hline \texttt{mobile/ios/} & iOS application \\
-\hline \texttt{AI-7B/} & Sommelier LoRAs: data, training, evaluation, gateway \\
+\hline \texttt{AI-7B/} & AI: sommelier LoRAs, gateway, label and drinking-window evaluations \\
 \hline \texttt{deploy/} & Production deployment (Docker Compose, Caddy) \\
 \hline \texttt{documents/} & Paper, requirement coverage, figures \\
 \hline \texttt{.github/workflows/} & Continuous integration (GitHub Actions) \\
@@ -1139,9 +1141,9 @@ The repository is one monorepo (Table~\ref{tab:directories}); Tables~\ref{tab:di
 \hline \texttt{backend/} & Dockerfile\newline requirements.txt\newline .env.example \\
 \hline \texttt{backend/app/} & main.py\newline routes.py\newline devserver.py\newline config.py\newline common.py\newline db.py\newline live.py \\
 \hline \texttt{backend/app/ (accounts)} & accounts.py\newline security.py\newline legal.py\newline mailer.py \\
-\hline \texttt{backend/app/ (inventory)} & inventory.py\newline geometry.py\newline vision.py\newline labels.py\newline devices.py\newline simulator.py\newline catalog.py \\
-\hline \texttt{backend/app/ (AI and data)} & services.py\newline tasting.py\newline llm.py\newline market.py\newline news.py \\
-\hline \texttt{backend/tests/} & conftest.py\newline test\_auth.py\newline test\_account.py\newline test\_security.py\newline test\_inventory.py\newline test\_geometry.py\newline test\_vision.py\newline test\_labels.py\newline test\_devices.py\newline test\_environment.py\newline test\_ai.py\newline test\_market.py \\
+\hline \texttt{backend/app/ (inventory)} & inventory.py\newline geometry.py\newline vision.py\newline labels.py\newline label\_llm.py\newline devices.py\newline simulator.py\newline catalog.py \\
+\hline \texttt{backend/app/ (AI and data)} & services.py\newline tasting.py\newline llm.py\newline drinking.py\newline news\_brief.py\newline market.py\newline news.py \\
+\hline \texttt{backend/tests/} & conftest.py\newline test\_auth.py\newline test\_account.py\newline test\_security.py\newline test\_inventory.py\newline test\_geometry.py\newline test\_vision.py\newline test\_labels.py\newline test\_devices.py\newline test\_environment.py\newline test\_ai.py\newline test\_drinking.py\newline test\_news\_brief.py\newline test\_market.py \\
 \hline
 \end{tabularx}
 \end{minipage}\par\smallskip
@@ -1231,7 +1233,7 @@ The repository is one monorepo (Table~\ref{tab:directories}); Tables~\ref{tab:di
 \hline
 \textbf{Directory} & \textbf{File Name} \\
 \hline \texttt{webos/edge/} & edge\_agent.py \\
-\hline \texttt{AI-7B/} & build\_pool.py\newline build\_xwines.py\newline evidence7b.py\newline generate.py\newline verify7b.py\newline train.py\newline eval7b.py\newline serve\_check7b.py\newline gateway.py\newline prompts.py\newline check\_prompt\_sync.py \\
+\hline \texttt{AI-7B/} & build\_pool.py\newline build\_xwines.py\newline evidence7b.py\newline generate.py\newline verify7b.py\newline train.py\newline eval7b.py\newline serve\_check7b.py\newline gateway.py\newline prompts.py\newline check\_prompt\_sync.py\newline label\_data.py\newline label\_eval.py\newline drink\_data.py\newline drink\_table.py\newline drink\_notes.py\newline eval\_drinking.py \\
 \hline \texttt{AI-7B/pod/} & setup.sh\newline run.sh\newline wait.sh\newline train\_all.sh\newline rebalance.py\newline serve.sh\newline serve\_check.sh \\
 \hline \texttt{deploy/} & docker-compose.yml\newline Caddyfile\newline .env.production.example \\
 \hline
@@ -1245,9 +1247,9 @@ The repository is one monorepo (Table~\ref{tab:directories}); Tables~\ref{tab:di
 \begin{enumerate}
     \item \textbf{Accounts and privacy:} sign-up with the 19+ age check and separate PIPA consents, login with a username or email, opaque bearer tokens, optional email codes, data export, and account deletion.
     \item \textbf{Inventory and geometry:} cellars, removable racks, climate zones, and bottles in centimeter coordinates; free placement with a gravity rule for stacked bottles; search across all cellars.
-    \item \textbf{Vision:} label photos become wine details (Amazon Rekognition and a catalog match); cellar scans are reconciled into new, moved, hidden, and removed bottles; uncertain results wait in a review queue.
+    \item \textbf{Vision:} label photos become wine details (Amazon Rekognition, the LLM, and a catalog match); cellar scans are reconciled into new, moved, hidden, and removed bottles; uncertain results wait in a review queue.
     \item \textbf{Appliances and climate:} 6-digit pairing, device tokens limited to their own cellar, telemetry, and alerts for out-of-range or silent sensors.
-    \item \textbf{AI and data:} the sommelier table, pairing, recommendations, and the daily briefing; one switch between the mock provider and the GPU server; market prices from WineAPI.io and news from RSS feeds.
+    \item \textbf{AI and data:} the sommelier table, pairing, recommendations, drinking windows with their notes, and the daily briefing with its AI note; one switch between the mock provider and the GPU server; market prices from WineAPI.io and news from RSS feeds.
     \item \textbf{Live sync:} after every change a short message goes over WebSocket to all of the owner's open clients, which then reload the affected data.
 \end{enumerate}
 
@@ -1260,9 +1262,10 @@ The repository is one monorepo (Table~\ref{tab:directories}); Tables~\ref{tab:di
     \item \texttt{config.py, db.py, common.py}: settings from the environment; one SQL layer that runs the same statements on SQLite and PostgreSQL, with migrations; shared helpers and the notification function.
     \item \texttt{security.py, accounts.py, legal.py, mailer.py}: salted PBKDF2-SHA256 passwords~\cite{pbkdf2} and hashed tokens~\cite{bearer}; sign-up rules and email codes; consent list and policy versions; email sending.
     \item \texttt{inventory.py, geometry.py}: cellars, racks, zones, and bottles; free-spot search, snapping to a rack, stacking levels, and settling when a supporting bottle is removed.
-    \item \texttt{vision.py, labels.py}: scan reconciliation in the style of tracking-by-detection~\cite{sort} with a 2.5 cm noise tolerance; label photo to wine details.
+    \item \texttt{vision.py, labels.py, label\_llm.py}: scan reconciliation in the style of tracking-by-detection~\cite{sort} with a 2.5 cm noise tolerance; label photo to wine details, with the LLM prompt and parser for the label text.
     \item \texttt{devices.py, simulator.py}: appliance registration, pairing, and telemetry; background loop for simulated sensors, climate alerts, drinking-window notices, and the daily briefing.
     \item \texttt{services.py, tasting.py, llm.py}: recommendations, briefing, and value; the sommelier table, deciding per turn between a sommelier's LoRA and the base model; streaming client for the LLM server with a silent mock fallback.
+    \item \texttt{drinking.py, news\_brief.py}: drinking-window estimates from the aging table and the checked note on the details page; the briefing's retrieval, AI note, and its checks.
     \item \texttt{market.py, news.py, catalog.py}: daily-cached WineAPI.io prices; RSS news ranked against the owner's cellar; reference wine catalog.
     \item \texttt{live.py}: WebSocket hub that keeps the open connections per user and sends the change messages.
 \end{itemize}
@@ -1356,8 +1359,8 @@ The repository is one monorepo (Table~\ref{tab:directories}); Tables~\ref{tab:di
 
 \textbf{Technologies.} Python standard library (OpenCV only for the optional webcam).
 
-\subsection{Module 5: AI Sommelier Engine}
-\textbf{Purpose.} Let four sommeliers with clearly different judgment debate any bottle on the door, while every fact they state (scores, prices, drinking windows, crowd ranks) comes from real data. In OmniCave, a \emph{sommelier} is an AI character the owner can seat at a tasting or ask anything about the cellar. The four built-in sommeliers each judge wine like a different kind of critic, and owners can create their own. Together they turn the cellar from storage into a place to taste and decide.
+\subsection{Module 5: AI Engine}
+\textbf{Purpose.} All AI features run on one open-weight model, Qwen2.5-7B-Instruct~\cite{qwen25}, on a cloud GPU: the sommeliers with their own adapters, and label reading, drinking-window notes, and the news briefing on the base model. Each answer is grounded in retrieved evidence and checked by rules before it is shown; without the GPU server, every feature falls back to a fixed answer. The sommeliers come first: let four sommeliers with clearly different judgment debate any bottle on the door, while every fact they state (scores, prices, drinking windows, crowd ranks) comes from real data. In OmniCave, a \emph{sommelier} is an AI character the owner can seat at a tasting or ask anything about the cellar. The four built-in sommeliers each judge wine like a different kind of critic, and owners can create their own. Together they turn the cellar from storage into a place to taste and decide.
 
 \textbf{Design decision: adapters, not prompts.} We first gave each sommelier's philosophy to the base model as a prompt. It wrote fluent text, but every sommelier fell back to the same generic voice: only 0--28\% of answers passed all checks, and three of the four sommeliers never used their own scoring scale (Table~\ref{tab:lora-eval}). A larger cloud model would cost more per request and still drift. Instead, each sommelier is a small LoRA adapter~\cite{lora} on one shared Qwen2.5-7B-Instruct base~\cite{qwen25}: the adapter carries the sommelier's voice and way of arguing, and the facts are retrieved at answer time~\cite{rag}, which keeps the model from inventing them~\cite{hallucination}. Table~\ref{tab:critics} lists the four sommeliers.
 
@@ -1475,7 +1478,7 @@ Sommelier & Own scale & Format & Grounded & All checks \\
 \end{quote}
 The same bottle receives three different verdicts on three different scales, each defensible from the same evidence; this disagreement is what the tasting table shows the owner.
 
-\textbf{Serving performance.} Table~\ref{tab:serving} shows that a sommelier starts speaking within the 1.5-second target of the performance requirement, even when the request travels from the door to the cloud and on to the GPU server. \todo{Sungbin: confirm numbers}
+\textbf{Serving performance.} Table~\ref{tab:serving} shows that a sommelier starts speaking within the 1.5-second target of the performance requirement, even when the request travels from the door to the cloud and on to the GPU server.
 
 \par\smallskip
 \noindent\begin{minipage}{\columnwidth}
@@ -1499,6 +1502,52 @@ The same bottle receives three different verdicts on three different scales, eac
 
 \textbf{Limitations.} The sommeliers answer in English, because the adapters were trained on English data only; the base-model features follow the owner's language. Crowd evidence exists only for part of the wines, so Jordan Reyes says so instead of ranking a bottle without data. The GPU server is rented on demand, so outside test and demo sessions the sommeliers use the stand-in answer.
 
+\textbf{Label reading.} Rekognition returns the label as loose text lines with misread letters (0 for O, 1 for l), split lines, and lines that are not the wine, such as the bottle size or a founding year. The base model turns them into wine details; the backend then matches those details against the catalog. To measure this without hundreds of real label photos, 300 wines from the open X-Wines dataset~\cite{xwines} were rendered as noisy OCR output with known answers. Table~\ref{tab:labels} compares the model with the previous direct match of the raw text. For wines in the catalog, the direct match was already strong and finds the right wine more often; the model's gain is for wines it has never seen, which is the usual case at home, and for vintages: it never took a founding year or invented a year.
+
+\par\smallskip
+\noindent\begin{minipage}{\columnwidth}
+\centering
+\refstepcounter{table}\label{tab:labels}
+{\footnotesize TABLE \Roman{table}. \textit{Label Reading on 300 Simulated Labels (\%)}\par}
+\smallskip
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.1}
+\begin{tabularx}{\columnwidth}{|Y|c|c|}
+\hline
+\multicolumn{1}{|c|}{Measure} & Text match & LLM \\
+\hline Right wine found, wine in the catalog & 98.7 & 90.7 \\
+\hline Vintage exact & 90.7 & 100.0 \\
+\hline Vintage invented (none on the label) & 2.7 & 0.0 \\
+\hline Wine not in the catalog: producer, name, and vintage all right & 0.0 & 86.3 \\
+\hline
+\end{tabularx}
+\end{minipage}\par\smallskip
+
+\textbf{Drinking windows.} Bottles outside the catalog used to get the vintage plus 2 to 12 years. As ground truth we parsed the drinking windows that 81,000 wine reviews state, giving 13,561 wines, split by producer so that no producer is in both parts. A plain aging table (the median start and length per color, grape, country, and region) was the strongest predictor, and it is what the system uses (Table~\ref{tab:drinking}). The base model given the table's answer only copied it, and a LoRA adapter trained on 10,000 windows was not better overall, so it is not used. The model is used where it adds value: the details page shows two or three neutral sentences on how the wine tastes now and later, written from the window and from tasting words typical of young and mature wines of its kind. A rule check rejects any year, aroma, or name that is not in this evidence; all 137 test notes passed, and a rejected note falls back to a fixed sentence.
+
+\par\smallskip
+\noindent\begin{minipage}{\columnwidth}
+\centering
+\refstepcounter{table}\label{tab:drinking}
+{\footnotesize TABLE \Roman{table}. \textit{Drinking-Window Estimates on 2,730 Held-Out Wines}\par}
+\smallskip
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.1}
+\begin{tabularx}{\columnwidth}{|Y|c|c|c|}
+\hline
+\multicolumn{1}{|c|}{Method} & Start error & End error & Status right \\
+\hline Previous rule (vintage +2 to +12) & 3.85 y & 4.74 y & 69.2\% \\
+\hline Aging table (used) & 1.27 y & 4.91 y & 87.5\% \\
+\hline LoRA adapter (not used) & 1.20 y & 3.98 y & 84.2\% \\
+\hline
+\end{tabularx}\par\smallskip
+{\scriptsize Status: young, ready, or past its peak in 2026.\par}
+\end{minipage}\par\smallskip
+
+\textbf{News briefing.} Today's RSS items (titles and the publishers' summaries, never full articles) are ranked by the owner's regions, countries, producers, and grapes, with favorites from the drinking history weighted higher. For the top three, the base model writes two to four neutral sentences that link each story to the owner's matching bottles and cite it as [1], [2], or [3]. A rule check rejects a note that cites nothing or a missing story, names a publication or critic, or states a year or percentage that is not in the evidence; then only the headline is shown. Accepted notes are cached per owner and day.
+
 \textbf{Location of source code.} \url{https://github.com/enkhbold0519/omnicave/tree/main/AI-7B}
 
 \textbf{Class components.}
@@ -1509,6 +1558,8 @@ The same bottle receives three different verdicts on three different scales, eac
     \item \texttt{train.py, eval7b.py}: LoRA training with PEFT~\cite{peft}; base-versus-LoRA evaluation on held-out wines.
     \item \texttt{gateway.py}: the retrieval step in front of vLLM: finds the wine and sommelier in a request and appends the evidence.
     \item \texttt{serve\_check7b.py, check\_prompt\_sync.py}: measure the first-token time of a running server; fail if the backend prompt drifts from the training prompt.
+    \item \texttt{label\_data.py, label\_eval.py}: the simulated label test set from X-Wines; text match versus LLM.
+    \item \texttt{drink\_data.py, drink\_table.py, drink\_notes.py, eval\_drinking.py}: review-stated windows, the aging table, the tasting words per kind of wine, and the evaluation.
     \item \texttt{pod/}: scripts that set up the GPU pod, train all sommeliers, and start serving.
 \end{itemize}
 
@@ -1554,7 +1605,7 @@ Every push and pull request runs five GitHub Actions jobs (Table~\ref{tab:tests}
 \begin{tabularx}{\columnwidth}{|>{\raggedright\arraybackslash}p{0.22\columnwidth}|>{\raggedright\arraybackslash}p{0.10\columnwidth}|Y|}
 \hline
 \multicolumn{1}{|c|}{Component} & \multicolumn{1}{c|}{Tests} & \multicolumn{1}{c|}{Coverage and where it runs} \\
-\hline Backend (pytest) & 42 & Accounts, consents, security, inventory, geometry, vision reconciliation, label reading, devices, climate, AI, market prices; CI on SQLite and PostgreSQL \\
+\hline Backend (pytest) & 57 & Accounts, consents, security, inventory, geometry, vision reconciliation, label reading, devices, climate, AI, drinking windows, news briefing, market prices; CI on SQLite and PostgreSQL \\
 \hline Door display (Vitest) & 18 & Sommelier score badges and verdict, offline cache and write queue, logout clean-up, sign-up reply, screen saver; CI before every build \\
 \hline Android (JUnit) & 11 & JSON models; CI compiles the app \\
 \hline iOS (XCTest) & 5 & API client; run in Xcode on macOS \\
@@ -1605,14 +1656,14 @@ This section describes the main use cases from the owner's point of view, each l
 \todo{screenshot from the phone app: Add cellar with the pairing code}
 
 \subsection{UC3: Store a New Bottle}
-\textbf{Requirement:} Inventory Mapping \quad \textbf{Actors:} Owner, label recognition (Amazon Rekognition)
+\textbf{Requirement:} Inventory Mapping \quad \textbf{Actors:} Owner, label recognition (Amazon Rekognition and the LLM)
 
 \textbf{Preconditions:} A paired cellar.
 
 \textbf{Flow:}
 \begin{enumerate}
     \item The owner chooses ``From photo'' in the app and photographs the bottle's front label (in the product, an entry camera at the door takes this photo).
-    \item The label text is read in the cloud and matched to a wine; the bottle appears in the review queue with its details, a suggested free spot, and the recognition confidence.
+    \item The label text is read in the cloud, turned into wine details by the LLM, and matched to a catalog wine if there is one; the bottle appears in the review queue with its details, a suggested free spot, and the recognition confidence.
     \item The owner corrects the vintage if needed and confirms.
     \item The owner places the bottle in the suggested spot; it is registered at that position and appears on the door and the phone at the same time.
 \end{enumerate}
@@ -1654,7 +1705,7 @@ This section describes the main use cases from the owner's point of view, each l
 
 \textbf{Flow:}
 \begin{enumerate}
-    \item The bottle details show its drinking window (e.g., ``Ready, best 2024--2030'').
+    \item The bottle details show its drinking window (e.g., ``Ready, best 2024--2030'') and a short note on how it tastes now and later.
     \item The owner taps Opened and confirms (or Remove, for a bottle given away or broken).
     \item The bottle leaves the inventory; bottles that were stacked on it settle onto the rack below.
     \item An opened bottle is added to the owner's drinking history, which personalizes later recommendations and sommelier conversations.
@@ -1757,7 +1808,7 @@ This section describes the main use cases from the owner's point of view, each l
     \item The owner opens Briefing on the door.
     \item The top shows how many bottles are ready to drink now and next year, the climate stability, and the collection value.
     \item ``Open soon'' lists bottles near the end of their drinking window, each on a timeline.
-    \item ``News for you'' shows wine news ranked by how many of the owner's regions, grapes, and producers it mentions, with those matches as tags.
+    \item ``News for you'' shows wine news ranked by how many of the owner's regions, grapes, and producers it mentions, with those matches as tags. Under the headline, a short AI note links the top stories to the owner's bottles, with numbered sources.
 \end{enumerate}
 \textbf{Postconditions:} The owner knows what to drink soon and what changed in the wine world; a short summary also appears in the notifications at the owner's chosen time.
 
@@ -1837,6 +1888,8 @@ This section describes the main use cases from the owner's point of view, each l
 
 \textbf{Distinct sommelier voices at low cost.} One small LoRA adapter per sommelier, trained for under five dollars, raised the share of answers that pass every check from 0--28\% for the base model to 98--100\%; both stayed grounded in the retrieved evidence, so the gain is the sommelier's own voice and scale.
 
+\textbf{The model where it helps.} For each AI feature we first measured a simple method. For label reading, a text match already found catalog wines, and the LLM mattered for the wines it had never seen (0 to 86\% fully read). For drinking windows, an aging table beat both the base model and a trained adapter, so the model only explains the window. Every model answer is checked against its evidence before it is shown.
+
 \subsection{Technical Challenges}
 \textbf{No hardware.} We had no transparent OLED door, no cellar, and no camera, so every hardware part was replaced by software with the same interface: the webOS emulator and a browser for the door, an edge agent for the appliance, a cloud label-recognition service and the phone camera for the entry camera, and a backend simulator for the in-cellar scans and sensors. Because the backend does not know whether a scan comes from a simulator or a camera, the real device can replace the simulator later.
 
@@ -1844,12 +1897,16 @@ This section describes the main use cases from the owner's point of view, each l
 
 \textbf{Serving the AI.} Training the adapters was easier than serving them: proxy settings, unbuffered streaming, and keeping the prompt identical to the training data each caused failures that appeared only on the live server. A check that compares the served prompt with the training prompt now runs before every session.
 
+\textbf{Checking the data first.} The first drinking-window evaluation found only about 100 windows in 81,000 reviews. The data mirror had glued ranges together (``Drink 20192031''); fixing the parser gave 13,561 windows and changed which method won.
+
 \textbf{webOS packaging.} webOS loads applications from local files, which breaks modern module loading, so the display is built into one bundle.
 
 \subsection{Current Limitations}\label{sec:limitations}
 \begin{itemize}
-    \item In-cellar bottle detection was not tested with real hardware: the scans come from a simulator. Label reading is real, but it recognizes only wines in the built-in catalog; other wines are filled in by the owner.
-    \item The GPU server runs only during demonstrations; otherwise the sommeliers use a mock answer.
+    \item In-cellar bottle detection was not tested with real hardware: the scans come from a simulator. Label reading is real, but it was measured on simulated OCR text, not on a set of real label photos.
+    \item The GPU server runs only during demonstrations; otherwise the sommeliers, label reading, drinking notes, and briefing use their fixed fallbacks.
+    \item Estimated drinking windows are too short for Port, sweet wines, and top Bordeaux, which are rare in the review data. The aging table does not use the cellar's sensor data.
+    \item The drinking notes and the briefing's AI note are shown on the door display only; the phone apps show the windows and the ranked news.
     \item The market-price service is in public beta and had no price records for our catalog wines, so prices are mostly labelled estimates, and the price history is always estimated.
     \item Email verification and password-reset codes are implemented but switched off in the deployment, because a verified email sender requires a registered domain.
     \item Personalized and budget-constrained wine lists exist in the backend only; the apps do not offer them yet.
