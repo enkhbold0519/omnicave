@@ -90,9 +90,9 @@ Smart Home Appliance, Cloud Computing, Vision AI, Large Language Model (LLM), Lo
 \refstepcounter{table}\label{tab:role-assignments}
 {\footnotesize TABLE \Roman{table}. \textit{Role Assignments}\par}
 \smallskip
-\footnotesize
-\setlength{\tabcolsep}{3pt}
-\renewcommand{\arraystretch}{1.05}
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\renewcommand{\arraystretch}{1.0}
 \begin{tabularx}{\columnwidth}{|>{\raggedright\arraybackslash}p{0.24\columnwidth}|>{\raggedright\arraybackslash}p{0.19\columnwidth}|Y|}
 \hline
 \multicolumn{1}{|c|}{Roles} & \multicolumn{1}{c|}{Name} & \multicolumn{1}{c|}{Task Description} \\
@@ -1067,12 +1067,7 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
 \end{itemize}
 
 
-\begin{figure*}[t]
-\centering
-\includegraphics[width=\textwidth]{images/architecture-light.png}
-\caption{Overall system architecture. Clients reach the cloud only through Caddy; the backend calls the database, Amazon Rekognition, WineAPI.io, and the RunPod GPU server (purple), where an AI gateway adds evidence before vLLM serves the four sommelier adapters on one shared base model.}
-\label{fig:architecture}
-\end{figure*}
+
 
 \section{Architecture Design \& Implementation}
 
@@ -1085,6 +1080,13 @@ Fig.~\ref{fig:architecture} shows the system. It follows a thin-appliance, smart
     \item \textbf{AI and data services:} the AI models (an AI gateway and vLLM serving Qwen2.5-7B with four sommelier LoRA adapters on a RunPod GPU; the base model also reads labels and writes the drinking and briefing notes), Amazon Rekognition for reading label photos, and WineAPI.io for market prices. Only the backend calls them; clients never do, so keys and credentials stay on the server.
 \end{itemize}
 
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\columnwidth]{images/architecture-light.png}
+\caption{Overall system architecture. Clients reach the cloud only through Caddy; the backend calls the database, Amazon Rekognition, WineAPI.io, RSS feeds, and the RunPod GPU server (purple), where vLLM serves one base model with four sommelier adapters and, without an adapter, three smaller tasks.}
+\label{fig:architecture}
+\end{figure}
+
 
 
 \subsection{Communication Protocols}
@@ -1093,9 +1095,10 @@ Fig.~\ref{fig:architecture} shows the system. It follows a thin-appliance, smart
     \item \textbf{WebSocket (cloud to clients):} after every change the backend sends a short ``changed'' message to all open connections of that owner, and each client reloads the affected data. This keeps the door, Android, and iOS in sync within about a second; polling remains as a fallback.
     \item \textbf{Server-Sent Events (AI answers):} sommelier debates and recommendations are streamed token by token, so the first words appear while the model is still generating.
     \item \textbf{Device pairing:} a new appliance registers itself and shows a 6-digit code; the owner enters the code in an app, and the appliance then receives its device token.
-    \item \textbf{OpenAI-compatible API (backend to GPU server):} the backend sends chat requests with the adapter name as the model, authenticated with a bearer key and streamed; a gateway on the GPU server adds the retrieved evidence before passing the request to vLLM.
+    \item \textbf{OpenAI-compatible API (backend to GPU server):} the backend sends chat requests with the adapter name as the model (or the base model's name when no adapter is used), authenticated with a bearer key and streamed; a gateway on the GPU server adds the retrieved evidence to sommelier requests before passing them to vLLM. If the server does not answer, the backend falls back to fixed text and waits before trying again.
     \item \textbf{AWS SDK over HTTPS (backend to Amazon Rekognition):} label photos are sent to the DetectText operation; the EC2 instance's IAM role provides the credentials.
     \item \textbf{REST over HTTPS (backend to WineAPI.io):} price lookups with an API key, made only by the background refresh, never during a client request.
+    \item \textbf{RSS over HTTPS (backend to news feeds):} public wine news feeds, fetched at most once an hour and cached; only titles and publisher summaries are kept.
 \end{itemize}
 
 \subsection{Directory Organization}
@@ -1138,12 +1141,12 @@ The repository is one monorepo (Table~\ref{tab:directories}); Tables~\ref{tab:di
 \begin{tabularx}{\columnwidth}{|>{\raggedright\arraybackslash}p{0.5\columnwidth}|Y|}
 \hline
 \textbf{Directory} & \textbf{File Name} \\
-\hline \texttt{backend/} & Dockerfile\newline requirements.txt\newline .env.example \\
+\hline \texttt{backend/} & Dockerfile, requirements.txt\newline .env.example \\
 \hline \texttt{backend/app/} & main.py\newline routes.py\newline devserver.py\newline config.py\newline common.py\newline db.py\newline live.py \\
 \hline \texttt{backend/app/ (accounts)} & accounts.py\newline security.py\newline legal.py\newline mailer.py \\
 \hline \texttt{backend/app/ (inventory)} & inventory.py\newline geometry.py\newline vision.py\newline labels.py\newline label\_llm.py\newline devices.py\newline simulator.py\newline catalog.py \\
 \hline \texttt{backend/app/ (AI and data)} & services.py\newline tasting.py\newline llm.py\newline drinking.py\newline news\_brief.py\newline market.py\newline news.py \\
-\hline \texttt{backend/tests/} & conftest.py\newline test\_auth.py\newline test\_account.py\newline test\_security.py\newline test\_inventory.py\newline test\_geometry.py\newline test\_vision.py\newline test\_labels.py\newline test\_devices.py\newline test\_environment.py\newline test\_ai.py\newline test\_drinking.py\newline test\_news\_brief.py\newline test\_market.py \\
+\hline \texttt{backend/tests/} & conftest.py, test\_auth.py\newline test\_account.py, test\_security.py\newline test\_inventory.py, test\_geometry.py\newline test\_vision.py, test\_labels.py\newline test\_devices.py, test\_environment.py\newline test\_ai.py, test\_personas.py\newline test\_llm.py, test\_live.py\newline test\_drinking.py, test\_news\_brief.py\newline test\_market.py \\
 \hline
 \end{tabularx}
 \end{minipage}\par\smallskip
@@ -1526,7 +1529,7 @@ The same bottle receives three different verdicts on three different scales, eac
 \end{tabularx}
 \end{minipage}\par\smallskip
 
-\textbf{Drinking windows.} Bottles outside the catalog used to get the vintage plus 2 to 12 years. As ground truth we parsed the drinking windows that 81,000 wine reviews state, giving 13,561 wines, split by producer so that no producer is in both parts. A plain aging table (the median start and length per color, grape, country, and region) was the strongest predictor, and it is what the system uses (Table~\ref{tab:drinking}). The base model given the table's answer only copied it, and a LoRA adapter trained on 10,000 windows was not better overall, so it is not used. The model is used where it adds value: the details page shows two or three neutral sentences on how the wine tastes now and later, written from the window and from tasting words typical of young and mature wines of its kind. A rule check rejects any year, aroma, or name that is not in this evidence; all 137 test notes passed, and a rejected note falls back to a fixed sentence.
+\textbf{Drinking windows.} Bottles outside the catalog used to get the vintage plus 2 to 12 years. As ground truth we parsed the drinking windows that 81,000 wine reviews~\cite{winereviews} state, giving 13,561 wines, split by producer so that no producer is in both parts. A plain aging table (the median start and length per color, grape, country, and region) was the strongest predictor, and it is what the system uses (Table~\ref{tab:drinking}). The base model given the table's answer only copied it, and a LoRA adapter trained on 10,000 windows was not better overall, so it is not used. The model is used where it adds value: the details page shows two or three neutral sentences on how the wine tastes now and later, written from the window and from tasting words typical of young and mature wines of its kind. A rule check rejects any year, aroma, or name that is not in this evidence; all 137 test notes passed, and a rejected note falls back to a fixed sentence.
 
 \par\smallskip
 \noindent\begin{minipage}{\columnwidth}
@@ -1593,7 +1596,7 @@ The same bottle receives three different verdicts on three different scales, eac
 \textbf{Technologies.} AWS EC2 (t3.small), Amazon RDS for PostgreSQL 17, Amazon Rekognition, Docker, Caddy, Vercel, RunPod, GitHub Actions. The AWS resources run in the Sydney region (ap-southeast-2), which our AWS plan is limited to; a production deployment would run in the LG Datacenter or a Korean region.
 
 \subsection{Testing and Continuous Integration}\label{sec:testing}
-Every push and pull request runs five GitHub Actions jobs (Table~\ref{tab:tests}). The backend suite starts the real API on a temporary database and calls it over HTTP, so the tests exercise the same routes as the apps; it runs once on SQLite and once on PostgreSQL 17, because the two databases differ in small ways that only show up at run time. A further job checks that the debate prompt in the backend is still identical to the one the LoRA adapters were trained on.
+Every push and pull request runs five GitHub Actions jobs (Table~\ref{tab:tests}). The backend suite starts the real API on a temporary database and calls it over HTTP, so the tests exercise the same routes as the apps; it runs once on SQLite and once on PostgreSQL 17, because the two databases differ in small ways that only show up at run time. A further job checks that the debate prompt in the backend is still identical to the one the LoRA adapters were trained on. Measured with coverage.py, the backend tests run 84\% of the backend's code lines; the largest untested part is the FastAPI start-up wrapper, which the tests replace with the same route table on a standard-library server.
 
 \par\smallskip
 \noindent\begin{minipage}{\columnwidth}
@@ -1607,9 +1610,9 @@ Every push and pull request runs five GitHub Actions jobs (Table~\ref{tab:tests}
 \begin{tabularx}{\columnwidth}{|>{\raggedright\arraybackslash}p{0.22\columnwidth}|>{\raggedright\arraybackslash}p{0.10\columnwidth}|Y|}
 \hline
 \multicolumn{1}{|c|}{Component} & \multicolumn{1}{c|}{Tests} & \multicolumn{1}{c|}{Coverage and where it runs} \\
-\hline Backend (pytest) & 57 & Accounts, consents, security, inventory, geometry, vision reconciliation, label reading, devices, climate, AI, drinking windows, news briefing, market prices; CI on SQLite and PostgreSQL \\
+\hline Backend (pytest) & 66 & Accounts, consents, security, inventory, geometry, vision reconciliation, label reading, devices, climate, AI, own sommeliers, LLM fallback, live sync, drinking windows, news briefing, market prices; CI on SQLite and PostgreSQL \\
 \hline Door display (Vitest) & 18 & Sommelier score badges and verdict, offline cache and write queue, logout clean-up, sign-up reply, screen saver; CI before every build \\
-\hline Android (JUnit) & 11 & JSON models; CI compiles the app \\
+\hline Android (JUnit) & 11 & JSON models; CI compiles the app and runs the tests \\
 \hline iOS (XCTest) & 5 & API client; run in Xcode on macOS \\
 \hline AI prompt check & 1 & Served debate prompt equals the training prompt; CI \\
 \hline
@@ -1654,8 +1657,6 @@ This section describes the main use cases from the owner's point of view, each l
     \item The cellar appears in the app and on the door, with its racks and zones.
 \end{enumerate}
 \textbf{Postconditions:} The appliance is linked to the account and starts sending sensor data.
-
-\todo{screenshot from the phone app: Add cellar with the pairing code}
 
 \subsection{UC3: Store a New Bottle}
 \textbf{Requirement:} Inventory Mapping \quad \textbf{Actors:} Owner, label recognition (Amazon Rekognition and the LLM)
@@ -1916,7 +1917,7 @@ This section describes the main use cases from the owner's point of view, each l
 \end{itemize}
 
 \subsection{Future Work}
-An entry camera at the door combined with weight sensors under each rack, so that the cellar recognizes every bottle without the phone; testing with real cellar hardware; deployment in an LG Datacenter; push notifications; and a larger evaluation of the sommeliers with real users.
+An entry camera at the door combined with weight sensors under each rack, so that the cellar recognizes every bottle without the phone; testing label reading on real label photographs; testing with real cellar hardware; deployment in an LG Datacenter; push notifications; and a larger evaluation of the sommeliers with real users.
 
 \subsection{Teamwork and Lessons Learned}
 
@@ -1948,6 +1949,7 @@ An entry camera at the door combined with weight sensors under each rack, so tha
 \bibitem{selfinstruct} Y. Wang \textit{et al.}, ``Self-Instruct: Aligning Language Models with Self-Generated Instructions,'' in \textit{Proc. ACL}, 2023.
 \bibitem{debate} Y. Du \textit{et al.}, ``Improving Factuality and Reasoning in Language Models through Multiagent Debate,'' in \textit{Proc. ICML}, 2024.
 \bibitem{roleplay} M. Shanahan, K. McDonell, and L. Reynolds, ``Role Play with Large Language Models,'' \textit{Nature}, vol. 623, pp. 493--498, 2023.
+\bibitem{winereviews} ``Updated Wine Enthusiast Reviews,'' OpenML dataset 43600, 2020.
 \bibitem{xwines} R. X. de Azambuja, A. J. Morais, and V. Filipe, ``X-Wines: A Wine Dataset for Recommender Systems and Machine Learning,'' \textit{Big Data and Cognitive Computing}, vol. 7, no. 1, 2023.
 \bibitem{transformers} T. Wolf \textit{et al.}, ``Transformers: State-of-the-Art Natural Language Processing,'' in \textit{Proc. EMNLP: System Demonstrations}, 2020.
 \bibitem{peft} S. Mangrulkar \textit{et al.}, ``PEFT: State-of-the-Art Parameter-Efficient Fine-Tuning Methods,'' 2022. [Online]. Available: https://github.com/huggingface/peft

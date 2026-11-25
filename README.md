@@ -37,14 +37,18 @@ The system rests on three ideas:
 - **AI critic debate:** four fictional critics (Victor, Livia, Marcus and Jordan), each a LoRA adapter on one shared
   Qwen2.5-7B model served by vLLM, debate a bottle with evidence retrieved for that wine, streamed word by word. On
   unseen wines they stay in character in 98–100% of answers, against 0–28% for the base model.
-- **Label recognition:** photograph a bottle; Amazon Rekognition reads the label, the backend matches it to a wine
-  and suggests a free spot, and the owner confirms.
+- **Label recognition:** photograph a bottle; Amazon Rekognition reads the text, the same Qwen model turns it into
+  wine fields (fixing OCR slips, never inventing a vintage), the backend matches it to a wine and suggests a free spot,
+  and the owner confirms. Wines outside the catalog keep the fields the model read.
+- **Drinking windows:** wines without a known window get one from an aging table built from 13,561 windows stated in
+  published reviews (status match 87.5%, against 69% for a fixed rule), with a short note on when to open the bottle.
 - **Bottles mapped in centimetres:** free stacking with gravity, a to-scale door view and a 3D view. Scan
   reconciliation turns successive scans into new, moved, removed and hidden bottles.
 - **Climate monitoring:** temperature and humidity per zone, with history and alerts, from the paired appliance
   (simulated readings when no appliance is connected).
-- **Daily briefing and collection value:** wine news, bottles ready to drink, and market value over time. Prices come
-  from WineAPI.io where available, otherwise a labelled estimate.
+- **Daily briefing and collection value:** wine news ranked against the owner's bottles, with a short AI note that
+  links today's stories to those bottles and cites each one, plus bottles ready to drink and market value over time.
+  Prices come from WineAPI.io where available, otherwise a labelled estimate.
 - **One account, every screen:** the door display, the Android app and the iOS app stay in sync live over WebSocket,
   across several cellars, with offline caching.
 - **Privacy by design:** 19+ age check, PIPA consents, and data export and account deletion.
@@ -57,9 +61,9 @@ The system rests on three ideas:
 
 | Layer | Technologies |
 |---|---|
-| Door display | React 19, TypeScript, Vite, webOS; web version hosted on Vercel |
+| Door display | React 19, TypeScript, Vite, webOS; |
 | Mobile | Kotlin, Jetpack Compose (Android); SwiftUI (iOS) |
-| Backend | Python 3.12, FastAPI, WebSocket (live sync), Server-Sent Events (streamed AI answers) |
+| Backend | Python 3.12, FastAPI, WebSocket (live sync)|
 | Database | PostgreSQL 17 on Amazon RDS; SQLite for development |
 | AI critics | Qwen2.5-7B-Instruct with one LoRA adapter per critic, served by vLLM on RunPod, behind our RAG gateway |
 | Vision and data | Amazon Rekognition (label text), WineAPI.io (market prices) |

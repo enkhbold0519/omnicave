@@ -152,6 +152,6 @@ jobs:
           printf "sdk.dir=%s\n" "$ANDROID_HOME" > local.properties
           printf "API_BASE=https://example.invalid\n" >> local.properties
 
-      - name: Compile Android application
+      - name: Compile Android application and run unit tests
         working-directory: mobile/Kotlin
-        run: bash ./gradlew :app:assembleDebug --no-daemon
+        run: bash ./gradlew :app:assembleDebug :app:testDebugUnitTest --no-daemon
