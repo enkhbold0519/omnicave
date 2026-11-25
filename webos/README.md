@@ -23,6 +23,9 @@ talks to the shared backend (`/api`).
    VITE_API_BASE=https://your-server-address npm run webos:deploy
    ```
    Set `WEBOS_DEVICE=tv` for an LG TV (default: the emulator).
+   On a landscape TV, add `VITE_ORIENTATION=portrait` so the portrait canvas is shown upright instead of rotated
+   (the owner can still change it in Profile). Without `VITE_API_BASE`, an installed app calls `http://10.0.2.2:8000`,
+   which only works inside the emulator.
 
 ## Tests
 `cd wine-cellar-display && npm test` runs the unit tests in `tests/` (Vitest): critic score badges and verdict,

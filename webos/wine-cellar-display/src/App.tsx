@@ -53,7 +53,7 @@ const TABS: [Tab, IconName, string][] = [
 const PAGES: Page[] = [...TABS.map(t => t[0]), 'profile']
 
 export default function App() {
-  const [orientation, setOrientationState] = useState<Orientation>(() => (safeGet('wc.orientation') as Orientation) || 'auto')
+  const [orientation, setOrientationState] = useState<Orientation>(() => (safeGet('wc.orientation') as Orientation) || (import.meta.env.VITE_ORIENTATION as Orientation | undefined) || 'auto')
   const setOrientation = (o: Orientation) => { safeSet('wc.orientation', o); setOrientationState(o) }
   const [user, setUser] = useState<User | null>(null)
   const [booting, setBooting] = useState(!!getToken())
