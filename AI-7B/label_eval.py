@@ -159,10 +159,8 @@ def main() -> int:
             for r in rows:
                 f.write(json.dumps(r, ensure_ascii=False) + "\n")
         print(f"{len(cases)} labels in {secs:.1f}s; unparsable replies: {sum(1 for r in rows if not r['pred']['fields'])}")
-    keys = list(next(iter(results.values())).keys())
-    print("| method | " + " | ".join(keys) + " |\n|" + "---|" * (len(keys) + 1))
-    for name, s in results.items():
-        print(f"| {name} | " + " | ".join(str(s[k]) for k in keys) + " |")
+    table("In catalog (2,000 wines)", results)
+    table("Not in catalog (only the reader's own fields count)", unknown)
     return 0
 
 
