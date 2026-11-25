@@ -26,7 +26,7 @@
 \newcommand{\shot}[3][0.48]{\begin{minipage}[t]{#1\columnwidth}\centering\includegraphics[width=\linewidth]{images/screens/#2}\par\vspace{1pt}{\footnotesize #3}\end{minipage}}
 \begin{document}
 
-\title{OmniCave: Wine Cellar Management with AI Critics, designed for Transparent Display Doors
+\title{OmniCave: Wine Cellar Management with AI Sommeliers, designed for Transparent Display Doors
 }
 
 \author{
@@ -77,7 +77,7 @@ Seoul, Republic of Korea\\
 \maketitle
 \raggedbottom
 \begin{abstract}
-The premium home appliance sector increasingly competes on artificial intelligence (AI) and user experience (UX) rather than hardware specifications. Yet commercial wine cellars remain passive climate-control units, and third-party cellar apps require manual tracking with no link between the physical racks and the digital record. This paper presents OmniCave, a cloud-powered wine cellar management system designed for transparent display doors. Each bottle's label is read once when it is stored, using Amazon Rekognition and a catalog match; the system suggests a free position, tracks every bottle in centimeter coordinates, and reconciles successive cellar scans into inventory changes, including freely stacked bottles. Four fictional AI critics, each a Low-Rank Adaptation (LoRA) adapter on a shared Qwen2.5-7B model served by vLLM, debate any bottle using retrieved evidence. On unseen wines, 98--100\% of the adapters' answers pass every check (the critic's own scoring scale, the expected length, and facts taken only from the evidence), against 0--28\% for the base model with the same prompt and evidence. The door display, an Android app, and an iOS app share one cloud backend and stay synchronized over WebSocket, so the appliance runs as a thin client within the cellar's thermal and memory limits.
+The premium home appliance sector increasingly competes on artificial intelligence (AI) and user experience (UX) rather than hardware specifications. Yet commercial wine cellars remain passive climate-control units, and third-party cellar apps require manual tracking with no link between the physical racks and the digital record. This paper presents OmniCave, a cloud-powered wine cellar management system designed for transparent display doors. Each bottle's label is read once when it is stored, using Amazon Rekognition and a catalog match; the system suggests a free position, tracks every bottle in centimeter coordinates, and reconciles successive cellar scans into inventory changes, including freely stacked bottles. Four fictional AI sommeliers, each a Low-Rank Adaptation (LoRA) adapter on a shared Qwen2.5-7B model served by vLLM, debate any bottle using retrieved evidence. On unseen wines, 98--100\% of the adapters' answers pass every check (the sommelier's own scoring scale, the expected length, and facts taken only from the evidence), against 0--28\% for the base model with the same prompt and evidence. The door display, an Android app, and an iOS app share one cloud backend and stay synchronized over WebSocket, so the appliance runs as a thin client within the cellar's thermal and memory limits.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -130,7 +130,7 @@ To overcome these limitations, this paper proposes a cloud-powered, AI-driven wi
 The key contributions of this work are summarized as follows:
 \begin{itemize}
     \item \textbf{Label Recognition and Centimeter-Level Spatial Mapping:} Reads each bottle's label and vintage once, when the bottle is stored (Amazon Rekognition text detection matched against a wine catalog), suggests a free position, and asks the owner to confirm. Bottles are tracked in centimeter coordinates rather than rigid slots, including bottles stacked on top of one another, and a reconciliation engine turns successive cellar scans into new, moved, removed, and hidden bottles.
-    \item \textbf{Cloud-Backed Multi-Agent LLM Architecture:} Replaces resource-constrained edge computing with a high-performance cloud backend (LG Datacenter). This paradigm shift allows the system to deploy massive, state-of-the-art Large Language Models (LLMs) without imposing any thermal, processing, or memory constraints on the cellar appliance itself. The cloud architecture orchestrates multi-agent dialogues among four critics, each a LoRA adapter trained on verified, evidence-grounded data: on unseen wines the adapters keep their critic's scoring scale and grounded facts in 98--100\% of answers, against 0--28\% for prompting alone, at a training cost of under five dollars.
+    \item \textbf{Cloud-Backed Multi-Agent LLM Architecture:} Replaces resource-constrained edge computing with a high-performance cloud backend (LG Datacenter). This paradigm shift allows the system to deploy massive, state-of-the-art Large Language Models (LLMs) without imposing any thermal, processing, or memory constraints on the cellar appliance itself. The cloud architecture orchestrates multi-agent dialogues among four sommeliers, each a LoRA adapter trained on verified, evidence-grounded data: on unseen wines the adapters keep their sommelier's scoring scale and grounded facts in 98--100\% of answers, against 0--28\% for prompting alone, at a training cost of under five dollars.
     \item \textbf{AI-Driven UX Enhancement:} Transcending basic touch interactions, the cloud-integrated AI engine drastically elevates the overall user experience. By analyzing multidimensional real-time data, the system proactively offers a broad spectrum of personalized management features---such as optimal drinking window alerts and dynamic food pairings---transforming passive wine storage into an actively managed ecosystem.
     \item \textbf{Multi-Device Distributed Scalability:} Establishes a synchronized system architecture that seamlessly unifies multiple physical cellar units under a single user profile. Leveraging cloud centralization, it guarantees real-time synchronization between the mobile application and the appliance, eradicating tracking discrepancies.
 \end{itemize}
@@ -216,13 +216,13 @@ These requirements describe the target appliance. The prototype implements label
 
 \subsubsection{Cloud-Powered Multi-Agent LLM Dialogue System}
 \begin{itemize}
-    \item The system shall integrate a cloud-hosted Multi-Agent Large Language Model (LLM) framework, configured with multiple distinct fictional critics, each reflecting a different scoring philosophy (e.g., a 100-point power critic, a fruit-quality purist, a value critic, and a crowd-taste critic). Real critics are not impersonated.
+    \item The system shall integrate a cloud-hosted Multi-Agent Large Language Model (LLM) framework, configured with multiple distinct fictional sommeliers, each judging wine by a different scoring philosophy (e.g., 100-point power scores, a fruit-quality index, value grades, and crowd ranks). Real critics are not impersonated.
     \item The system shall automatically send an API request to the cloud backend to trigger a simulated multi-agent dialogue whenever a new wine is registered to the cellar inventory or actively selected by the user via the touch display.
     \item The system shall retrieve and visualize interactive, chat-style debates on the front display in real-time, showcasing diverse analytical perspectives, tasting notes, and aging predictions for the selected wine.
-    \item The system shall personalize the critics' conversations and recommendations by adding a summary of the user's synchronized cellar data (inventory, consumption history, and saved preferences) to each request.
+    \item The system shall personalize the sommeliers' conversations and recommendations by adding a summary of the user's synchronized cellar data (inventory, consumption history, and saved preferences) to each request.
     \item \textbf{Cloud Base Model Operation:} The system shall utilize a centralized Large Language Model (LLM) hosted on a cloud GPU server as the foundational reasoning engine, run at full 16-bit precision rather than aggressively quantized for an appliance.
-    \item \textbf{Server-Side Dynamic LoRA Swapping:} The system shall dynamically load and unload specific Low-Rank Adaptation (LoRA) weight matrices corresponding to the active critic on the cloud server during multi-agent dialogue generation, so that one base model in GPU memory serves every critic, each keeping its own style and scoring scale.
-    \item \textbf{Continuous Critic Expansion:} The system shall allow new critics to be added through server-side LoRA adapters, and users to create their own critics described by a prompt, requiring no local software patches or model downloads on the cellar appliance.
+    \item \textbf{Server-Side Dynamic LoRA Swapping:} The system shall dynamically load and unload specific Low-Rank Adaptation (LoRA) weight matrices corresponding to the active sommelier on the cloud server during multi-agent dialogue generation, so that one base model in GPU memory serves every sommelier, each keeping its own style and scoring scale.
+    \item \textbf{Continuous Sommelier Expansion:} The system shall allow new sommeliers to be added through server-side LoRA adapters, and users to create their own sommeliers described by a prompt, requiring no local software patches or model downloads on the cellar appliance.
 \end{itemize}
 
 \subsubsection{Mobile Application Integration}
@@ -325,8 +325,8 @@ These requirements describe the target appliance. The prototype implements label
     \item \textbf{WineAPI.io:} Market prices come from the WineAPI.io REST API (public beta). To stay within the free plan of 100 requests per day, the backend refreshes each wine at most once a day in the background and caches the result in the database.
     \item \textbf{Vercel}
 \logofig{vercel}{Vercel} Vercel is selected to host the React-based integrated display because it specializes in deploying frontend web applications and supports Vite projects without additional configuration. Its GitHub integration automatically builds and deploys the application when changes are pushed, and creates preview deployments for branches so that interface changes can be reviewed before merging. The deployed display retrieves inventory, cellar status, environmental readings, and AI results from the FastAPI backend. Hosting the frontend separately allows it to be developed and deployed independently of the backend.
-    \item \textbf{RunPod GPU Cloud and vLLM (Critic Model Serving)}
-\logofig{runpod}{RunPod} While the commercial system is intended to run inside the LG Datacenter, the prototype rents a GPU on RunPod only when needed (training and demo sessions). The open-weight Qwen2.5-7B-Instruct model is served by vLLM~\cite{vllm} together with four LoRA adapters~\cite{lora}, one per critic; vLLM selects the adapter per request, which implements server-side LoRA swapping without reloading the base model. A small gateway in front of vLLM adds the retrieved evidence for the wine (scores, prices, drinking windows, crowd ranks) to each prompt. The adapters were trained on the same platform in about two hours on one A100 GPU. Token streaming gives a first token in about 1 second through the RunPod proxy.
+    \item \textbf{RunPod GPU Cloud and vLLM (Sommelier Model Serving)}
+\logofig{runpod}{RunPod} While the commercial system is intended to run inside the LG Datacenter, the prototype rents a GPU on RunPod only when needed (training and demo sessions). The open-weight Qwen2.5-7B-Instruct model is served by vLLM~\cite{vllm} together with four LoRA adapters~\cite{lora}, one per sommelier; vLLM selects the adapter per request, which implements server-side LoRA swapping without reloading the base model. A small gateway in front of vLLM adds the retrieved evidence for the wine (scores, prices, drinking windows, crowd ranks) to each prompt. The adapters were trained on the same platform in about two hours on one A100 GPU. Token streaming gives a first token in about 1 second through the RunPod proxy.
     \item \textbf{Mock Provider (Development and Fallback):} During development, and whenever the GPU server is off, the backend answers with a built-in mock provider so that every client remains usable without any paid service.
     \item \textbf{Architectural Decoupling:} All LLM providers (the mock provider and vLLM) are accessed through one backend interface selected by a configuration value. Moving from the prototype to a commercial LG Datacenter LLM therefore requires only a configuration change, not a refactoring of the backend logic.
 \end{enumerate}
@@ -416,7 +416,7 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
 \begin{itemize}
     \item \textbf{Hardware:} Development laptops for the team, including a macOS machine required for iOS development.
     \item \textbf{Cloud Infrastructure:} An AWS EC2 t3.small instance hosts the backend and web server, including storage and a public IPv4 address, and Amazon RDS hosts the PostgreSQL database. Vercel's free Hobby plan hosts the integrated display.
-    \item \textbf{AI Services:} A RunPod GPU is rented by the hour for LoRA training and for serving the critic models during tests and demonstrations.
+    \item \textbf{AI Services:} A RunPod GPU is rented by the hour for LoRA training and for serving the sommelier models during tests and demonstrations.
     \item \textbf{Development Tools:} Most tools used in the project, including VS Code, Xcode, Android Studio, Docker, Git, GitHub, Jira, Draw.io, and LaTeX, are free or open source.
     \item \textbf{AI Coding Assistants:} ChatGPT Plus (Codex CLI) and Claude Pro (Claude Code) subscriptions are used throughout development.
 \end{itemize}
@@ -458,7 +458,7 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
     \item \textbf{REST API over HTTP/HTTPS with JSON}
 \logofig{json}{REST and JSON} RESTful APIs are selected as the primary communication mechanism because they provide a simple, stateless interface supported on every platform in the project. Resources such as users, wines, bottles, cellars, and sensor readings are exposed through endpoints that use standard HTTP methods (GET, POST, PUT, PATCH, and DELETE). HTTP is used during local development, while HTTPS secures the deployed backend through Transport Layer Security (TLS). Data is exchanged in JSON, which is supported in Python, TypeScript, Kotlin, and Swift, allowing all clients to use a single backend.
     \item \textbf{WebSocket:} WebSocket~\cite{websocket} is selected to support persistent, bidirectional communication for features that require continuous updates. Unlike REST requests, which require the client to ask for new data, a WebSocket connection remains open, allowing the backend to send updates to clients as soon as changes occur. It is used to transmit changes in inventory, bottle locations, environmental measurements, and cellar connection status, so that an action on one device is reflected on all other clients without repeated polling. REST APIs remain responsible for standard request-response operations.
-    \item \textbf{Server-Sent Events (SSE):} AI answers (critic debates, pairings, and recommendations) are streamed from the backend to the clients as Server-Sent Events~\cite{sse}, so text appears word by word while the model is still generating.
+    \item \textbf{Server-Sent Events (SSE):} AI answers (sommelier debates, pairings, and recommendations) are streamed from the backend to the clients as Server-Sent Events~\cite{sse}, so text appears word by word while the model is still generating.
 \end{enumerate}
 
 \subsection{Task Distribution}
@@ -475,10 +475,10 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
 \begin{tabularx}{\columnwidth}{|>{\raggedright\arraybackslash}p{0.24\columnwidth}|>{\raggedright\arraybackslash}p{0.19\columnwidth}|Y|}
 \hline
 \multicolumn{1}{|c|}{Role} & \multicolumn{1}{c|}{Name} & \multicolumn{1}{c|}{Task Description} \\
-\hline iOS Application Developer & Naomi K. Fossaberg & Develop the native SwiftUI iOS application and connect it to the shared backend, including authentication, inventory, climate, critic debate streaming, notifications, and its test suite. \\
+\hline iOS Application Developer & Naomi K. Fossaberg & Develop the native SwiftUI iOS application and connect it to the shared backend, including authentication, inventory, climate, sommelier debate streaming, notifications, and its test suite. \\
 \hline Backend, Display \& Cloud Developer & Enkhbold Myagmarjav & Design and implement the FastAPI backend, the React/TypeScript door display, the native Android application, and the AWS deployment (EC2, RDS, Caddy). \\
 \hline Mobile Prototype \& Testing & Chiang Jun Han & Build the first companion-app prototype; write the automated backend and Android tests and the continuous integration pipeline. \\
-\hline AI Developer & Sungbin Bae & Build the critic AI: evidence retrieval, teacher-generated training data, LoRA training and evaluation on Qwen2.5-7B, and the vLLM serving gateway. \\
+\hline AI Developer & Sungbin Bae & Build the sommelier AI: evidence retrieval, teacher-generated training data, LoRA training and evaluation on Qwen2.5-7B, and the vLLM serving gateway. \\
 \hline
 \end{tabularx}
 \end{minipage}\par\smallskip
@@ -787,11 +787,11 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
         \item Action: When a user submits a query, the LLM processes the request and retrieves relevant inventory or wine information to generate a contextual response.
     \end{itemize}
 
-    \item Cloud-Powered Multi-Agent Critic Dialogue
+    \item Cloud-Powered Multi-Agent Sommelier Dialogue
     \begin{itemize}
-        \item Description: Simulates interactive debates~\cite{debate} and expert evaluations among four fictional wine critics~\cite{roleplay} (Victor Hale, Livia Moretti, Marcus Reed, and Jordan Reyes), each with a different scoring philosophy, regarding a selected wine.
-        \item Feature: Integrates a centralized cloud LLM (e.g., LG Datacenter) equipped with server-side dynamic Low-Rank Adaptation (LoRA) swapping, so that each critic keeps its own style and scoring scale without straining the appliance's local hardware.
-        \item Action: When a wine is registered or actively selected via the touch display, the backend selects each critic's LoRA adapter per turn on the GPU server, orchestrates the multi-agent debate, and streams the interactive conversation in real-time to the transparent display.
+        \item Description: Simulates interactive debates~\cite{debate} and expert evaluations among four fictional wine sommeliers~\cite{roleplay} (Victor Hale, Livia Moretti, Marcus Reed, and Jordan Reyes), each with a different scoring philosophy, regarding a selected wine.
+        \item Feature: Integrates a centralized cloud LLM (e.g., LG Datacenter) equipped with server-side dynamic Low-Rank Adaptation (LoRA) swapping, so that each sommelier keeps its own style and scoring scale without straining the appliance's local hardware.
+        \item Action: When a wine is registered or actively selected via the touch display, the backend selects each sommelier's LoRA adapter per turn on the GPU server, orchestrates the multi-agent debate, and streams the interactive conversation in real-time to the transparent display.
     \end{itemize}
 
     \item Daily Wine News Briefing
@@ -853,53 +853,53 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
 
 \subsubsection{Cloud-Powered Multi-Agent LLM Dialogue System}
 \begin{itemize}
-    \item Multi-Agent Critic Integration
+    \item Multi-Agent Sommelier Integration
     \begin{itemize}
-        \item Description: Configures multiple distinct LLM-based critics within the cloud backend to evaluate wines from contrasting analytical perspectives.
-        \item Feature: A critic profile database stores profiles, including scoring scales, vocabulary, regional focus, and tasting preferences, for each supported critic. The registry includes four fictional critics inspired by common scoring philosophies (100-point power scores, a fruit-quality index, value grades, and crowd ranks); real critics are not impersonated.
-        \item Action: When dialogue generation is initiated, the cloud-based multi-agent engine retrieves the selected critic profiles from the critic registry and assigns one to each turn of the debate.
+        \item Description: Configures multiple distinct LLM-based sommeliers within the cloud backend to evaluate wines from contrasting analytical perspectives.
+        \item Feature: A sommelier profile database stores profiles, including scoring scales, vocabulary, regional focus, and tasting preferences, for each supported sommelier. The registry includes four fictional sommeliers inspired by common scoring philosophies (100-point power scores, a fruit-quality index, value grades, and crowd ranks); real critics are not impersonated.
+        \item Action: When dialogue generation is initiated, the cloud-based multi-agent engine retrieves the selected sommelier profiles from the sommelier registry and assigns one to each turn of the debate.
     \end{itemize}
 
     \item Automated Multi-Agent Dialogue Triggering
     \begin{itemize}
-        \item Description: Automatically initiates a multi-critic debate whenever a user adds a new bottle or selects an existing bottle on the cellar's touch display.
+        \item Description: Automatically initiates a multi-sommelier debate whenever a user adds a new bottle or selects an existing bottle on the cellar's touch display.
         \item Feature: An event-driven dialogue dispatcher monitors user interface inputs and inventory registration events.
         \item Action: Upon detecting a bottle registration event or touch screen selection, the dispatcher extracts the bottle ID and wine metadata and sends an API request to the cloud backend to initiate multi-agent dialogue generation.
     \end{itemize}
 
     \item Interactive Multi-Agent Debate Visualization
     \begin{itemize}
-        \item Description: Formats and displays multi-critic discussions as an interactive chat stream on the physical cellar's front display.
-        \item Feature: A front-display chat interface featuring critic avatars, streaming message bubbles, color-coded tasting note tags, and visual aging timeline predictions.
-        \item Action: As each critic generates its turn, the system streams formatted text to the display UI, highlights key tasting descriptors, and renders an interactive timeline graph showing predicted drinkability windows.
+        \item Description: Formats and displays multi-sommelier discussions as an interactive chat stream on the physical cellar's front display.
+        \item Feature: A front-display chat interface featuring sommelier avatars, streaming message bubbles, color-coded tasting note tags, and visual aging timeline predictions.
+        \item Action: As each sommelier generates its turn, the system streams formatted text to the display UI, highlights key tasting descriptors, and renders an interactive timeline graph showing predicted drinkability windows.
     \end{itemize}
 
     \item Cloud-Based Preference Context
     \begin{itemize}
-        \item Description: Adaptively adjusts critic recommendations and discussion topics based on the user's historical cellar activity and individual wine preferences.
+        \item Description: Adaptively adjusts sommelier recommendations and discussion topics based on the user's historical cellar activity and individual wine preferences.
         \item Feature: A cloud-based preference engine securely analyses synchronized cellar database records, including bottle addition history, consumption history, and individual user preferences.
-        \item Action: For every request, the cloud backend summarizes the user's saved preferences and cellar contents, such as preferred grape varieties, regions, or vintage ranges, and adds them to the LLM prompt to personalize critic debates and recommendations.
+        \item Action: For every request, the cloud backend summarizes the user's saved preferences and cellar contents, such as preferred grape varieties, regions, or vintage ranges, and adds them to the LLM prompt to personalize sommelier debates and recommendations.
     \end{itemize}
 
     \item Cloud Base Model Operation
     \begin{itemize}
-        \item Description: Utilizes a centralized Large Language Model (the open-weight Qwen2.5-7B-Instruct~\cite{qwen25}) hosted on a cloud GPU server as the foundational reasoning engine for all critics.
+        \item Description: Utilizes a centralized Large Language Model (the open-weight Qwen2.5-7B-Instruct~\cite{qwen25}) hosted on a cloud GPU server as the foundational reasoning engine for all sommeliers.
         \item Feature: A cloud-hosted model infrastructure provides sufficient computational resources and memory to operate the base LLM without requiring aggressive quantization or local model execution.
-        \item Action: When a dialogue generation request is received, the cloud backend routes the request to the centralized LLM inference service, which processes the wine metadata and generates responses for the active critics.
+        \item Action: When a dialogue generation request is received, the cloud backend routes the request to the centralized LLM inference service, which processes the wine metadata and generates responses for the active sommeliers.
     \end{itemize}
 
     \item Server-Side Dynamic LoRA Adapter Swapping
     \begin{itemize}
-        \item Description: Dynamically switches criticlities during multi-agent dialogue generation by loading and unloading specific Low-Rank Adaptation (LoRA) weight matrices on the cloud server.
-        \item Feature: A server-side LoRA adapter manager dynamically maps and injects critic-specific weight adapters into the base LLM inference pipeline while optimizing GPU VRAM utilization.
-        \item Action: When dialogue transitions from Critic A to Critic B, the cloud backend loads the corresponding LoRA adapter for Critic B and routes the subsequent generation request through the newly activated critic.
+        \item Description: Dynamically switches sommeliers during multi-agent dialogue generation by loading and unloading specific Low-Rank Adaptation (LoRA) weight matrices on the cloud server.
+        \item Feature: A server-side LoRA adapter manager dynamically maps and injects sommelier-specific weight adapters into the base LLM inference pipeline while optimizing GPU VRAM utilization.
+        \item Action: When dialogue transitions from Sommelier A to Sommelier B, the cloud backend loads the corresponding LoRA adapter for Sommelier B and routes the subsequent generation request through the newly activated sommelier.
     \end{itemize}
 
-    \item Continuous Critic Expansion
+    \item Continuous Sommelier Expansion
     \begin{itemize}
-        \item Description: Enables the addition of new critics, including user-created ones, through server-side LoRA updates without requiring modifications to the cellar appliance.
-        \item Feature: A modular cloud-based critic management system maintains an expandable registry of critic profiles and their corresponding LoRA adapter files.
-        \item Action: When a new critic is introduced, the cloud administrator uploads its LoRA adapter to the GPU server, where the inference server loads it at its next start. Users can additionally create their own critics, which are described by a prompt on the shared base model. The new critic becomes available to the multi-agent dialogue engine without requiring local software patches, firmware updates, or model downloads on the cellar appliance.
+        \item Description: Enables the addition of new sommeliers, including user-created ones, through server-side LoRA updates without requiring modifications to the cellar appliance.
+        \item Feature: A modular cloud-based sommelier management system maintains an expandable registry of sommelier profiles and their corresponding LoRA adapter files.
+        \item Action: When a new sommelier is introduced, the cloud administrator uploads its LoRA adapter to the GPU server, where the inference server loads it at its next start. Users can additionally create their own sommeliers, which are described by a prompt on the shared base model. The new sommelier becomes available to the multi-agent dialogue engine without requiring local software patches, firmware updates, or model downloads on the cellar appliance.
     \end{itemize}
 \end{itemize}
 
@@ -1025,10 +1025,10 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
         \item Relates To: Cloud-Powered Multi-Agent LLM Dialogue System.
     \end{itemize}
 
-    \item Modular Critic Management
+    \item Modular Sommelier Management
     \begin{itemize}
-        \item Description: The system architecture shall support the addition, modification, and removal of critics through server-side LoRA adapter updates without requiring local software patches or model downloads.
-        \item Target Metric: New critics shall be deployable through cloud-side configuration and LoRA updates with 0 modifications to the cellar appliance's local software.
+        \item Description: The system architecture shall support the addition, modification, and removal of sommeliers through server-side LoRA adapter updates without requiring local software patches or model downloads.
+        \item Target Metric: New sommeliers shall be deployable through cloud-side configuration and LoRA updates with 0 modifications to the cellar appliance's local software.
         \item Relates To: Cloud-Powered Multi-Agent LLM Dialogue System.
     \end{itemize}
 
@@ -1045,7 +1045,7 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
     \item Self-Explanatory User Interface
     \begin{itemize}
         \item Description: The system interface shall enable new users to operate core features without consulting external documentation.
-        \item Target Metric: Core tasks (signing up, adding a bottle, finding a bottle, and asking the critics) can be completed by following the on-screen labels alone. A formal usability test with first-time users was not conducted.
+        \item Target Metric: Core tasks (signing up, adding a bottle, finding a bottle, and asking the sommeliers) can be completed by following the on-screen labels alone. A formal usability test with first-time users was not conducted.
         \item Relates To: Inventory Mapping; UI Design.
     \end{itemize}
 
@@ -1068,7 +1068,7 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{images/architecture-light.png}
-\caption{Overall system architecture. Clients reach the cloud only through Caddy; the backend calls the database, Amazon Rekognition, WineAPI.io, and the RunPod GPU server (purple), where an AI gateway adds evidence before vLLM serves the four critic adapters on one shared base model.}
+\caption{Overall system architecture. Clients reach the cloud only through Caddy; the backend calls the database, Amazon Rekognition, WineAPI.io, and the RunPod GPU server (purple), where an AI gateway adds evidence before vLLM serves the four sommelier adapters on one shared base model.}
 \label{fig:architecture}
 \end{figure*}
 
@@ -1080,7 +1080,7 @@ Fig.~\ref{fig:architecture} shows the system. It follows a thin-appliance, smart
     \item \textbf{Cellar appliance:} the door display (a web application on webOS) and the edge agent, which pairs the cellar with an account and sends sensor readings and cellar scans. Neither runs AI models locally.
     \item \textbf{Cloud backend (AWS):} one FastAPI service that holds all business logic and data (Amazon RDS for PostgreSQL) and is shared by every client.
     \item \textbf{Mobile applications:} native Android and iOS apps that use the same API as the door.
-    \item \textbf{AI and data services:} the critic models (an AI gateway and vLLM with four LoRA adapters on a RunPod GPU), Amazon Rekognition for reading label photos, and WineAPI.io for market prices. Only the backend calls them; clients never do, so keys and credentials stay on the server.
+    \item \textbf{AI and data services:} the sommelier models (an AI gateway and vLLM with four LoRA adapters on a RunPod GPU), Amazon Rekognition for reading label photos, and WineAPI.io for market prices. Only the backend calls them; clients never do, so keys and credentials stay on the server.
 \end{itemize}
 
 
@@ -1089,7 +1089,7 @@ Fig.~\ref{fig:architecture} shows the system. It follows a thin-appliance, smart
 \begin{itemize}
     \item \textbf{REST over HTTPS (client to cloud):} all reads and writes use JSON over HTTPS. Users authenticate with an opaque bearer token; appliances use a separate device token that only allows telemetry and detections for their own cellar.
     \item \textbf{WebSocket (cloud to clients):} after every change the backend sends a short ``changed'' message to all open connections of that owner, and each client reloads the affected data. This keeps the door, Android, and iOS in sync within about a second; polling remains as a fallback.
-    \item \textbf{Server-Sent Events (AI answers):} critic debates and recommendations are streamed token by token, so the first words appear while the model is still generating.
+    \item \textbf{Server-Sent Events (AI answers):} sommelier debates and recommendations are streamed token by token, so the first words appear while the model is still generating.
     \item \textbf{Device pairing:} a new appliance registers itself and shows a 6-digit code; the owner enters the code in an app, and the appliance then receives its device token.
     \item \textbf{OpenAI-compatible API (backend to GPU server):} the backend sends chat requests with the adapter name as the model, authenticated with a bearer key and streamed; a gateway on the GPU server adds the retrieved evidence before passing the request to vLLM.
     \item \textbf{AWS SDK over HTTPS (backend to Amazon Rekognition):} label photos are sent to the DetectText operation; the EC2 instance's IAM role provides the credentials.
@@ -1116,7 +1116,7 @@ The repository is one monorepo (Table~\ref{tab:directories}); Tables~\ref{tab:di
 \hline \texttt{webos/edge/} & Edge agent (appliance link to the cloud) \\
 \hline \texttt{mobile/Kotlin/} & Android application \\
 \hline \texttt{mobile/ios/} & iOS application \\
-\hline \texttt{AI-7B/} & Critic LoRAs: data, training, evaluation, gateway \\
+\hline \texttt{AI-7B/} & Sommelier LoRAs: data, training, evaluation, gateway \\
 \hline \texttt{deploy/} & Production deployment (Docker Compose, Caddy) \\
 \hline \texttt{documents/} & Paper, requirement coverage, figures \\
 \hline \texttt{.github/workflows/} & Continuous integration (GitHub Actions) \\
@@ -1247,7 +1247,7 @@ The repository is one monorepo (Table~\ref{tab:directories}); Tables~\ref{tab:di
     \item \textbf{Inventory and geometry:} cellars, removable racks, climate zones, and bottles in centimeter coordinates; free placement with a gravity rule for stacked bottles; search across all cellars.
     \item \textbf{Vision:} label photos become wine details (Amazon Rekognition and a catalog match); cellar scans are reconciled into new, moved, hidden, and removed bottles; uncertain results wait in a review queue.
     \item \textbf{Appliances and climate:} 6-digit pairing, device tokens limited to their own cellar, telemetry, and alerts for out-of-range or silent sensors.
-    \item \textbf{AI and data:} the critic table, pairing, recommendations, and the daily briefing; one switch between the mock provider and the GPU server; market prices from WineAPI.io and news from RSS feeds.
+    \item \textbf{AI and data:} the sommelier table, pairing, recommendations, and the daily briefing; one switch between the mock provider and the GPU server; market prices from WineAPI.io and news from RSS feeds.
     \item \textbf{Live sync:} after every change a short message goes over WebSocket to all of the owner's open clients, which then reload the affected data.
 \end{enumerate}
 
@@ -1262,7 +1262,7 @@ The repository is one monorepo (Table~\ref{tab:directories}); Tables~\ref{tab:di
     \item \texttt{inventory.py, geometry.py}: cellars, racks, zones, and bottles; free-spot search, snapping to a rack, stacking levels, and settling when a supporting bottle is removed.
     \item \texttt{vision.py, labels.py}: scan reconciliation in the style of tracking-by-detection~\cite{sort} with a 2.5 cm noise tolerance; label photo to wine details.
     \item \texttt{devices.py, simulator.py}: appliance registration, pairing, and telemetry; background loop for simulated sensors, climate alerts, drinking-window notices, and the daily briefing.
-    \item \texttt{services.py, tasting.py, llm.py}: recommendations, briefing, and value; the critic table, deciding per turn between a critic's LoRA and the base model; streaming client for the LLM server with a silent mock fallback.
+    \item \texttt{services.py, tasting.py, llm.py}: recommendations, briefing, and value; the sommelier table, deciding per turn between a sommelier's LoRA and the base model; streaming client for the LLM server with a silent mock fallback.
     \item \texttt{market.py, news.py, catalog.py}: daily-cached WineAPI.io prices; RSS news ranked against the owner's cellar; reference wine catalog.
     \item \texttt{live.py}: WebSocket hub that keeps the open connections per user and sends the change messages.
 \end{itemize}
@@ -1270,14 +1270,14 @@ The repository is one monorepo (Table~\ref{tab:directories}); Tables~\ref{tab:di
 \textbf{Technologies.} Python 3.12, FastAPI, Uvicorn, psycopg, boto3 (AWS SDK), PostgreSQL 17 (Amazon RDS), SQLite, Docker, pytest.
 
 \subsection{Module 2: Door Display}
-\textbf{Purpose.} Turn the transparent cellar door into the main interface: show what is inside and where, and bring the critics and the cellar's data to the appliance itself.
+\textbf{Purpose.} Turn the transparent cellar door into the main interface: show what is inside and where, and bring the sommeliers and the cellar's data to the appliance itself.
 
 \textbf{Functionality.}
 \begin{enumerate}
     \item \textbf{Cellar:} a to-scale door view and a rotatable 3D view of racks and bottles, with the climate of each zone; Find highlights one bottle in both views.
     \item \textbf{Inventory:} search across cellars with filters, bottle details with drinking window and value, manual add, edit, move, open, and remove.
     \item \textbf{Recognition review:} new bottles from label photos or scans wait for the owner to confirm or correct them.
-    \item \textbf{Critics, briefing, and value:} the critic tasting table and the owner's own critics, the daily briefing, and the collection value.
+    \item \textbf{Sommeliers, briefing, and value:} the sommelier tasting table and the owner's own sommeliers, the daily briefing, and the collection value.
     \item \textbf{Always-on door:} a fixed 1080$\times$1920 portrait canvas, scaled and rotated for landscape panels, with black backgrounds because black pixels are see-through on a transparent OLED; a screen saver and a night mode.
     \item \textbf{Offline:} the last data is cached and changes made offline are queued and sent once the connection returns.
 \end{enumerate}
@@ -1293,7 +1293,7 @@ The repository is one monorepo (Table~\ref{tab:directories}); Tables~\ref{tab:di
     \item \texttt{components/ReviewDetection.tsx, BottleForm.tsx}: confirm or correct a recognized bottle; the manual add and edit form.
     \item \texttt{components/ScreenSaver.tsx, FeaturedBottle.tsx}: the two screen-saver styles and night mode.
     \item \texttt{components/ClimateHistory.tsx, ClimateSettings.tsx, Notifications.tsx}: zone charts, limits and alert delay, and the notification list.
-    \item \texttt{sommelier/}: the tasting table, starting a tasting, creating critics, and the score and verdict logic (\texttt{model.ts}).
+    \item \texttt{sommelier/}: the tasting table, starting a tasting, creating sommeliers, and the score and verdict logic (\texttt{model.ts}).
     \item \texttt{scripts/webos.mjs, tests/}: packaging, installing, and launching on webOS; Vitest unit tests.
 \end{itemize}
 
@@ -1314,7 +1314,7 @@ The repository is one monorepo (Table~\ref{tab:directories}); Tables~\ref{tab:di
     \item \textbf{Accounts:} sign-up with consents and the age check, login, and privacy settings.
     \item \textbf{Cellar and inventory:} cellar map, search, bottle details, and adding a bottle from a label photo.
     \item \textbf{Climate and notifications:} zone readings, limits, remote target changes, and the notification list.
-    \item \textbf{Critics, briefing, and value:} the tasting table with streamed answers, the daily briefing, and the collection value.
+    \item \textbf{Sommeliers, briefing, and value:} the tasting table with streamed answers, the daily briefing, and the collection value.
     \item \textbf{Live sync:} both apps listen on the WebSocket, so a change on the door or the other phone appears at once.
 \end{enumerate}
 
@@ -1356,23 +1356,23 @@ The repository is one monorepo (Table~\ref{tab:directories}); Tables~\ref{tab:di
 
 \textbf{Technologies.} Python standard library (OpenCV only for the optional webcam).
 
-\subsection{Module 5: AI Critic Engine}
-\textbf{Purpose.} Let four critics with clearly different judgment debate any bottle on the door, while every fact they state (scores, prices, drinking windows, crowd ranks) comes from real data. The critics are the feature that turns the cellar from storage into a sommelier.
+\subsection{Module 5: AI Sommelier Engine}
+\textbf{Purpose.} Let four sommeliers with clearly different judgment debate any bottle on the door, while every fact they state (scores, prices, drinking windows, crowd ranks) comes from real data. In OmniCave, a \emph{sommelier} is an AI character the owner can seat at a tasting or ask anything about the cellar. The four built-in sommeliers each judge wine like a different kind of critic, and owners can create their own. Together they turn the cellar from storage into a place to taste and decide.
 
-\textbf{Design decision: adapters, not prompts.} We first gave each critic's philosophy to the base model as a prompt. It wrote fluent text, but every critic fell back to the same generic voice: only 0--28\% of answers passed all checks, and three of the four critics never used their own scoring scale (Table~\ref{tab:lora-eval}). A larger cloud model would cost more per request and still drift. Instead, each critic is a small LoRA adapter~\cite{lora} on one shared Qwen2.5-7B-Instruct base~\cite{qwen25}: the adapter carries the critic's voice and way of arguing, and the facts are retrieved at answer time~\cite{rag}, which keeps the model from inventing them~\cite{hallucination}. Table~\ref{tab:critics} lists the four critics.
+\textbf{Design decision: adapters, not prompts.} We first gave each sommelier's philosophy to the base model as a prompt. It wrote fluent text, but every sommelier fell back to the same generic voice: only 0--28\% of answers passed all checks, and three of the four sommeliers never used their own scoring scale (Table~\ref{tab:lora-eval}). A larger cloud model would cost more per request and still drift. Instead, each sommelier is a small LoRA adapter~\cite{lora} on one shared Qwen2.5-7B-Instruct base~\cite{qwen25}: the adapter carries the sommelier's voice and way of arguing, and the facts are retrieved at answer time~\cite{rag}, which keeps the model from inventing them~\cite{hallucination}. Table~\ref{tab:critics} lists the four sommeliers.
 
 \par\smallskip
 \noindent\begin{minipage}{\columnwidth}
 \centering
 \refstepcounter{table}\label{tab:critics}
-{\footnotesize TABLE \Roman{table}. \textit{The Four Critics}\par}
+{\footnotesize TABLE \Roman{table}. \textit{The Four Sommeliers}\par}
 \smallskip
 \footnotesize
 \setlength{\tabcolsep}{3pt}
 \renewcommand{\arraystretch}{1.1}
 \begin{tabularx}{\columnwidth}{|>{\raggedright\arraybackslash}p{0.2\columnwidth}|Y|>{\raggedright\arraybackslash}p{0.23\columnwidth}|}
 \hline
-\multicolumn{1}{|c|}{Critic} & \multicolumn{1}{c|}{How they judge} & \multicolumn{1}{c|}{Verdict on} \\
+\multicolumn{1}{|c|}{Sommelier} & \multicolumn{1}{c|}{How they judge} & \multicolumn{1}{c|}{Verdict on} \\
 \hline Victor Hale, 100-point power critic & rewards concentration, ripeness, and new-oak polish; openly prefers Bordeaux and the Rh\^one & a 2--3 point range, e.g., ``93--95 points'' \\
 \hline Livia Moretti, fruit-quality analyst & judges the richness of the fruit against acidity and tannin; prefers Italian wine & a fruit quality index, e.g., ``FQI 1.6'' \\
 \hline Marcus Reed, value-first editor & weighs quality against price, only within the same region and grape & a score and a value grade, e.g., ``91 points, B+'' \\
@@ -1384,11 +1384,11 @@ The repository is one monorepo (Table~\ref{tab:directories}); Tables~\ref{tab:di
 
 \textbf{Functionality.}
 \begin{enumerate}
-    \item \textbf{Evidence retrieval:} a pool of 440 wines with real, aggregated evidence: critic score ranges, prices, drinking windows, and crowd ratings from the open X-Wines dataset~\cite{xwines}. No review text or reviewer names are kept. At answer time the evidence for the wine and the critic is added to the prompt, so new wines need no retraining.
-    \item \textbf{Training data:} a larger teacher model (Qwen2.5-32B) writes four candidate debate turns per prompt, a form of distillation into the small model~\cite{distill,selfinstruct}. A rule-based verifier keeps a turn only if every year, price, and tasting note appears in the evidence, the critic's own scale is used, the length fits, and no real name appears; about 1,000 verified turns per critic remain (Table~\ref{tab:ai-data}).
-    \item \textbf{Training:} one rank-16 LoRA per critic (3 epochs, 3--11 minutes each on one GPU); the evaluation loss fell by about 55--60\% for every critic.
-    \item \textbf{Serving:} vLLM~\cite{vllm} keeps one base model in GPU memory and applies the requested adapter per request, so four critics cost little more than one model~\cite{slora,punica}. A gateway in front of vLLM finds the wine and the critic in each request and appends their evidence.
-    \item \textbf{Use in the backend:} when the owner starts a tasting on a wine, each built-in critic answers with its own adapter and the exact prompt it was trained on, and its score and peak year become a badge in the apps. As soon as the owner joins the conversation, and for questions such as ``what should I open tonight?'' or for critics the owner created, the base model answers with a prompt that describes the critic and the owner's cellar and taste. Each critic also remembers what it has learned about the owner.
+    \item \textbf{Evidence retrieval:} a pool of 440 wines with real, aggregated evidence: critic score ranges, prices, drinking windows, and crowd ratings from the open X-Wines dataset~\cite{xwines}. No review text or reviewer names are kept. At answer time the evidence for the wine and the sommelier is added to the prompt, so new wines need no retraining.
+    \item \textbf{Training data:} a larger teacher model (Qwen2.5-32B) writes four candidate debate turns per prompt, a form of distillation into the small model~\cite{distill,selfinstruct}. A rule-based verifier keeps a turn only if every year, price, and tasting note appears in the evidence, the sommelier's own scale is used, the length fits, and no real name appears; about 1,000 verified turns per sommelier remain (Table~\ref{tab:ai-data}).
+    \item \textbf{Training:} one rank-16 LoRA per sommelier (3 epochs, 3--11 minutes each on one GPU); the evaluation loss fell by about 55--60\% for every sommelier.
+    \item \textbf{Serving:} vLLM~\cite{vllm} keeps one base model in GPU memory and applies the requested adapter per request, so four sommeliers cost little more than one model~\cite{slora,punica}. A gateway in front of vLLM finds the wine and the sommelier in each request and appends their evidence.
+    \item \textbf{Use in the backend:} when the owner starts a tasting on a wine, each built-in sommelier answers with its own adapter and the exact prompt it was trained on, and its score and peak year become a badge in the apps. As soon as the owner joins the conversation, and for questions such as ``what should I open tonight?'' or for sommeliers the owner created, the base model answers with a prompt that describes the sommelier and the owner's cellar and taste. Each sommelier also remembers what it has learned about the owner.
     \item \textbf{Fallback:} the GPU server runs only when needed; if it cannot be reached, the backend streams a short stand-in answer and skips the server for 60 seconds, so the apps never hang.
 \end{enumerate}
 
@@ -1398,19 +1398,19 @@ The repository is one monorepo (Table~\ref{tab:directories}); Tables~\ref{tab:di
 \node[box] (pool) {\textbf{1. Evidence pool}\\440 wines: score ranges, prices, windows, crowd ranks};
 \node[box, right=7mm of pool] (teach) {\textbf{2. Teacher}\\Qwen2.5-32B writes 4 candidate turns per prompt};
 \node[box, right=7mm of teach] (ver) {\textbf{3. Verifier}\\facts only from evidence, own scale, no real names};
-\node[box, right=7mm of ver] (train) {\textbf{4. LoRA training}\\one r=16 adapter per critic on Qwen2.5-7B};
+\node[box, right=7mm of ver] (train) {\textbf{4. LoRA training}\\one r=16 adapter per sommelier on Qwen2.5-7B};
 \node[box, right=7mm of train, fill=black!85, text=white] (serve) {\textbf{5. Serving}\\vLLM: one base model, adapter swapped per request};
 \draw[arr] (pool) -- (teach);
 \draw[arr] (teach) -- (ver);
-\draw[arr] (ver) -- node[above, font=\scriptsize]{$\approx$1,000/critic} (train);
+\draw[arr] (ver) -- node[above, font=\scriptsize]{$\approx$1,000/sommelier} (train);
 \draw[arr] (train) -- (serve);
-\node[box, below=6mm of serve, text width=2.7cm] (gw) {\textbf{Gateway}\\adds evidence for (wine, critic) at runtime};
-\node[box, left=7mm of gw, text width=5.9cm] (apps) {\textbf{Backend $\rightarrow$ door and phones}\\debate prompt per critic, answers streamed as SSE};
+\node[box, below=6mm of serve, text width=2.7cm] (gw) {\textbf{Gateway}\\adds evidence for (wine, sommelier) at runtime};
+\node[box, left=7mm of gw, text width=5.9cm] (apps) {\textbf{Backend $\rightarrow$ door and phones}\\debate prompt per sommelier, answers streamed as SSE};
 \draw[arr] (apps) -- (gw);
 \draw[arr] (gw) -- (serve);
 \draw[arr, dashed] (pool.south) |- node[pos=0.75, below, font=\scriptsize]{same evidence pool, so new wines need no retraining} (apps.west);
 \end{tikzpicture}
-\caption{AI Critic Engine: Training (Top) and Serving (Bottom)}
+\caption{AI Sommelier Engine: Training (Top) and Serving (Bottom)}
 \label{fig:ai-pipeline}
 \end{figure*}
 
@@ -1418,22 +1418,22 @@ The repository is one monorepo (Table~\ref{tab:directories}); Tables~\ref{tab:di
 \noindent\begin{minipage}{\columnwidth}
 \centering
 \refstepcounter{table}\label{tab:ai-data}
-{\footnotesize TABLE \Roman{table}. \textit{Training Data and Loss per Critic}\par}
+{\footnotesize TABLE \Roman{table}. \textit{Training Data and Loss per Sommelier}\par}
 \smallskip
 \footnotesize
 \setlength{\tabcolsep}{3pt}
 \begin{tabular}{|l|c|c|c|c|}
 \hline
-Critic & Verified & Train & Held-out & Eval loss \\
+Sommelier & Verified & Train & Held-out & Eval loss \\
 \hline Victor Hale (power) & 1,112 & 1,048 & 64 & 1.59 $\rightarrow$ 0.65 \\
 \hline Livia Moretti (fruit) & 1,065 & 1,004 & 61 & 1.72 $\rightarrow$ 0.70 \\
 \hline Marcus Reed (value) & 1,060 & 999 & 61 & 1.42 $\rightarrow$ 0.59 \\
 \hline Jordan Reyes (crowd) & 892 & 227$^{*}$ & 49 & 1.29 $\rightarrow$ 0.58 \\
 \hline
-\multicolumn{5}{l}{\scriptsize $^{*}$turns without crowd evidence capped at 35\%, so the critic does not learn to guess.}
+\multicolumn{5}{l}{\scriptsize $^{*}$turns without crowd evidence capped at 35\%, so the sommelier does not learn to guess.}
 \end{tabular}
 \end{minipage}\par\smallskip
-\textbf{Evaluation.} Both conditions were tested on held-out wines that never appeared in training: up to 40 prompts per critic, the same prompt and the same retrieved evidence, sampled at temperature 0.8. An answer passes only if it uses the critic's own scale and no other critic's scale, has two to three sentences, states only years, prices, and tasting notes found in the evidence, and names no real critic. The adapters passed all checks in 98--100\% of answers, against 0--28\% for the base model (Fig.~\ref{fig:ai-results}, Table~\ref{tab:lora-eval}). Both conditions stayed grounded in the evidence; the difference lies entirely in keeping each critic's voice and scale. An earlier study on a 1.5B-parameter model showed that a rank-4 adapter already learned the style but made 2 factual slips in 40 answers, so rank 16 was used here.
+\textbf{Evaluation.} Both conditions were tested on held-out wines that never appeared in training: up to 40 prompts per sommelier, the same prompt and the same retrieved evidence, sampled at temperature 0.8. An answer passes only if it uses the sommelier's own scale and no other sommelier's scale, has two to three sentences, states only years, prices, and tasting notes found in the evidence, and names no real critic. The adapters passed all checks in 98--100\% of answers, against 0--28\% for the base model (Fig.~\ref{fig:ai-results}, Table~\ref{tab:lora-eval}). Both conditions stayed grounded in the evidence; the difference lies entirely in keeping each sommelier's voice and scale. An earlier study on a 1.5B-parameter model showed that a rank-4 adapter already learned the style but made 2 factual slips in 40 answers, so rank 16 was used here.
 
 \begin{figure}[htbp]
 \centering
@@ -1444,7 +1444,7 @@ Critic & Verified & Train & Held-out & Eval loss \\
 \legend{Base model + prompt, LoRA adapter}
 \end{axis}
 \end{tikzpicture}
-\caption{Critic Checks on Held-Out Wines (n = 40 per Critic)}
+\caption{Sommelier Checks on Held-Out Wines (n = 40 per Sommelier)}
 \label{fig:ai-results}
 \end{figure}
 
@@ -1458,7 +1458,7 @@ Critic & Verified & Train & Held-out & Eval loss \\
 \setlength{\tabcolsep}{2.5pt}
 \begin{tabular}{|l|c|c|c|c|}
 \hline
-Critic & Own scale & Format & Grounded & All checks \\
+Sommelier & Own scale & Format & Grounded & All checks \\
 \hline Victor Hale & 0 / 100 & 15 / 100 & 100 / 100 & \textbf{0 / 100} \\
 \hline Livia Moretti & 0 / 100 & 10 / 100 & 100 / 100 & \textbf{0 / 100} \\
 \hline Marcus Reed & 0 / 100 & 12 / 100 & 100 / 100 & \textbf{0 / 100} \\
@@ -1467,7 +1467,7 @@ Critic & Own scale & Format & Grounded & All checks \\
 \multicolumn{5}{p{0.95\columnwidth}}{\scriptsize Values in \%. Format: 2--3 sentences. Grounded: every year, price, and tasting note appears in the evidence.}
 \end{tabular}
 \end{minipage}\par\smallskip
-\textbf{Example.} Three critics on a held-out wine (Dona Maria J\'ulio Bastos Red 2014), generated by the adapters:
+\textbf{Example.} Three sommeliers on a held-out wine (Dona Maria J\'ulio Bastos Red 2014), generated by the adapters:
 \begin{quote}\footnotesize
 \textbf{Victor Hale:} ``\ldots showcases a juicy and rich profile, aligning well with the concentrated and structured style I favor. I would score this wine 91--93 points.''\\
 \textbf{Livia Moretti:} ``\ldots I find the tannins to be a bit hard, which detracts from the fruit quality. I give it an FQI 1.6.''\\
@@ -1475,7 +1475,7 @@ Critic & Own scale & Format & Grounded & All checks \\
 \end{quote}
 The same bottle receives three different verdicts on three different scales, each defensible from the same evidence; this disagreement is what the tasting table shows the owner.
 
-\textbf{Serving performance.} Table~\ref{tab:serving} shows that a critic starts speaking within the 1.5-second target of the performance requirement, even when the request travels from the door to the cloud and on to the GPU server. \todo{Sungbin: confirm numbers}
+\textbf{Serving performance.} Table~\ref{tab:serving} shows that a sommelier starts speaking within the 1.5-second target of the performance requirement, even when the request travels from the door to the cloud and on to the GPU server. \todo{Sungbin: confirm numbers}
 
 \par\smallskip
 \noindent\begin{minipage}{\columnwidth}
@@ -1489,7 +1489,7 @@ The same bottle receives three different verdicts on three different scales, eac
 \begin{tabularx}{\columnwidth}{|Y|>{\raggedright\arraybackslash}p{0.33\columnwidth}|}
 \hline
 \multicolumn{1}{|c|}{Measurement} & \multicolumn{1}{c|}{Result} \\
-\hline First token per critic, measured on the GPU server & 0.05--0.07 s \\
+\hline First token per sommelier, measured on the GPU server & 0.05--0.07 s \\
 \hline First token at the cloud backend, through the RunPod proxy (NVIDIA A40) & 1.0--1.2 s (target: 1.5 s) \\
 \hline Served prompts identical to the training prompts (gateway check) & 235 of 235 \\
 \hline Total GPU cost (data generation, training, evaluation) & \$4.45 \\
@@ -1497,19 +1497,19 @@ The same bottle receives three different verdicts on three different scales, eac
 \end{tabularx}
 \end{minipage}\par\smallskip
 
-\textbf{Limitations.} The critics answer in English, because the adapters were trained on English data only; the base-model features follow the owner's language. Crowd evidence exists only for part of the wines, so Jordan Reyes says so instead of ranking a bottle without data. The GPU server is rented on demand, so outside test and demo sessions the critics use the stand-in answer.
+\textbf{Limitations.} The sommeliers answer in English, because the adapters were trained on English data only; the base-model features follow the owner's language. Crowd evidence exists only for part of the wines, so Jordan Reyes says so instead of ranking a bottle without data. The GPU server is rented on demand, so outside test and demo sessions the sommeliers use the stand-in answer.
 
 \textbf{Location of source code.} \url{https://github.com/enkhbold0519/omnicave/tree/main/AI-7B}
 
 \textbf{Class components.}
 \begin{itemize}
     \item \texttt{build\_xwines.py, build\_pool.py}: build the evidence pool from open data: score ranges, prices, drinking windows, and crowd ratings for 440 wines.
-    \item \texttt{evidence7b.py, prompts.py}: turn a pool row into each critic's evidence block; the debate prompt, identical to the backend's.
+    \item \texttt{evidence7b.py, prompts.py}: turn a pool row into each sommelier's evidence block; the debate prompt, identical to the backend's.
     \item \texttt{generate.py, verify7b.py}: teacher generation of candidate turns; the rule-based checks that keep only grounded, in-character turns.
     \item \texttt{train.py, eval7b.py}: LoRA training with PEFT~\cite{peft}; base-versus-LoRA evaluation on held-out wines.
-    \item \texttt{gateway.py}: the retrieval step in front of vLLM: finds the wine and critic in a request and appends the evidence.
+    \item \texttt{gateway.py}: the retrieval step in front of vLLM: finds the wine and sommelier in a request and appends the evidence.
     \item \texttt{serve\_check7b.py, check\_prompt\_sync.py}: measure the first-token time of a running server; fail if the backend prompt drifts from the training prompt.
-    \item \texttt{pod/}: scripts that set up the GPU pod, train all critics, and start serving.
+    \item \texttt{pod/}: scripts that set up the GPU pod, train all sommeliers, and start serving.
 \end{itemize}
 
 \textbf{Technologies.} PyTorch, Hugging Face Transformers~\cite{transformers} and PEFT~\cite{peft}, vLLM~\cite{vllm}, RunPod GPUs. Taken from: the base and teacher models are open-weight Qwen2.5 (Apache-2.0); everything else, including the data pipeline, verifier, and gateway, was written by the team.
@@ -1522,7 +1522,7 @@ The same bottle receives three different verdicts on three different scales, eac
     \item \textbf{Server:} Docker Compose runs the backend and Caddy on one EC2 instance; Caddy obtains HTTPS certificates automatically and passes WebSocket and streamed answers through.
     \item \textbf{Data:} the database is a private Amazon RDS instance with automated daily backups, so the server itself holds no data and can be replaced.
     \item \textbf{Display hosting:} the door display is hosted on Vercel and packaged as an \texttt{.ipk} for webOS.
-    \item \textbf{GPU on demand:} the critic server is started only for tests and demonstrations; otherwise the backend uses the mock provider.
+    \item \textbf{GPU on demand:} the sommelier server is started only for tests and demonstrations; otherwise the backend uses the mock provider.
     \item \textbf{Continuous integration:} every push runs the test suites and builds (Section~\ref{sec:testing}).
 \end{enumerate}
 
@@ -1555,7 +1555,7 @@ Every push and pull request runs five GitHub Actions jobs (Table~\ref{tab:tests}
 \hline
 \multicolumn{1}{|c|}{Component} & \multicolumn{1}{c|}{Tests} & \multicolumn{1}{c|}{Coverage and where it runs} \\
 \hline Backend (pytest) & 42 & Accounts, consents, security, inventory, geometry, vision reconciliation, label reading, devices, climate, AI, market prices; CI on SQLite and PostgreSQL \\
-\hline Door display (Vitest) & 18 & Critic score badges and verdict, offline cache and write queue, logout clean-up, sign-up reply, screen saver; CI before every build \\
+\hline Door display (Vitest) & 18 & Sommelier score badges and verdict, offline cache and write queue, logout clean-up, sign-up reply, screen saver; CI before every build \\
 \hline Android (JUnit) & 11 & JSON models; CI compiles the app \\
 \hline iOS (XCTest) & 5 & API client; run in Xcode on macOS \\
 \hline AI prompt check & 1 & Served debate prompt equals the training prompt; CI \\
@@ -1657,7 +1657,7 @@ This section describes the main use cases from the owner's point of view, each l
     \item The bottle details show its drinking window (e.g., ``Ready, best 2024--2030'').
     \item The owner taps Opened and confirms (or Remove, for a bottle given away or broken).
     \item The bottle leaves the inventory; bottles that were stacked on it settle onto the rack below.
-    \item An opened bottle is added to the owner's drinking history, which personalizes later recommendations and critic conversations.
+    \item An opened bottle is added to the owner's drinking history, which personalizes later recommendations and sommelier conversations.
 \end{enumerate}
 \textbf{Postconditions:} The inventory, the cellar map, and the collection value are updated on every device.
 
@@ -1688,43 +1688,43 @@ This section describes the main use cases from the owner's point of view, each l
 \label{fig:uc-climate}
 \end{figure}
 
-\subsection{UC7: Ask the Critics}
-\textbf{Requirement:} Cloud-Powered Multi-Agent LLM Dialogue System \quad \textbf{Actors:} Owner, critic AI
+\subsection{UC7: Ask the Sommeliers}
+\textbf{Requirement:} Cloud-Powered Multi-Agent LLM Dialogue System \quad \textbf{Actors:} Owner, sommelier AI
 
-\textbf{Preconditions:} A bottle in the cellar; the critic server is running.
+\textbf{Preconditions:} A bottle in the cellar; the sommelier server is running.
 
 \textbf{Flow:}
 \begin{enumerate}
     \item The owner opens a bottle and starts a tasting.
-    \item The four critics answer in turn, streamed word by word, each with its own scale.
-    \item The owner asks a follow-up question and the critics continue.
+    \item The four sommeliers answer in turn, streamed word by word, each with its own scale.
+    \item The owner asks a follow-up question and the sommeliers continue.
 \end{enumerate}
 \textbf{Postconditions:} The tasting is saved and can be reopened.
 
 \begin{figure}[htbp]
 \centering
-\shot[0.48]{discuss.jpg}{(a) Start a tasting}\hfill\shot[0.48]{tasting.jpg}{(b) The critics debate}
-\caption{Critic Tasting}
+\shot[0.48]{discuss.jpg}{(a) Start a tasting}\hfill\shot[0.48]{tasting.jpg}{(b) The sommeliers debate}
+\caption{Sommelier Tasting}
 \label{fig:uc-tasting}
 \end{figure}
 
-\subsection{UC8: Create Your Own Critic}
-\textbf{Requirement:} Cloud-Powered Multi-Agent LLM Dialogue System (critic expansion) \quad \textbf{Actors:} Owner
+\subsection{UC8: Create Your Own Sommelier}
+\textbf{Requirement:} Cloud-Powered Multi-Agent LLM Dialogue System (sommelier expansion) \quad \textbf{Actors:} Owner
 
 \textbf{Preconditions:} Logged in.
 
 \textbf{Flow:}
 \begin{enumerate}
     \item On the Sommelier page the owner chooses Edit, then ``Add a sommelier''.
-    \item The owner gives the critic a name, a role, and a color, and picks a scoring scale, what they look at (Old World, New World, everywhere), up to three things they love, a strictness, and a tone.
-    \item The owner taps ``Add sommelier''; the new critic appears next to the four built-in ones and can be seated at the next tasting.
+    \item The owner gives the sommelier a name, a role, and a color, and picks a scoring scale, what they look at (Old World, New World, everywhere), up to three things they love, a strictness, and a tone.
+    \item The owner taps ``Add sommelier''; the new sommelier appears next to the four built-in ones and can be seated at the next tasting.
 \end{enumerate}
-\textbf{Postconditions:} The critic is stored with the account and available on every device; it is described by a prompt on the shared base model, so no new model has to be trained.
+\textbf{Postconditions:} The sommelier is stored with the account and available on every device; it is described by a prompt on the shared base model, so no new model has to be trained.
 
 \begin{figure}[htbp]
 \centering
-\shot[0.48]{new-critic.jpg}{(a) New critic}\hfill\shot[0.48]{critics.jpg}{(b) Added next to the built-in four}
-\caption{Creating a Critic}
+\shot[0.48]{new-critic.jpg}{(a) New sommelier}\hfill\shot[0.48]{critics.jpg}{(b) Added next to the built-in four}
+\caption{Creating a Sommelier}
 \label{fig:uc-critic}
 \end{figure}
 
@@ -1794,7 +1794,7 @@ This section describes the main use cases from the owner's point of view, each l
 
 \textbf{Flow:}
 \begin{enumerate}
-    \item The screen saver starts: either the 3D cellar builds itself and turns, or one featured bottle is shown with a critic's note; ``Alternate'' switches between the two each time.
+    \item The screen saver starts: either the 3D cellar builds itself and turns, or one featured bottle is shown with a sommelier's note; ``Alternate'' switches between the two each time.
     \item The clock, the number of bottles ready to drink, and the zone climate stay visible, so the door is useful from across the room.
     \item Between 23:00 and 07:00 night mode shows only the clock and alerts.
     \item A touch returns to the screen that was open.
@@ -1835,7 +1835,7 @@ This section describes the main use cases from the owner's point of view, each l
 
 \textbf{Free bottle mapping.} Positions are stored in centimeters instead of fixed slots, with a simple gravity rule for stacked bottles. This lets overfilled racks and stacks be mapped exactly.
 
-\textbf{Distinct critic voices at low cost.} One small LoRA adapter per critic, trained for under five dollars, raised the share of answers that pass every check from 0--28\% for the base model to 98--100\%; both stayed grounded in the retrieved evidence, so the gain is the critic's own voice and scale.
+\textbf{Distinct sommelier voices at low cost.} One small LoRA adapter per sommelier, trained for under five dollars, raised the share of answers that pass every check from 0--28\% for the base model to 98--100\%; both stayed grounded in the retrieved evidence, so the gain is the sommelier's own voice and scale.
 
 \subsection{Technical Challenges}
 \textbf{No hardware.} We had no transparent OLED door, no cellar, and no camera, so every hardware part was replaced by software with the same interface: the webOS emulator and a browser for the door, an edge agent for the appliance, a cloud label-recognition service and the phone camera for the entry camera, and a backend simulator for the in-cellar scans and sensors. Because the backend does not know whether a scan comes from a simulator or a camera, the real device can replace the simulator later.
@@ -1849,7 +1849,7 @@ This section describes the main use cases from the owner's point of view, each l
 \subsection{Current Limitations}\label{sec:limitations}
 \begin{itemize}
     \item In-cellar bottle detection was not tested with real hardware: the scans come from a simulator. Label reading is real, but it recognizes only wines in the built-in catalog; other wines are filled in by the owner.
-    \item The GPU server runs only during demonstrations; otherwise the critics use a mock answer.
+    \item The GPU server runs only during demonstrations; otherwise the sommeliers use a mock answer.
     \item The market-price service is in public beta and had no price records for our catalog wines, so prices are mostly labelled estimates, and the price history is always estimated.
     \item Email verification and password-reset codes are implemented but switched off in the deployment, because a verified email sender requires a registered domain.
     \item Personalized and budget-constrained wine lists exist in the backend only; the apps do not offer them yet.
@@ -1857,7 +1857,7 @@ This section describes the main use cases from the owner's point of view, each l
 \end{itemize}
 
 \subsection{Future Work}
-An entry camera at the door combined with weight sensors under each rack, so that the cellar recognizes every bottle without the phone; testing with real cellar hardware; deployment in an LG Datacenter; push notifications; and a larger evaluation of the critics with real users.
+An entry camera at the door combined with weight sensors under each rack, so that the cellar recognizes every bottle without the phone; testing with real cellar hardware; deployment in an LG Datacenter; push notifications; and a larger evaluation of the sommeliers with real users.
 
 \subsection{Teamwork and Lessons Learned}
 
