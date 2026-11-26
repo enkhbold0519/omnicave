@@ -47,3 +47,4 @@ AI-7B/data/
 AI-7B/eval/*.jsonl
 AI-7B/logs/
 *.safetensors
+.coverage

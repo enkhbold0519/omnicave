@@ -380,7 +380,7 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
 \hline Enkhbold Myagmarjav & ASUS Zenbook 14 (UX3405MA), Windows 11 Home (Build 26300) & Intel Core Ultra 7 155H (16 cores, 22 threads) & 16 GB \\
 \hline Chiang Jun Han & Windows 11 Home 25H2 & Intel Core i9-13900H (2.60 GHz) & 32 GB \\
 \hline Sungbin Bae & Windows 11 & Intel Core i7-12700F (2.10 GHz) & 32 GB \\
-\hline AWS EC2 (t3.small) & Ubuntu 24.04 LTS, 20 GB gp3 storage, Sydney region & 2 vCPU & 2 GB \\
+\hline AWS EC2 (t3.small) & Ubuntu 24.04 LTS, 20 GB gp3 storage& 2 vCPU & 2 GB \\
 \hline
 \end{tabularx}
 \end{minipage}\par\smallskip
@@ -399,17 +399,17 @@ Table~\ref{tab:computer-resources} lists the computer resources used for develop
 \hline
 \multicolumn{1}{|c|}{Item} & \multicolumn{1}{c|}{Cost (USD)} \\
 \hline Development laptops & \$3,500 \\
-\hline AWS EC2 t3.small, 20 GB storage, and public IPv4 address & \$25--30 \\
+\hline AWS EC2 t3.small, 20 GB storage, and public IPv4 address & \$26 \\
 \hline Vercel (Hobby plan) & \$0 \\
-\hline Amazon RDS for PostgreSQL (db.t4g.micro) & \todo{\$} \\
+\hline Amazon RDS for PostgreSQL (db.t4g.micro) & \$19 \\
 \hline RunPod GPU (LoRA training on A100, about 2 h) & \$4.45 \\
-\hline RunPod GPU (serving for tests and demos) & \todo{\$} \\
-\hline Amazon Rekognition (label text detection) & \todo{\$} \\
+\hline RunPod GPU (serving for tests and demos) &  \$1.2\\
+\hline Amazon Rekognition (label text detection) & \$0 \\
 \hline WineAPI.io (free plan) & \$0 \\
 \hline ChatGPT Plus (Codex CLI) & \$20 \\
 \hline Claude Pro (Claude Code) & \$20 \\
 \hline VS Code, Xcode, Android Studio, Docker, Git, GitHub, Jira, Draw.io, and LaTeX (free tools/plans) & \$0 \\
-\hline \textbf{Total} & \textbf{\todo{recompute}} \\
+\hline \textbf{Total} & \textbf{\$3,590.65} \\
 \hline
 \end{tabularx}
 \end{minipage}\par\smallskip
@@ -1405,12 +1405,12 @@ The repository is one monorepo (Table~\ref{tab:directories}); Tables~\ref{tab:di
 \begin{tikzpicture}[every node/.style={font=\footnotesize}, box/.style={draw, rounded corners=2pt, align=center, text width=2.7cm, minimum height=1.25cm, fill=gray!8}, arr/.style={-{Stealth[length=2mm]}, thick}]
 \node[box] (pool) {\textbf{1. Evidence pool}\\440 wines: score ranges, prices, windows, crowd ranks};
 \node[box, right=7mm of pool] (teach) {\textbf{2. Teacher}\\Qwen2.5-32B writes 4 candidate turns per prompt};
-\node[box, right=7mm of teach] (ver) {\textbf{3. Verifier}\\facts only from evidence, own scale, no real names};
+\node[box, right=7mm of teach] (ver) {\textbf{3. Verifier}\\facts only from evidence, own scale, no real names; $\approx$1,000 turns kept per sommelier};
 \node[box, right=7mm of ver] (train) {\textbf{4. LoRA training}\\one r=16 adapter per sommelier on Qwen2.5-7B};
 \node[box, right=7mm of train, fill=black!85, text=white] (serve) {\textbf{5. Serving}\\vLLM: one base model, adapter swapped per request};
 \draw[arr] (pool) -- (teach);
 \draw[arr] (teach) -- (ver);
-\draw[arr] (ver) -- node[above, font=\scriptsize]{$\approx$1,000/sommelier} (train);
+\draw[arr] (ver) -- (train);
 \draw[arr] (train) -- (serve);
 \node[box, below=6mm of serve, text width=2.7cm] (gw) {\textbf{Gateway}\\adds evidence for (wine, sommelier) at runtime};
 \node[box, left=7mm of gw, text width=5.9cm] (apps) {\textbf{Backend $\rightarrow$ door and phones}\\debate prompt per sommelier, answers streamed as SSE};
@@ -1882,44 +1882,58 @@ This section describes the main use cases from the owner's point of view, each l
 \end{figure}
 
 \section{Discussion}
-\todo{draft; each member adds a few sentences in their own words}
 
 \subsection{Key Achievements}
-\textbf{One backend, three synchronized clients.} The door display, the Android app, and the iOS app use one API and stay in sync live over WebSocket, so a change on one device appears on the others within about a second.
+\textbf{One backend for every screen.} The door display, the Android application, and the iOS application share one REST API and stay synchronized over WebSocket, so a bottle added on the phone appears on the door within about a second. Because the clients hold no business logic, each feature was implemented once in the backend and then only displayed by each client.
 
-\textbf{Free bottle mapping.} Positions are stored in centimeters instead of fixed slots, with a simple gravity rule for stacked bottles. This lets overfilled racks and stacks be mapped exactly.
+\textbf{Free bottle mapping.} Bottle positions are stored in centimeters instead of fixed slots, with a gravity rule that requires stacked bottles to be supported. Overfilled racks and stacked bottles can therefore be mapped as they really are, rather than forced into a grid.
 
-\textbf{Distinct sommelier voices at low cost.} One small LoRA adapter per sommelier, trained for under five dollars, raised the share of answers that pass every check from 0--28\% for the base model to 98--100\%; both stayed grounded in the retrieved evidence, so the gain is the sommelier's own voice and scale.
+\textbf{Distinct sommelier voices at low cost.} One small LoRA adapter per sommelier, trained for under five dollars, raised the share of answers that pass every check from 0--28\% for the base model to 98--100\%. Both models stayed grounded in the retrieved evidence, so the gain comes from each sommelier's own voice, scale, and answer length.
 
-\textbf{The model where it helps.} For each AI feature we first measured a simple method. For label reading, a text match already found catalog wines, and the LLM mattered for the wines it had never seen (0 to 86\% fully read). For drinking windows, an aging table beat both the base model and a trained adapter, so the model only explains the window. Every model answer is checked against its evidence before it is shown.
+\textbf{AI only where it helps.} For each AI feature we first measured a simple method. For label reading, a text match already found catalog wines, and the language model mattered for wines outside the catalog (from 0 to 86\% fully read). For drinking windows, an aging table beat both the base model and a trained adapter, so the model only explains the window. Every model answer is checked against its evidence before it is shown, and every AI feature has a fixed fallback when the GPU server is off.
+
+\textbf{A working cloud deployment.} The system runs on AWS (EC2 with Caddy for HTTPS, RDS for PostgreSQL) and Vercel for about \$45 per month, with 66 automated backend tests and five continuous-integration jobs checking every pull request.
 
 \subsection{Technical Challenges}
-\textbf{No hardware.} We had no transparent OLED door, no cellar, and no camera, so every hardware part was replaced by software with the same interface: the webOS emulator and a browser for the door, an edge agent for the appliance, a cloud label-recognition service and the phone camera for the entry camera, and a backend simulator for the in-cellar scans and sensors. Because the backend does not know whether a scan comes from a simulator or a camera, the real device can replace the simulator later.
+\textbf{No hardware.} We had no transparent OLED door, no cellar, and no camera. Every hardware part was therefore replaced by software with the same interface: the webOS emulator and a browser for the door, an edge agent for the appliance, a cloud text-detection service with the phone camera for the entry camera, and a backend simulator for the in-cellar scans and sensors. Because the backend cannot tell whether a scan comes from the simulator or a camera, real devices can replace the simulator later without changes to the backend.
 
-\textbf{Position drift.} Small detection errors made bottles ``move'' on every scan. A 2.5 cm tolerance and a rule that a bottle is removed only after several missing scans fixed this.
+\textbf{Position drift.} Small detection errors made bottles appear to ``move'' on every scan. A 2.5~cm tolerance, and a rule that removes a bottle only after several scans in which it is missing, fixed this.
 
-\textbf{Serving the AI.} Training the adapters was easier than serving them: proxy settings, unbuffered streaming, and keeping the prompt identical to the training data each caused failures that appeared only on the live server. A check that compares the served prompt with the training prompt now runs before every session.
+\textbf{Serving the AI.} Training the adapters was easier than serving them. Proxy settings, buffered streaming, and small differences between the served prompt and the training prompt each caused failures that appeared only on the live server. A check that compares the two prompts now runs in continuous integration.
 
-\textbf{Checking the data first.} The first drinking-window evaluation found only about 100 windows in 81,000 reviews. The data mirror had glued ranges together (``Drink 20192031''); fixing the parser gave 13,561 windows and changed which method won.
+\textbf{Checking the data first.} The first drinking-window evaluation found only about 100 windows in 81,000 reviews, because the data mirror had glued year ranges together (``Drink 20192031''). Fixing the parser gave 13,561 windows and changed which method performed best.
 
-\textbf{webOS packaging.} webOS loads applications from local files, which breaks modern module loading, so the display is built into one bundle.
+\textbf{webOS packaging.} webOS loads applications from local files, which breaks modern JavaScript module loading, so the display is built into a single bundle without code splitting.
+
+\textbf{Region and account limits.} The AWS Free plan restricted the account to the Sydney region, so the planned move to Seoul was not possible within the project. The privacy policy states this overseas transfer, and the deployment can be recreated in another region from the repository.
 
 \subsection{Current Limitations}\label{sec:limitations}
 \begin{itemize}
-    \item In-cellar bottle detection was not tested with real hardware: the scans come from a simulator. Label reading is real, but it was measured on simulated OCR text, not on a set of real label photos.
-    \item The GPU server runs only during demonstrations; otherwise the sommeliers, label reading, drinking notes, and briefing use their fixed fallbacks.
-    \item Estimated drinking windows are too short for Port, sweet wines, and top Bordeaux, which are rare in the review data. The aging table does not use the cellar's sensor data.
-    \item The drinking notes and the briefing's AI note are shown on the door display only; the phone apps show the windows and the ranked news.
-    \item The market-price service is in public beta and had no price records for our catalog wines, so prices are mostly labelled estimates, and the price history is always estimated.
-    \item Email verification and password-reset codes are implemented but switched off in the deployment, because a verified email sender requires a registered domain.
-    \item Personalized and budget-constrained wine lists exist in the backend only; the apps do not offer them yet.
+    \item In-cellar bottle detection was not tested with real hardware; the scans come from a simulator. Label reading uses a real text-detection service, but its accuracy was measured on simulated text, not on a set of real label photographs.
+    \item The GPU server runs only during tests and demonstrations; otherwise the sommeliers, label reading, drinking notes, and briefing use their fixed fallbacks.
+    \item Estimated drinking windows are too short for Port, sweet wines, and top Bordeaux, which are rare in the review data, and they do not use the cellar's sensor history.
+    \item The drinking notes and the briefing's AI note are shown on the door display only; the phone applications show the windows and the ranked news.
+    \item The market-price service is in public beta and had no price records for our catalog wines, so most prices are labeled estimates.
+    \item Email verification and password reset are implemented but switched off in the deployment, because a verified email sender requires a registered domain.
+    \item Personalized and budget-constrained wine lists exist in the backend only.
     \item No formal usability test with first-time users was conducted.
 \end{itemize}
 
 \subsection{Future Work}
-An entry camera at the door combined with weight sensors under each rack, so that the cellar recognizes every bottle without the phone; testing label reading on real label photographs; testing with real cellar hardware; deployment in an LG Datacenter; push notifications; and a larger evaluation of the sommeliers with real users.
+\begin{itemize}
+    \item \textbf{Real sensing:} an entry camera at the door and weight sensors under each rack, so that the cellar recognizes bottles without the phone, and an evaluation of label reading on real photographs.
+    \item \textbf{Real hardware:} testing the display on a transparent OLED panel and the edge agent on a cellar controller.
+    \item \textbf{Production deployment:} hosting in an LG data center in Korea, a registered email domain, and push notifications to phones.
+    \item \textbf{User studies:} a usability test with first-time users and a blind test of whether people can tell the sommeliers apart.
+    \item \textbf{Smarter drinking windows:} using the cellar's temperature and humidity history to adjust each bottle's window.
+\end{itemize}
 
 \subsection{Teamwork and Lessons Learned}
+The four members divided the work by component: the backend, door display, Android application, and cloud deployment; the iOS application; the AI models; and the automated tests and continuous integration. A single shared API contract made this division possible, because each client could be built against the same endpoints in parallel, and the live server let every member test against real data from early in the project.
+
+Coordination was the hardest part. Members worked on different schedules and different operating systems (Windows, macOS, and Linux), and work merged late caused conflicts and duplicated effort. Moving all changes to branches and pull requests, with continuous integration running the tests on each one, made integration predictable in the second half of the project. We also learned to keep one name for each concept across the paper, the code, and the interface; for example, ``sommelier'' replaced three earlier terms.
+
+Technically, the main lesson was to measure before adding complexity: in several places a simple rule or table matched or beat a trained model, and the model was then used only where it added value. A second lesson was to design for missing hardware from the start, so that simulators and real devices share one interface. Finally, AI coding assistants sped up implementation considerably, but their output still had to be reviewed, tested, and checked against the requirements by the team.
 
 \begin{thebibliography}{00}
 \bibitem{vivino} Vivino. [Online]. Available: https://www.vivino.com
@@ -1949,7 +1963,7 @@ An entry camera at the door combined with weight sensors under each rack, so tha
 \bibitem{selfinstruct} Y. Wang \textit{et al.}, ``Self-Instruct: Aligning Language Models with Self-Generated Instructions,'' in \textit{Proc. ACL}, 2023.
 \bibitem{debate} Y. Du \textit{et al.}, ``Improving Factuality and Reasoning in Language Models through Multiagent Debate,'' in \textit{Proc. ICML}, 2024.
 \bibitem{roleplay} M. Shanahan, K. McDonell, and L. Reynolds, ``Role Play with Large Language Models,'' \textit{Nature}, vol. 623, pp. 493--498, 2023.
-\bibitem{winereviews} ``Updated Wine Enthusiast Reviews,'' OpenML dataset 43600, 2020.
+\bibitem{winereviews} ``Updated Wine Enthusiast Reviews,'' OpenML dataset 43600, 2022. [Online]. Available: https://www.openml.org/d/43600
 \bibitem{xwines} R. X. de Azambuja, A. J. Morais, and V. Filipe, ``X-Wines: A Wine Dataset for Recommender Systems and Machine Learning,'' \textit{Big Data and Cognitive Computing}, vol. 7, no. 1, 2023.
 \bibitem{transformers} T. Wolf \textit{et al.}, ``Transformers: State-of-the-Art Natural Language Processing,'' in \textit{Proc. EMNLP: System Demonstrations}, 2020.
 \bibitem{peft} S. Mangrulkar \textit{et al.}, ``PEFT: State-of-the-Art Parameter-Efficient Fine-Tuning Methods,'' 2022. [Online]. Available: https://github.com/huggingface/peft
