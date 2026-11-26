@@ -83,11 +83,140 @@ final class APIClientTests: XCTestCase {
         XCTAssertTrue(wasCalled)
     }
 
-    private static var stubSession: URLSession {
-        let configuration = URLSessionConfiguration.ephemeral
-        configuration.protocolClasses = [StubURLProtocol.self]
-        return URLSession(configuration: configuration)
+    func testRequestEncodesBodyAndAddsContentTypeOnlyWhenPresent() async throws {
+        StubURLProtocol.handler = { request in
+            XCTAssertEqual(request.httpMethod, "PATCH")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Accept"), "application/json")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Content-Type"), "application/json")
+            let body: Data
+            if let directBody = request.httpBody {
+                body = directBody
+            } else if let stream = request.httpBodyStream {
+                stream.open()
+                defer { stream.close() }
+                var buffer = [UInt8](repeating: 0, count: 4096)
+                var bytes = Data()
+                while stream.hasBytesAvailable {
+                    let count = stream.read(&buffer, maxLength: buffer.count)
+                    if count <= 0 { break }
+                    bytes.append(buffer, count: count)
+                }
+                body = bytes
+            } else {
+                throw XCTError.missingRequestBody
+            }
+            let object = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: String])
+            XCTAssertEqual(object["display_name"], "Alex")
+            return StubURLProtocol.response(status: 200, body: #"{"id":3,"username":"alex"}"#)
+        }
+        let client = APIClient(baseURL: URL(string: "https://example.test")!, session: Self.stubSession)
+        let body = try client.encode(BackendModels.ProfileUpdate(displayName: "Alex"))
+        let user: BackendModels.User = try await client.request("PATCH", path: "api/me", body: body)
+        XCTAssertEqual(user.username, "alex")
     }
+
+    func testHTTPErrorUsesFallbackWhenBodyIsNotAnErrorObject() async throws {
+        StubURLProtocol.handler = { _ in StubURLProtocol.response(status: 502, body: #"{"message":"upstream"}"#) }
+        let client = APIClient(baseURL: URL(string: "https://example.test")!, session: Self.stubSession)
+        do {
+            let _: BackendModels.User = try await client.get("api/me")
+            XCTFail("Expected an HTTP error")
+        } catch let error as APIClientError {
+            XCTAssertEqual(error.localizedDescription, "Request failed (502).")
+            XCTAssertEqual(error.statusCode, 502)
+        }
+    }
+
+    func testMalformedSuccessPayloadReportsPathAndDecodingReason() async throws {
+        StubURLProtocol.handler = { _ in StubURLProtocol.response(status: 200, body: #"{"id":"not-an-int","name":"Home"}"#) }
+        let client = APIClient(baseURL: URL(string: "https://example.test")!, session: Self.stubSession)
+        do {
+            let _: BackendModels.CellarSummary = try await client.get("api/cellars/1")
+            XCTFail("Expected a decoding error")
+        } catch let error as APIClientError {
+            guard case let .decoding(path, details) = error else { return XCTFail("Unexpected error: \(error)") }
+            XCTAssertEqual(path, "api/cellars/1")
+            XCTAssertTrue(details.contains("Expected Int"))
+            XCTAssertNil(error.statusCode)
+        }
+    }
+
+    func testMissingRequiredFieldAndNullRequiredFieldHaveDistinctDecodingErrors() async throws {
+        let client = APIClient(baseURL: URL(string: "https://example.test")!, session: Self.stubSession)
+        StubURLProtocol.handler = { _ in StubURLProtocol.response(status: 200, body: #"{"id":7}"#) }
+        do {
+            let _: BackendModels.CellarSummary = try await client.get("api/cellars/7")
+            XCTFail("Expected missing-field decoding failure")
+        } catch let error as APIClientError {
+            guard case let .decoding(_, details) = error else { return XCTFail("Unexpected error: \(error)") }
+            XCTAssertTrue(details.contains("Missing field name"))
+        }
+
+        StubURLProtocol.handler = { _ in StubURLProtocol.response(status: 200, body: #"{"speaker":null,"text":"hello"}"#) }
+        do {
+            let _: BackendModels.TableMessage = try await client.get("api/message")
+            XCTFail("Expected null-field decoding failure")
+        } catch let error as APIClientError {
+            guard case let .decoding(_, details) = error else { return XCTFail("Unexpected error: \(error)") }
+            XCTAssertTrue(details.contains("Missing String"))
+        }
+    }
+
+    func testNonHTTPResponseIsRejected() async throws {
+        StubURLProtocol.handler = { request in
+            (URLResponse(url: try XCTUnwrap(request.url), mimeType: "text/plain", expectedContentLength: 0, textEncodingName: nil), Data())
+        }
+        let client = APIClient(baseURL: URL(string: "https://example.test")!, session: Self.stubSession)
+        do {
+            let _: BackendModels.User = try await client.get("api/me")
+            XCTFail("Expected invalid response")
+        } catch let error as APIClientError {
+            XCTAssertEqual(error.localizedDescription, "The server returned an invalid response.")
+        }
+    }
+
+    func testStreamsValidDataEventsAndIgnoresOtherLinesAndMalformedEvents() async throws {
+        StubURLProtocol.handler = { request in
+            XCTAssertEqual(request.httpMethod, "POST")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Content-Type"), "application/json")
+            return StubURLProtocol.response(status: 200, body: "event: message\ndata: {\"type\":\"delta\",\"text\":\"hello\"}\ndata: not-json\ndata: {\"type\":\"done\"}\n")
+        }
+        let client = APIClient(baseURL: URL(string: "https://example.test")!, session: Self.stubSession)
+        let stream = client.stream("api/ai/table", body: Data("{}".utf8))
+        var events: [BackendModels.TastingEvent] = []
+        for try await event in stream { events.append(event) }
+        XCTAssertEqual(events.map(\.type), ["delta", "done"])
+        XCTAssertEqual(events.first?.text, "hello")
+    }
+
+    func testGetDataReturnsRawResponseAndIncludesToken() async throws {
+        StubURLProtocol.handler = { request in
+            XCTAssertEqual(request.httpMethod, "GET")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer data-token")
+            return StubURLProtocol.response(status: 200, body: #"{"export":"ok"}"#)
+        }
+        let client = APIClient(baseURL: URL(string: "https://example.test")!, session: Self.stubSession)
+        client.token = "data-token"
+        let data = try await client.getData("api/me/export")
+        XCTAssertEqual(String(data: data, encoding: .utf8), #"{"export":"ok"}"#)
+    }
+
+    func testGetDataMapsUnauthorizedAndCallsHandler() async throws {
+        StubURLProtocol.handler = { _ in StubURLProtocol.response(status: 401, body: #"{"detail":"expired"}"#) }
+        let client = APIClient(baseURL: URL(string: "https://example.test")!, session: Self.stubSession)
+        client.token = "expired"
+        var wasCalled = false
+        client.onUnauthorized = { wasCalled = true }
+        do {
+            _ = try await client.getData("api/me/export")
+            XCTFail("Expected an unauthorized error")
+        } catch let error as APIClientError {
+            XCTAssertEqual(error.localizedDescription, "expired")
+        }
+        XCTAssertTrue(wasCalled)
+    }
+
+    private static var stubSession: URLSession { StubURLProtocol.session }
 }
 
 private extension JSONDecoder {
@@ -106,8 +235,8 @@ private extension JSONEncoder {
     }
 }
 
-private final class StubURLProtocol: URLProtocol {
-    static var handler: ((URLRequest) throws -> (HTTPURLResponse, Data))?
+final class StubURLProtocol: URLProtocol {
+    static var handler: ((URLRequest) throws -> (URLResponse, Data))?
 
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
@@ -125,8 +254,16 @@ private final class StubURLProtocol: URLProtocol {
 
     override func stopLoading() {}
 
-    static func response(status: Int, body: String) -> (HTTPURLResponse, Data) {
+    static let session: URLSession = {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [StubURLProtocol.self]
+        return URLSession(configuration: configuration)
+    }()
+
+    static func response(status: Int, body: String) -> (URLResponse, Data) {
         let response = HTTPURLResponse(url: URL(string: "https://example.test/api")!, statusCode: status, httpVersion: "HTTP/1.1", headerFields: ["Content-Type": "application/json"])!
         return (response, Data(body.utf8))
     }
 }
+
+private enum XCTError: Error { case missingRequestBody }
