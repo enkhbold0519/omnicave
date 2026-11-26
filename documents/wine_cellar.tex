@@ -1907,6 +1907,8 @@ This section describes the main use cases from the owner's point of view, each l
 
 \textbf{Region and account limits.} The AWS Free plan restricted the account to the Sydney region, so the planned move to Seoul was not possible within the project. The privacy policy states this overseas transfer, and the deployment can be recreated in another region from the repository.
 
+\textbf{Stale snapshots in removal simulation.} The bottle-removal simulator initially generated one camera snapshot after removing the selected bottle, reconciled that snapshot, and then reused the same snapshot for a second reconciliation. When the selected bottle had been hiding another bottle, the second reconciliation still saw the hidden bottle as missing, even though a real camera would reveal it after the first removal. As a result, continuous integration tests could report two removals when only one was expected. We fixed the simulation by selecting a bottle that is both removable and visible to the camera, removing it before generating the next snapshot, and then capturing a fresh snapshot for reconciliation. This allows previously hidden bottles behind the removed bottle to appear in the next scan. The existing insert, stack, move, and none events retain their behavior, while the two-consecutive-scan protection remains unchanged.
+
 \subsection{Current Limitations}\label{sec:limitations}
 \begin{itemize}
     \item In-cellar bottle detection was not tested with real hardware; the scans come from a simulator. Label reading uses a real text-detection service, but its accuracy was measured on simulated text, not on a set of real label photographs.
@@ -1929,11 +1931,12 @@ This section describes the main use cases from the owner's point of view, each l
 \end{itemize}
 
 \subsection{Teamwork and Lessons Learned}
-The four members divided the work by component: the backend, door display, Android application, and cloud deployment; the iOS application; the AI models; and the automated tests and continuous integration. A single shared API contract made this division possible, because each client could be built against the same endpoints in parallel, and the live server let every member test against real data from early in the project.
+At the beginning, we were eager to implement many features and sometimes documented requirements before validating whether our approaches were practical. We learned to balance ambition with available time and shift our focus to experimenting, testing, and refining the system incrementally. Work was divided by component: the backend, door display, Android application, and cloud deployment; the iOS application; the AI models; and automated testing and continuous integration. A shared API contract and live server allowed the clients to be developed in parallel and tested against real data. 
 
-Coordination was the hardest part. Members worked on different schedules and different operating systems (Windows, macOS, and Linux), and work merged late caused conflicts and duplicated effort. Moving all changes to branches and pull requests, with continuous integration running the tests on each one, made integration predictable in the second half of the project. We also learned to keep one name for each concept across the paper, the code, and the interface; for example, ``sommelier'' replaced three earlier terms.
+Coordination remained challenging because members worked on different schedules and operating systems (Windows, macOS, and Linux). Late integration initially caused conflicts and duplicated effort; adopting branches, pull requests, and continuous integration made merging more predictable. We also learned to use consistent terminology across the paper, code, and interface, such as standardising on ‘‘sommelier’’. 
 
-Technically, the main lesson was to measure before adding complexity: in several places a simple rule or table matched or beat a trained model, and the model was then used only where it added value. A second lesson was to design for missing hardware from the start, so that simulators and real devices share one interface. Finally, AI coding assistants sped up implementation considerably, but their output still had to be reviewed, tested, and checked against the requirements by the team.
+Technically, we learned to validate before adding complexity: simple rules or tables sometimes matched or outperformed trained models, so we used models where they added value. Designing simulators around the same interfaces as real hardware also made development possible without the physical cellar. Finally, AI coding assistants accelerated implementation, but their output still required team review, testing, and validation against the requirements.
+
 
 \begin{thebibliography}{00}
 \bibitem{vivino} Vivino. [Online]. Available: https://www.vivino.com
