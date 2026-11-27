@@ -48,13 +48,12 @@ if needed (see below).
 
 ## Demo pod with a network volume (`pod/demo_up.sh`)
 For demos, use one pod with a network volume on `/workspace` and **Stop** it between sessions, instead of
-terminating it. The pod id, and so the proxy URL, stays the same, and the venv, model cache, LoRAs,
-`data/pool.jsonl` and the gateway key all live on the volume. Bootstrap once with
-`git clone --depth 1 https://github.com/enkhbold0519/omnicave /workspace/omnicave/repo`, then copy `pool.jsonl` to
-`/workspace/omnicave/data/`. After each Start, run `bash /workspace/omnicave/repo/AI-7B/pod/demo_up.sh`. The first
-run takes about 10 minutes, later runs about 2. It serves the gateway on port 8888. The backend `.env` is
-`VLLM_BASE_URL=https://<pod-id>-8888.proxy.runpod.net/v1` and `VLLM_API_KEY=` the contents of
-`/workspace/omnicave/gateway_key`, and it is set once.
+terminating it. The pod id, and so the proxy URL (`https://<pod-id>-8888.proxy.runpod.net/v1`), stays the
+same, and the gateway key stays on the volume, so the backend `.env` is set once. RunPod's global volume is
+S3-backed (geesefs: no chmod or executables), so it holds only `gateway_key`, `data/pool.jsonl` (copy it from
+PC1) and logs. After each Start, run
+`curl -sLO https://raw.githubusercontent.com/enkhbold0519/omnicave/main/AI-7B/pod/demo_up.sh && bash demo_up.sh`.
+It installs vLLM and downloads the model and LoRAs into the container, which takes about 7.5 minutes on an A100.
 
 ## Serve the LoRAs on a RunPod pod (what "Sungbin starts the pod" means)
 1. Pod: RunPod PyTorch template, container disk >= 40 GB, TCP 22 exposed. Register an SSH public key in RunPod
