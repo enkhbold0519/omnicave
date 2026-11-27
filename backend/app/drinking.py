@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import re
+import time
 import unicodedata
 from datetime import date
 from functools import lru_cache
@@ -220,6 +221,8 @@ def check_explanation(text: str, wine: dict, year: int, ev: dict) -> list[str]:
 
 
 _explained: dict[tuple, str] = {}   # model notes that passed the check, per wine and window
+_failed: dict[tuple, float] = {}    # wines whose note failed: monotonic time before which the model is not asked again
+RETRY_AFTER = 600                   # seconds
 
 
 def explanation(wine: dict, year: int) -> dict:
@@ -230,9 +233,13 @@ def explanation(wine: dict, year: int) -> dict:
         return fixed
     key = (wine.get("producer"), wine.get("name"), wine.get("vintage"), wine["drink_from"], wine["drink_to"], year)
     if key not in _explained:
+        if time.monotonic() < _failed.get(key, 0):
+            return fixed   # the model failed for this wine a moment ago: don't make the user wait again
         reply = "".join(llm.stream_chat(explain_messages(wine, year, ev), "", temperature=0, max_tokens=180)).strip()
         if not reply or check_explanation(reply, wine, year, ev):
-            return fixed   # not cached: the next request tries the model again (e.g. once the pod is up)
+            # remembered only for a while, so the model is tried again later (e.g. once the pod is up)
+            _failed[key] = time.monotonic() + RETRY_AFTER
+            return fixed
         _explained[key] = reply
     return {"text": _explained[key], "source": "model"}
 

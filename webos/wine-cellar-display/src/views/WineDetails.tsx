@@ -92,7 +92,11 @@ export default function WineDetails({ bottle, onClose, onFind, onMove, onEdit, o
           <WindowBadge s={sel.window_status} />
           {w.drink_from && w.drink_to && <span className="fg-2">Best {w.drink_from}–{w.drink_to}</span>}
         </div>
-        {(note?.text ?? sel.drinking_advice) && <p className="fg-2">{note?.text ?? sel.drinking_advice}</p>}
+        {/* the model's note replaces the fixed line when it arrives: fade it in (new key) instead of a sudden swap */}
+        {(note?.text ?? sel.drinking_advice) &&
+          <p key={note?.source === 'model' ? 'model' : 'fixed'} className={`fg-2 ${note?.source === 'model' ? 'note-in' : ''}`}>
+            {note?.text ?? sel.drinking_advice}
+          </p>}
       </div>
 
       <section>

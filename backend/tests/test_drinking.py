@@ -69,6 +69,9 @@ def test_explanation_uses_model_only_when_it_passes(monkeypatch):
     assert ev["young"][0] in seen["msgs"][1]["content"]
     good = f"Ready now; open it by 2040. It shows {ev['young'][0]} now and {ev['mature'][0]} with age."
     monkeypatch.setattr(drinking.llm, "stream_chat", lambda *a, **k: iter([good]))
+    # a failed note is remembered for RETRY_AFTER seconds, so the next request answers at once without the model
+    assert drinking.explanation(w, 2026)["source"] == "template"
+    monkeypatch.setattr(drinking.time, "monotonic", lambda: 1e12)   # retry window over
     assert drinking.explanation(w, 2026) == {"text": good, "source": "model"}
 
 

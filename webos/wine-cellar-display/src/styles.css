@@ -462,6 +462,8 @@ code { font-family: Consolas, monospace !important; font-size: 0.9em; color: var
 .detail-page { position: absolute; inset: 0; background: #000; z-index: 4; animation: page-in 220ms var(--ease-out); }
 @keyframes page-in { from { opacity: 0; transform: translateX(24px); } }
 .detail-page .page-head { margin-bottom: calc(-1 * var(--s3)); }
+.note-in { animation: note-in 400ms var(--ease-out); }
+@keyframes note-in { from { opacity: 0; } }
 .detail-page section { display: flex; flex-direction: column; flex-shrink: 0; }
 .detail-page section > h3 { margin-bottom: var(--s1); }
 .detail-hero { display: flex; flex-direction: column; gap: var(--s2); flex-shrink: 0; padding-bottom: var(--s2); }

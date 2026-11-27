@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { OfflineError, stream } from './api'
 import type { Bottle, LlmInfo, Market, StreamEvent, Wine } from './types'
 
+const FLUSH_MS = 100   // how often streamed text reaches the screen
+
 export interface Turn { persona: string; name: string; title: string; color: string; adapter?: string; text: string; done: boolean }
 
 /** Runs one SSE request and accumulates text, structured items and debate turns. */
@@ -25,19 +27,35 @@ export function useStream() {
     setText(''); setItems([]); setPurchase([]); setTurns([]); setError(null); setRunning(true); setFirstTokenMs(null)
     const t0 = performance.now()
     let first = true
+    // Tokens arrive many times a second. Setting state for each one re-renders the whole screen per token, which
+    // stutters on the TV, so text is collected here and handed to React at most every FLUSH_MS.
+    let pendText = ''
+    let pendTurn = ''
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const flush = () => {
+      if (timer) { clearTimeout(timer); timer = null }
+      if (c.signal.aborted) return
+      if (pendText) { const add = pendText; pendText = ''; setText(s => s + add) }
+      if (pendTurn) {
+        const add = pendTurn; pendTurn = ''
+        setTurns(ts => ts.map((t, i) => (i === ts.length - 1 ? { ...t, text: t.text + add } : t)))
+      }
+    }
     const onEvent = (e: StreamEvent) => {
       if (c.signal.aborted) return
       switch (e.type) {
         case 'items': setItems(e.items); setPurchase(e.purchase ?? []); break
         case 'meta': setProvider(e.provider); break
-        case 'turn': setTurns(ts => [...ts, { persona: e.persona, name: e.name, title: e.title, color: e.color, adapter: e.adapter, text: '', done: false }]); break
-        case 'turn_end': setTurns(ts => ts.map(t => (t.persona === e.persona ? { ...t, done: true } : t))); break
+        // a new turn or a turn's end: first hand over the text of the turn before it
+        case 'turn': flush(); setTurns(ts => [...ts, { persona: e.persona, name: e.name, title: e.title, color: e.color, adapter: e.adapter, text: '', done: false }]); break
+        case 'turn_end': flush(); setTurns(ts => ts.map(t => (t.persona === e.persona ? { ...t, done: true } : t))); break
         case 'delta':
           if (first) { first = false; setFirstTokenMs(Math.round(performance.now() - t0)) }
-          if (e.persona) setTurns(ts => ts.map((t, i) => (i === ts.length - 1 ? { ...t, text: t.text + e.text } : t)))
-          else setText(s => s + e.text)
+          if (e.persona) pendTurn += e.text
+          else pendText += e.text
+          if (!timer) timer = setTimeout(flush, FLUSH_MS)
           break
-        case 'error': setError(e.message); break
+        case 'error': flush(); setError(e.message); break
       }
     }
     try {
@@ -45,6 +63,7 @@ export function useStream() {
     } catch (e) {
       if ((e as Error).name !== 'AbortError') setError(e instanceof OfflineError ? 'Cloud AI unavailable while offline' : (e as Error).message)
     } finally {
+      flush()
       if (ctrl.current === c) setRunning(false)
     }
   }, [])
