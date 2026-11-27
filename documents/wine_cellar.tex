@@ -1217,8 +1217,9 @@ The repository is one monorepo (Table~\ref{tab:directories}); Tables~\ref{tab:di
 \hline
 \textbf{Directory} & \textbf{File Name} \\
 \hline \texttt{mobile/ios/} & Package.swift \\
-\hline \texttt{mobile/ios/OmniCave/} & OmniCaveApp.swift\newline AppModel.swift\newline Services.swift\newline BackendModels.swift\newline Models.swift\newline Views.swift \\
-\hline \texttt{mobile/ios/OmniCaveTests/} & APIClientTests.swift \\
+\hline \texttt{mobile/ios/OmniCave/} & OmniCaveApp.swift\newline AppModel.swift\newline Services.swift\newline BackendModels.swift\newline Models.swift\newline Views.swift\newline PackageSupport.swift \\
+\hline \texttt{mobile/ios/OmniCaveTests/} & APIClientTests.swift\newline BackendModelTests.swift\newline MockServiceTests.swift\newline BackendService\allowbreak IntegrationTests.swift \\
+\hline \texttt{mobile/ios/\allowbreak OmniCaveUITests/} & CellarJourneyUITests.swift \\
 \hline
 \end{tabularx}
 \end{minipage}\par\smallskip
@@ -1334,8 +1335,8 @@ The repository is one monorepo (Table~\ref{tab:directories}); Tables~\ref{tab:di
     \item \texttt{Android src/test/}: unit tests for the JSON models.
     \item \texttt{iOS Services.swift}: backend client: REST, streaming, and live updates.
     \item \texttt{iOS AppModel.swift, BackendModels.swift}: app state and actions; the backend's JSON shapes.
-    \item \texttt{iOS Views.swift, OmniCaveApp.swift}: all SwiftUI screens; app entry point and server address.
-    \item \texttt{iOS OmniCaveTests/}: unit tests for the API client.
+    \item \texttt{iOS Views.swift, OmniCaveApp.swift}: all SwiftUI screens, including the cellar map and 3D view; app entry point and server address.
+    \item \texttt{iOS OmniCaveTests/, OmniCaveUITests/}: unit and integration tests for the JSON models, offline mode, and API client; one UI test of the cellar screen.
 \end{itemize}
 
 \textbf{Technologies.} Kotlin 2.2, Jetpack Compose, OkHttp; Swift, SwiftUI, URLSession, Keychain.
@@ -1613,7 +1614,7 @@ Every push and pull request runs five GitHub Actions jobs (Table~\ref{tab:tests}
 \hline Backend (pytest) & 66 & Accounts, consents, security, inventory, geometry, vision reconciliation, label reading, devices, climate, AI, own sommeliers, LLM fallback, live sync, drinking windows, news briefing, market prices; CI on SQLite and PostgreSQL \\
 \hline Door display (Vitest) & 18 & Sommelier score badges and verdict, offline cache and write queue, logout clean-up, sign-up reply, screen saver; CI before every build \\
 \hline Android (JUnit) & 11 & JSON models; CI compiles the app and runs the tests \\
-\hline iOS (XCTest) & 5 & API client; run in Xcode on macOS \\
+\hline iOS (XCTest) & 30 & JSON models, offline mode, API client against stubbed HTTP, one UI journey (sign-in, cellar, 3D view); run on macOS \\
 \hline AI prompt check & 1 & Served debate prompt equals the training prompt; CI \\
 \hline
 \end{tabularx}
@@ -1931,9 +1932,9 @@ This section describes the main use cases from the owner's point of view, each l
 \end{itemize}
 
 \subsection{Teamwork and Lessons Learned}
-At the beginning, we were eager to implement many features and sometimes documented requirements before validating whether our approaches were practical. We learned to balance ambition with available time and shift our focus to experimenting, testing, and refining the system incrementally. Work was divided by component: the backend, door display, Android application, and cloud deployment; the iOS application; the AI models; and automated testing and continuous integration. A shared API contract and live server allowed the clients to be developed in parallel and tested against real data. 
+At the beginning, we were eager to implement many features and sometimes documented requirements before validating whether our approaches were practical. We learned to balance ambition with available time and shift our focus to experimenting, testing, and refining the system incrementally. Work was divided by component: the backend, door display, Android application, and cloud deployment; the iOS application; the AI models; and automated testing and continuous integration. A shared API contract and live server allowed the clients to be developed in parallel and tested against real data.
 
-Coordination remained challenging because members worked on different schedules and operating systems (Windows, macOS, and Linux). Late integration initially caused conflicts and duplicated effort; adopting branches, pull requests, and continuous integration made merging more predictable. We also learned to use consistent terminology across the paper, code, and interface, such as standardising on ‘‘sommelier’’. 
+Coordination remained challenging because members worked on different schedules and operating systems (Windows, macOS, and Linux). Late integration initially caused conflicts and duplicated effort; adopting branches, pull requests, and continuous integration made merging more predictable. We also learned to use consistent terminology across the paper, code, and interface, such as standardizing on ``sommelier''.
 
 Technically, we learned to validate before adding complexity: simple rules or tables sometimes matched or outperformed trained models, so we used models where they added value. Designing simulators around the same interfaces as real hardware also made development possible without the physical cellar. Finally, AI coding assistants accelerated implementation, but their output still required team review, testing, and validation against the requirements.
 
