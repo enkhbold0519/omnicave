@@ -33,7 +33,8 @@ TONES = {"formal": "formal", "warm": "warm", "playful": "playful", "blunt": "blu
 STRICT = {1: "generous", 2: "kind", 3: "balanced", 4: "exacting", 5: "severe"}
 COLORS = ["#7A3340", "#2F5D50", "#3E4F7A", "#7A5A2B", "#5B3F6E", "#2E6070", "#6B4A3A", "#4A4F55"]
 MAX_TABLE = 5
-LANG_HINT = "Answer in the same language as the owner (Korean if they write Korean)."
+# The apps are English-only, so every sommelier answers in English, whatever language the owner or the memory uses.
+LANG_HINT = "Always answer in English, even if the owner writes in another language. Never switch languages mid-answer."
 
 
 # ---------------------------------------------------------------- personas
