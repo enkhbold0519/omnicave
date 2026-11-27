@@ -385,6 +385,8 @@ def _flavor_score(w: dict, text: str) -> float:
 # AI (LLM) — every function yields SSE event dicts
 # =====================================================================
 LANG_HINT = "Answer in the same language as the user's request (Korean if the user writes Korean). Be concise."
+# LANG_HINT stays only in the debate prompt below (the LoRAs were trained on it). Everything else answers in English.
+ENGLISH = "Always answer in English, even if the user writes in another language. Never switch languages mid-answer. Be concise."
 
 
 def _inventory_context(c, uid: int, limit: int = 40) -> str:
@@ -426,7 +428,7 @@ def ai_meal_pairing(user: dict, body: dict) -> Iterator[dict]:
         f"{_wine_label(b)} ({_loc(b)}) — {b['color']} {b['grape']} matches the dish's weight" for b in ranked
     ) + ". Serve reds slightly cool (14–16°C) and whites at 8–10°C."
     msgs = [
-        {"role": "system", "content": f"You are a sommelier for a home wine cellar. Recommend ONLY bottles from the inventory, cite their location. {LANG_HINT}"},
+        {"role": "system", "content": f"You are a sommelier for a home wine cellar. Recommend ONLY bottles from the inventory, cite their location. {ENGLISH}"},
         {"role": "user", "content": f"Inventory:\n{ctx}\n\nMeal: {meal}\nRank the best 3 bottles and explain each pairing in one or two sentences."},
     ]
     yield from _stream_text(msgs, fb)
@@ -447,7 +449,7 @@ def ai_wine_pairing(user: dict, body: dict) -> Iterator[dict]:
           f"2) {ideas[1]} — keep seasoning gentle so the {w['grape']} fruit stays in front. "
           f"Delivery category tonight: {ideas[2]}.")
     msgs = [
-        {"role": "system", "content": f"You are a sommelier and chef. {LANG_HINT}"},
+        {"role": "system", "content": f"You are a sommelier and chef. {ENGLISH}"},
         {"role": "user", "content": f"Wine: {label} ({w['color']}, {w['grape']}, {w['region']}). "
                                     "Suggest 2 dishes with a short recipe outline each, and 1 food-delivery menu category."},
     ]
@@ -475,7 +477,7 @@ def ai_curate(user: dict, body: dict) -> Iterator[dict]:
           f"from your cellar — {', '.join(_wine_label(b) for b in owned) or 'nothing fits'}; "
           f"worth buying — {', '.join(w['producer'] + ' ' + w['name'] for w in buy) or 'none in budget'}.")
     msgs = [
-        {"role": "system", "content": f"You curate wine lists. {LANG_HINT}"},
+        {"role": "system", "content": f"You curate wine lists. {ENGLISH}"},
         {"role": "user", "content": f"Constraints: budget per bottle {budget or 'any'} USD, flavor '{flavor}', event theme '{theme}'.\n"
                                     f"From cellar: {[_wine_label(b) for b in owned]}\nTo buy: {[w['producer'] + ' ' + w['name'] for w in buy]}\n"
                                     "Write a short serving order for the event and why each wine fits."},
@@ -505,7 +507,7 @@ def ai_personal(user: dict, body: dict) -> Iterator[dict]:
     fb = (f"You've opened {prof['total']} bottles, mostly {', '.join(k for k, _ in prof['colors']) or '—'} from "
           f"{', '.join(k for k, _ in prof['regions']) or '—'}. Tonight's picks: " + "; ".join(_wine_label(b) for b in picks) + ".")
     msgs = [
-        {"role": "system", "content": f"You are a personal sommelier. Use the user's drinking history. {LANG_HINT}"},
+        {"role": "system", "content": f"You are a personal sommelier. Use the user's drinking history. {ENGLISH}"},
         {"role": "user", "content": f"{uctx}\nInventory:\n{ctx}\nRecommend 3 bottles for this week and explain the link to their history."},
     ]
     yield from _stream_text(msgs, fb)
@@ -523,7 +525,7 @@ def ai_ask(user: dict, body: dict) -> Iterator[dict]:
           "check the Ready-to-drink list. Set LLM_PROVIDER=openai or vllm in backend/.env for real AI answers.")
     msgs = [
         {"role": "system", "content": f"You are the AI sommelier inside a smart wine cellar. Prefer bottles from the inventory and cite location; "
-                                      f"if suggesting purchases, say so. {LANG_HINT}"},
+                                      f"if suggesting purchases, say so. {ENGLISH}"},
         {"role": "user", "content": f"{uctx}\nInventory:\n{ctx}\n\nQuestion: {q}"},
     ]
     yield from _stream_text(msgs, fb, max_tokens=450)
