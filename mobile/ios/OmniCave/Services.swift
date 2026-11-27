@@ -64,7 +64,13 @@ final class MockService: AppService {
     static let demoEmail = "test@omnicave.app"
     static let demoPassword = "Cellar123!"
     private struct SavedUser: Codable { var email: String; var salt: String; var digest: String; var username: String? = nil }
-    private let defaults = UserDefaults.standard
+    private let defaults: UserDefaults
+    init(defaults: UserDefaults = .standard) { self.defaults = defaults }
+    static func resetForUITests() {
+        for key in UserDefaults.standard.dictionaryRepresentation().keys where key.hasPrefix("mock.") {
+            UserDefaults.standard.removeObject(forKey: key)
+        }
+    }
     private var signedIn: String? { defaults.string(forKey: "mock.signedIn") }
     func restoreSession() async -> Account? { signedIn.map(Account.init(email:)) }
     private var accounts: [SavedUser] {
@@ -545,11 +551,11 @@ final class BackendService: AppService {
         }
     }
 
-    init(baseURL: URL, session: URLSession = .shared) {
+    init(baseURL: URL, session: URLSession = .shared, useKeychain: Bool = true) {
         self.baseURL = baseURL
         self.session = session
         self.api = APIClient(baseURL: baseURL, session: session)
-        self.token = Keychain.read()
+        self.token = useKeychain ? Keychain.read() : nil
         self.api.token = self.token
         self.api.onUnauthorized = { [weak self] in
             self?.token = nil

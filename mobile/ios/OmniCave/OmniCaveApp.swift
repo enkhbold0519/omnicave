@@ -3,9 +3,15 @@ import UIKit
 
 @main
 struct OmniCaveApp: App {
-    @StateObject private var model = AppModel(service: AppConfig.useMock ? MockService() : BackendService(baseURL: AppConfig.backendURL))
+    @StateObject private var model: AppModel
     @AppStorage("appearance") private var appearance = "system"
     @Environment(\.scenePhase) private var scenePhase
+
+    init() {
+        let isUITesting = ProcessInfo.processInfo.arguments.contains("--ui-testing")
+        if ProcessInfo.processInfo.arguments.contains("--ui-testing-reset") { MockService.resetForUITests() }
+        _model = StateObject(wrappedValue: AppModel(service: isUITesting ? MockService() : BackendService(baseURL: AppConfig.backendURL)))
+    }
 
     var body: some Scene {
         WindowGroup {
@@ -23,7 +29,9 @@ struct OmniCaveApp: App {
 }
 
 enum AppConfig {
-    static let useMock = false // Set to true to run offline with the sample data in MockService.
+    static var useMock: Bool {
+        ProcessInfo.processInfo.arguments.contains("--ui-testing")
+    }
     static let backendURL = URL(string: "https://54-206-251-224.sslip.io")!
 }
 

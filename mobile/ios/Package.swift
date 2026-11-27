@@ -9,8 +9,8 @@ let package = Package(
         .target(
             name: "OmniCaveBackend",
             path: "OmniCave",
-            exclude: ["AppModel.swift", "Info.plist", "Models.swift", "OmniCaveApp.swift", "README.md", "Services.swift", "Views.swift"],
-            sources: ["BackendModels.swift"]
+            exclude: ["AppModel.swift", "Info.plist", "Models.swift", "OmniCaveApp.swift", "README.md", "Views.swift"],
+            sources: ["BackendModels.swift", "PackageSupport.swift", "Services.swift"]
         ),
         .testTarget(
             name: "OmniCaveBackendTests",

@@ -435,6 +435,7 @@ struct CellarView: View {
     @State private var selectedBottle: BackendModels.Bottle?
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var selectedDetection: BackendModels.LabelDetection?
+    @State private var cellarViewMode = 0
 
     var body: some View {
         NavigationStack {
@@ -468,9 +469,19 @@ struct CellarView: View {
                         if let cellar = model.backendCellar {
                             Text("\(cellar.bottles?.count ?? 0) bottles · \(Int(cellar.widthCm ?? 120)) × \(Int(cellar.heightCm ?? 200)) × \(Int(cellar.depthCm ?? 60)) cm")
                                 .font(.forest(14)).foregroundStyle(.forestSecondary)
-                            CellarMapView(cellar: cellar) { selectedBottle = $0 }
-                                .padding(18).background(.forestCabinet, in: RoundedRectangle(cornerRadius: 20))
-                                .overlay(RoundedRectangle(cornerRadius: 20).stroke(.forestCabinetRail, lineWidth: 8))
+                            Picker("Cellar view", selection: $cellarViewMode) {
+                                Text("3D view").tag(0)
+                                Text("Map").tag(1)
+                            }.pickerStyle(.segmented)
+                            Group {
+                                if cellarViewMode == 0 {
+                                    Cellar3DView(cellar: cellar) { selectedBottle = $0 }
+                                } else {
+                                    CellarMapView(cellar: cellar) { selectedBottle = $0 }
+                                }
+                            }
+                            .padding(18).background(.forestCabinet, in: RoundedRectangle(cornerRadius: 20))
+                            .overlay(RoundedRectangle(cornerRadius: 20).stroke(.forestCabinetRail, lineWidth: 8))
                             Text("Tap a bottle to see its details.").font(.forest(13)).foregroundStyle(.forestMuted)
                         } else if model.busy { ProgressView().tint(.forestAccent) }
                     } else {
@@ -662,6 +673,121 @@ private struct CellarMapView: View {
     }
 
     private func wineColor(_ color: String?) -> Color {
+        switch color?.lowercased() {
+        case "white": .forestWarning
+        case "rose", "rosé": .pink
+        case "sparkling": .forestAccent
+        default: .forestDanger
+        }
+    }
+}
+
+/// Interactive perspective view of the cellar, matching the webOS cabinet view.
+private struct Cellar3DView: View {
+    let cellar: BackendModels.Cellar
+    let openBottle: (BackendModels.Bottle) -> Void
+    @State private var yaw = -0.55
+    @State private var pitch = 0.32
+    @State private var dragStart: (CGPoint, Double, Double)?
+
+    var body: some View {
+        GeometryReader { proxy in
+        Canvas { context, size in
+            let w = max(cellar.widthCm ?? 120, 1), h = max(cellar.heightCm ?? 200, 1), d = max(cellar.depthCm ?? 60, 1)
+            let distance = max(w, h, d) * 2.4
+            let focal = min(size.width, size.height * 0.9) * 0.48 * distance / (max(w, h) * 0.55)
+            func project(_ x: Double, _ y: Double, _ z: Double) -> CGPoint {
+                let xx = x - w / 2, yy = y - h / 2, zz = z - d / 2
+                let rx = xx * cos(yaw) + zz * sin(yaw)
+                let rz = -xx * sin(yaw) + zz * cos(yaw)
+                let ry = yy * cos(pitch) - rz * sin(pitch)
+                let depth = yy * sin(pitch) + rz * cos(pitch)
+                let scale = focal / (distance + depth)
+                return CGPoint(x: size.width / 2 + rx * scale, y: size.height / 2 - ry * scale)
+            }
+            func polygon(_ points: [(Double, Double, Double)], fill: Color, stroke: Color? = nil) {
+                var path = Path()
+                for (index, point) in points.enumerated() {
+                    let p = project(point.0, point.1, point.2)
+                    if index == 0 { path.move(to: p) } else { path.addLine(to: p) }
+                }
+                path.closeSubpath()
+                context.fill(path, with: .color(fill))
+                if let stroke { context.stroke(path, with: .color(stroke), lineWidth: 1) }
+            }
+            // Cabinet walls and floor, drawn as a smoked-glass enclosure.
+            polygon([(0,0,d),(w,0,d),(w,h,d),(0,h,d)], fill: Color.forestCabinetInset, stroke: Color.white.opacity(0.15))
+            polygon([(0,0,0),(0,0,d),(0,h,d),(0,h,0)], fill: Color.forestCabinet.opacity(0.8), stroke: Color.white.opacity(0.12))
+            polygon([(0,0,0),(w,0,0),(w,0,d),(0,0,d)], fill: Color.forestCabinetRail.opacity(0.8))
+
+            let shelves = (cellar.racks ?? []).filter { $0.kind == "shelf" }
+            for rack in shelves {
+                let y = rack.yCm ?? 0, depth = rack.depthCm ?? d
+                polygon([(0,y,2),(w,y,2),(w,y,depth),(0,y,depth)], fill: Color.white.opacity(0.045))
+                var rail = Path(); rail.move(to: project(0,y,2)); rail.addLine(to: project(w,y,2))
+                context.stroke(rail, with: .color(Color.white.opacity(0.35)), lineWidth: 2)
+            }
+
+            let bottles = cellar.bottles ?? []
+            let shelfYs = shelves.compactMap(\.yCm).sorted()
+            let columns = max(Int(w / 14), 1)
+            let positions = bottles.enumerated().map { index, bottle -> (BackendModels.Bottle, Double, Double, Double) in
+                let fallbackY = shelfYs.isEmpty ? h * Double(index + 1) / Double(bottles.count + 1) : shelfYs[index % shelfYs.count] + 5
+                let fallbackX = 12 + Double((index / max(shelfYs.count, 1)) % columns) * 14
+                return (bottle, bottle.x ?? fallbackX, bottle.y ?? fallbackY, bottle.z ?? 5)
+            }
+            for (bottle, x, y, z) in positions {
+                let center = project(x, y, z + 15)
+                let radius = max(6, min(size.width, size.height) * 0.026)
+                let rect = CGRect(x: center.x-radius, y: center.y-radius, width: radius*2, height: radius*2)
+                context.fill(Path(ellipseIn: rect), with: .color(cellarWineColor(bottle.wine.color).opacity(0.92)))
+                context.stroke(Path(ellipseIn: rect), with: .color(.white.opacity(0.65)), lineWidth: 1.5)
+            }
+        }
+        .contentShape(Rectangle())
+        .gesture(DragGesture(minimumDistance: 0)
+            .onChanged { value in
+                if dragStart == nil { dragStart = (value.startLocation, yaw, pitch) }
+                guard let start = dragStart else { return }
+                yaw = start.1 + Double(value.translation.width) * 0.008
+                pitch = min(1.35, max(-1.2, start.2 + Double(value.translation.height) * 0.006))
+            }
+            .onEnded { value in
+                let start = dragStart
+                dragStart = nil
+                guard hypot(value.translation.width, value.translation.height) < 10, let start else { return }
+                let point = start.0
+                let targets = bottleTargets(size: proxy.size)
+                if let hit = targets.min(by: { hypot($0.0.x-point.x, $0.0.y-point.y) < hypot($1.0.x-point.x, $1.0.y-point.y) }),
+                   hypot(hit.0.x-point.x, hit.0.y-point.y) < 32 { openBottle(hit.1) }
+            })
+        .accessibilityLabel("Interactive 3D cellar. Drag to rotate; tap a bottle for details.")
+        }
+        .aspectRatio(0.8, contentMode: .fit)
+    }
+
+    private func bottleTargets(size: CGSize) -> [(CGPoint, BackendModels.Bottle)] {
+        let w = max(cellar.widthCm ?? 120, 1), h = max(cellar.heightCm ?? 200, 1), d = max(cellar.depthCm ?? 60, 1)
+        let distance = max(w, h, d) * 2.4
+        let focal = min(size.width, size.height * 0.9) * 0.48 * distance / (max(w, h) * 0.55)
+        func project(_ x: Double, _ y: Double, _ z: Double) -> CGPoint {
+            let xx = x - w / 2, yy = y - h / 2, zz = z - d / 2
+            let rx = xx * cos(yaw) + zz * sin(yaw), rz = -xx * sin(yaw) + zz * cos(yaw)
+            let ry = yy * cos(pitch) - rz * sin(pitch), depth = yy * sin(pitch) + rz * cos(pitch)
+            let scale = focal / (distance + depth)
+            return CGPoint(x: size.width / 2 + rx * scale, y: size.height / 2 - ry * scale)
+        }
+        let bottles = cellar.bottles ?? []
+        let shelfYs = (cellar.racks ?? []).filter { $0.kind == "shelf" }.compactMap(\.yCm).sorted()
+        let columns = max(Int(w / 14), 1)
+        return bottles.enumerated().map { index, bottle in
+            let fallbackY = shelfYs.isEmpty ? h * Double(index + 1) / Double(bottles.count + 1) : shelfYs[index % shelfYs.count] + 5
+            let fallbackX = 12 + Double((index / max(shelfYs.count, 1)) % columns) * 14
+            return (project(bottle.x ?? fallbackX, bottle.y ?? fallbackY, (bottle.z ?? 5) + 15), bottle)
+        }
+    }
+
+    private func cellarWineColor(_ color: String?) -> Color {
         switch color?.lowercased() {
         case "white": .forestWarning
         case "rose", "rosé": .pink
